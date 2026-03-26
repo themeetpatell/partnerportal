@@ -1,145 +1,206 @@
 import Link from "next/link"
-import { ArrowRight, BarChart3, Users, Zap } from "lucide-react"
+import {
+  ArrowRight,
+  BadgeCheck,
+  BarChart3,
+  BriefcaseBusiness,
+  CircleDollarSign,
+  ShieldCheck,
+  Sparkles,
+  Users,
+} from "lucide-react"
+
+const metrics = [
+  { label: "Partner models", value: "2", detail: "Referral or channel engagement" },
+  { label: "Service lines", value: "6+", detail: "Finance, tax, formation, and advisory" },
+  { label: "Tracking cadence", value: "Live", detail: "Lead and commission visibility in one place" },
+]
+
+const featureGroups = [
+  {
+    icon: Users,
+    title: "Channel-ready workflows",
+    description:
+      "Capture qualified opportunities, hand off service requests, and keep your client handover clean.",
+  },
+  {
+    icon: CircleDollarSign,
+    title: "Commission clarity",
+    description:
+      "See what is pending, approved, and paid without waiting on spreadsheet updates or back-and-forth.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Built for trust",
+    description:
+      "A polished partner workspace that makes Finanshels feel like a serious operating partner, not a form inbox.",
+  },
+]
+
+const workflow = [
+  "Apply in a guided flow tailored to your partner model.",
+  "Submit leads or service requests in a clean workspace.",
+  "Track status, approvals, and earnings from one control surface.",
+]
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
-      {/* Navigation */}
-      <nav className="border-b border-zinc-800/60 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">F</span>
-            </div>
-            <span className="text-zinc-100 font-semibold text-lg tracking-tight">
-              Finanshels
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/sign-in"
-              className="text-zinc-400 hover:text-zinc-100 text-sm font-medium transition-colors px-3 py-1.5 rounded-md hover:bg-zinc-800"
-            >
-              Sign In
-            </Link>
-            <Link
-              href="/register"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-1.5 rounded-md transition-colors"
-            >
-              Become a Partner
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-24">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-blue-950/50 border border-blue-800/50 text-blue-400 text-xs font-medium px-3 py-1.5 rounded-full mb-8">
-            <Zap className="w-3.5 h-3.5" />
-            Partner Portal
-          </div>
-
-          {/* Heading */}
-          <h1 className="text-5xl md:text-6xl font-bold text-white tracking-tight leading-tight mb-6">
-            Grow your business
-            <br />
-            <span className="text-blue-400">with Finanshels</span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-zinc-400 text-lg md:text-xl leading-relaxed mb-10 max-w-2xl mx-auto">
-            Join our partner network to refer clients, manage service requests,
-            and earn commissions — all from one powerful dashboard.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/sign-in"
-              className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium px-6 py-3 rounded-lg transition-colors border border-zinc-700 w-full sm:w-auto justify-center"
-            >
-              Sign In
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/register"
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-lg transition-colors w-full sm:w-auto justify-center"
-            >
-              Become a Partner
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="max-w-4xl mx-auto mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
-          {[
-            {
-              icon: Users,
-              title: "Referral & Channel Partners",
-              description:
-                "Two partnership models to fit how you work — refer clients or resell our services directly.",
-            },
-            {
-              icon: BarChart3,
-              title: "Real-time Commission Tracking",
-              description:
-                "Track every lead, deal, and commission in real time. Know exactly what you've earned.",
-            },
-            {
-              icon: Zap,
-              title: "Fast Onboarding",
-              description:
-                "Referral partners are approved instantly. Channel partners go through a quick review process.",
-            },
-          ].map((feature) => (
-            <div
-              key={feature.title}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl p-6"
-            >
-              <div className="w-10 h-10 rounded-lg bg-blue-950/80 border border-blue-800/40 flex items-center justify-center mb-4">
-                <feature.icon className="w-5 h-5 text-blue-400" />
+    <div className="page-wrap min-h-screen px-5 py-5 sm:px-8 lg:px-10">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-7xl flex-col gap-6">
+        <nav className="surface-card rounded-[1.8rem] px-5 py-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#58d5c4] via-[#83f2e0] to-[#f2bc74] text-sm font-black text-[#08111f] shadow-[0_16px_40px_rgba(88,213,196,0.26)]">
+                F
               </div>
-              <h3 className="text-zinc-100 font-semibold mb-2">
-                {feature.title}
-              </h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">
-                {feature.description}
-              </p>
+              <div>
+                <p className="font-heading text-lg font-semibold text-white">
+                  Finanshels
+                </p>
+                <p className="text-xs uppercase tracking-[0.28em] text-slate-400">
+                  Partner Portal
+                </p>
+              </div>
             </div>
-          ))}
-        </div>
-      </main>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/60 px-6 py-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">F</span>
+            <div className="hidden items-center gap-3 md:flex">
+              <span className="tag-pill">Live partner workspace</span>
+              <Link href="/sign-in" className="secondary-button">
+                Sign in
+              </Link>
+              <Link href="/register" className="primary-button">
+                Become a partner
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            <span className="text-zinc-500 text-sm">
-              © 2025 Finanshels. All rights reserved.
-            </span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link
-              href="/sign-in"
-              className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
-            >
-              Sign In
+
+            <Link href="/register" className="primary-button md:hidden">
+              Join
             </Link>
-            <Link
-              href="/register"
-              className="text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
-            >
+          </div>
+        </nav>
+
+        <main className="grid flex-1 gap-6 lg:grid-cols-[1.25fr_0.9fr]">
+          <section className="surface-card-strong relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-8 sm:py-12 lg:px-10">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+            <div className="absolute -left-16 top-16 h-40 w-40 rounded-full bg-[#58d5c4]/10 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-[#f2bc74]/10 blur-3xl" />
+
+            <div className="relative max-w-3xl">
+              <div className="eyebrow mb-6">
+                <Sparkles className="h-3.5 w-3.5" />
+                Revenue-grade partner experience
+              </div>
+
+              <h1 className="hero-title max-w-3xl text-white">
+                Build a sharper partner motion with a portal that actually feels premium.
+              </h1>
+
+              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
+                Finanshels partners can register, submit qualified opportunities,
+                request services for clients, and monitor commissions from a
+                workspace designed to feel credible from the first screen.
+              </p>
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/register" className="primary-button">
+                  Start your application
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/sign-in" className="secondary-button">
+                  Open the dashboard
+                </Link>
+              </div>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-3">
+                {metrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="surface-card rounded-[1.6rem] px-4 py-5"
+                  >
+                    <p className="font-heading text-3xl font-semibold text-white">
+                      {metric.value}
+                    </p>
+                    <p className="mt-2 text-sm font-medium text-slate-200">
+                      {metric.label}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      {metric.detail}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="flex flex-col gap-6">
+            <div className="surface-card rounded-[2rem] p-6 sm:p-7">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8ce7db]">
+                    Control room
+                  </p>
+                  <h2 className="font-heading mt-2 text-2xl font-semibold text-white">
+                    Built for disciplined partner operations
+                  </h2>
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/5 p-3">
+                  <BriefcaseBusiness className="h-5 w-5 text-[#f2bc74]" />
+                </div>
+              </div>
+
+              <div className="mt-6 space-y-3">
+                {workflow.map((step, index) => (
+                  <div
+                    key={step}
+                    className="flex items-start gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-3"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#58d5c4]/14 text-sm font-bold text-[#8ce7db]">
+                      0{index + 1}
+                    </div>
+                    <p className="pt-1 text-sm leading-6 text-slate-300">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+              {featureGroups.map((feature) => (
+                <div
+                  key={feature.title}
+                  className="surface-card rounded-[1.75rem] p-5"
+                >
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/6 text-[#8ce7db]">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 font-heading text-xl font-semibold text-white">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">
+                    {feature.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+
+        <footer className="flex flex-col gap-4 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <BadgeCheck className="h-4 w-4 text-[#8ce7db]" />
+            Finanshels partner workspace for referrals, service requests, and commission visibility.
+          </div>
+          <div className="flex items-center gap-5">
+            <Link href="/sign-in" className="transition-colors hover:text-white">
+              Sign in
+            </Link>
+            <Link href="/register" className="transition-colors hover:text-white">
               Register
             </Link>
+            <span>© 2026 Finanshels</span>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   )
 }

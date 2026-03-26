@@ -1,24 +1,189 @@
 "use client"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Building2, Mail, Sparkles, UserRound, Wrench } from "lucide-react"
 import { toast } from "sonner"
-const SERVICES=["Tax Registration","VAT Filing","Bookkeeping","Company Formation","Audit & Assurance","CFO Services"]
+
+const SERVICES = [
+  "Tax Registration",
+  "VAT Filing",
+  "Bookkeeping",
+  "Company Formation",
+  "Audit & Assurance",
+  "CFO Services",
+]
+
 export default function NewServiceRequestPage() {
-  const router=useRouter()
-  const [loading,setLoading]=useState(false)
-  const [form,setForm]=useState({clientName:"",clientEmail:"",serviceType:"",description:""})
-  async function submit(e:React.FormEvent){e.preventDefault();setLoading(true);try{const r=await fetch("/api/service-requests",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});if(!r.ok)throw new Error("Failed");toast.success("Request submitted!");router.push("/dashboard/service-requests")}catch{toast.error("Something went wrong")}finally{setLoading(false)}}
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({
+    clientCompany: "",
+    clientContact: "",
+    clientEmail: "",
+    serviceType: "",
+    description: "",
+  })
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault()
+    setLoading(true)
+
+    try {
+      const response = await fetch("/api/service-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed")
+      }
+
+      toast.success("Request submitted.")
+      router.push("/dashboard/service-requests")
+    } catch {
+      toast.error("Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <div className="max-w-2xl space-y-6">
-      <div><h1 className="text-2xl font-bold text-white">New Service Request</h1><p className="text-zinc-400 text-sm mt-1">Request a Finanshels service for a client</p></div>
-      <form onSubmit={submit} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><label className="block text-zinc-300 text-sm font-medium mb-1.5">Client Name <span className="text-red-400">*</span></label><input required value={form.clientName} onChange={e=>setForm(f=>({...f,clientName:e.target.value}))} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500" placeholder="Client name"/></div>
-          <div><label className="block text-zinc-300 text-sm font-medium mb-1.5">Client Email <span className="text-red-400">*</span></label><input required type="email" value={form.clientEmail} onChange={e=>setForm(f=>({...f,clientEmail:e.target.value}))} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500" placeholder="client@example.com"/></div>
+    <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+      <section className="surface-card rounded-[2rem] px-6 py-7 sm:px-7">
+        <div className="eyebrow">
+          <Sparkles className="h-3.5 w-3.5" />
+          Client work intake
         </div>
-        <div><label className="block text-zinc-300 text-sm font-medium mb-1.5">Service Type <span className="text-red-400">*</span></label><select required value={form.serviceType} onChange={e=>setForm(f=>({...f,serviceType:e.target.value}))} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 text-sm focus:outline-none focus:border-blue-500"><option value="">Select a service...</option>{SERVICES.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
-        <div><label className="block text-zinc-300 text-sm font-medium mb-1.5">Description</label><textarea rows={3} value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 text-sm placeholder:text-zinc-600 focus:outline-none focus:border-blue-500 resize-none" placeholder="Describe what you need..."/></div>
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 rounded-lg transition-colors text-sm">{loading?"Submitting...":"Submit Request"}</button>
+        <h1 className="page-title mt-5">New service request</h1>
+        <p className="page-subtitle mt-3">
+          Use this when the client relationship already exists and you need to route delivery through Finanshels quickly and clearly.
+        </p>
+
+        <div className="mt-8 space-y-4">
+          {[
+            "Choose the closest service category to speed up routing.",
+            "Use the description to share business context, scope, and urgency.",
+            "This screen is ideal for clients who are already warm and need execution next.",
+          ].map((item, index) => (
+            <div
+              key={item}
+              className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#58d5c4]/12 text-sm font-semibold text-[#8ce7db]">
+                  0{index + 1}
+                </div>
+                <p className="pt-0.5 text-sm leading-6 text-slate-300">{item}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <form onSubmit={submit} className="surface-card form-shell">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="field-label">
+              Client company <span className="ml-1 text-rose-300">*</span>
+            </label>
+            <div className="relative">
+              <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                required
+                value={form.clientCompany}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, clientCompany: event.target.value }))
+                }
+                className="field-input pl-11"
+                placeholder="Client company"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="field-label">
+              Client contact <span className="ml-1 text-rose-300">*</span>
+            </label>
+            <div className="relative">
+              <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                required
+                value={form.clientContact}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, clientContact: event.target.value }))
+                }
+                className="field-input pl-11"
+                placeholder="Contact name"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="field-label">
+              Client email <span className="ml-1 text-rose-300">*</span>
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                required
+                type="email"
+                value={form.clientEmail}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, clientEmail: event.target.value }))
+                }
+                className="field-input pl-11"
+                placeholder="client@example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="field-label">
+              Service type <span className="ml-1 text-rose-300">*</span>
+            </label>
+            <select
+              required
+              value={form.serviceType}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, serviceType: event.target.value }))
+              }
+              className="field-select"
+            >
+              <option value="">Select a service...</option>
+              {SERVICES.map((service) => (
+                <option key={service} value={service}>
+                  {service}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <label className="field-label">Description</label>
+          <textarea
+            rows={6}
+            value={form.description}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, description: event.target.value }))
+            }
+            className="field-textarea"
+            placeholder="Describe the requested work, timelines, context, or constraints..."
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="primary-button mt-6 w-full disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <Wrench className="h-4 w-4" />
+          {loading ? "Submitting..." : "Submit request"}
+        </button>
       </form>
     </div>
   )

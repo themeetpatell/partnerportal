@@ -4,28 +4,33 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  LayoutDashboard,
-  Plus,
-  Users,
-  Wrench,
+  ChevronRight,
   ClipboardList,
   DollarSign,
   FileText,
-  User,
-  Menu,
-  X,
-  ChevronRight,
+  LayoutDashboard,
+  LifeBuoy,
   LogOut,
+  Menu,
+  Plus,
+  Sparkles,
+  User,
+  Users,
+  Wrench,
+  X,
 } from "lucide-react"
 import { useClerk } from "@clerk/nextjs"
 
-const navItems = [
+const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Submit Lead", href: "/dashboard/leads/new", icon: Plus },
   { label: "My Leads", href: "/dashboard/leads", icon: Users },
   { label: "New Service Request", href: "/dashboard/service-requests/new", icon: Wrench },
   { label: "Service Requests", href: "/dashboard/service-requests", icon: ClipboardList },
   { label: "Commissions", href: "/dashboard/commissions", icon: DollarSign },
+]
+
+const secondaryItems = [
   { label: "Invoices", href: "/dashboard/invoices", icon: FileText },
   { label: "Profile", href: "/dashboard/profile", icon: User },
 ]
@@ -41,7 +46,7 @@ function NavLink({
   active,
   onClick,
 }: {
-  item: (typeof navItems)[number]
+  item: { label: string; href: string; icon: React.ComponentType<{ className?: string }> }
   active: boolean
   onClick?: () => void
 }) {
@@ -49,17 +54,23 @@ function NavLink({
     <Link
       href={item.href}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group ${
+      className={`group flex items-center gap-3 rounded-[1.1rem] px-3 py-3 text-sm font-medium transition-all ${
         active
-          ? "bg-blue-600/20 text-blue-400 border border-blue-600/30"
-          : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+          ? "bg-gradient-to-r from-[#58d5c4]/16 to-[#f2bc74]/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+          : "text-slate-400 hover:bg-white/[0.05] hover:text-white"
       }`}
     >
-      <item.icon
-        className={`w-4 h-4 flex-shrink-0 ${active ? "text-blue-400" : "text-zinc-500 group-hover:text-zinc-300"}`}
-      />
-      {item.label}
-      {active && <ChevronRight className="w-3 h-3 ml-auto text-blue-400" />}
+      <div
+        className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+          active
+            ? "bg-[#58d5c4]/16 text-[#8ce7db]"
+            : "bg-white/[0.04] text-slate-500 group-hover:text-slate-200"
+        }`}
+      >
+        <item.icon className="h-4 w-4" />
+      </div>
+      <span className="flex-1">{item.label}</span>
+      {active ? <ChevronRight className="h-4 w-4 text-[#8ce7db]" /> : null}
     </Link>
   )
 }
@@ -80,58 +91,99 @@ function SidebarContent({
   const { signOut } = useClerk()
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="px-4 py-5 border-b border-zinc-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">F</span>
+    <div className="flex h-full flex-col">
+      <div className="border-b border-white/8 px-5 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-gradient-to-br from-[#58d5c4] via-[#8ce7db] to-[#f2bc74] text-sm font-black text-[#08111f] shadow-[0_18px_45px_rgba(88,213,196,0.28)]">
+            F
           </div>
           <div>
-            <p className="text-zinc-100 font-semibold text-sm leading-none">
-              Finanshels
+            <p className="font-heading text-lg font-semibold text-white">Finanshels</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+              Partner Portal
             </p>
-            <p className="text-zinc-500 text-xs mt-0.5">Partner Portal</p>
           </div>
+        </div>
+
+        <div className="mt-5 rounded-[1.4rem] border border-[#58d5c4]/18 bg-[#58d5c4]/8 p-4">
+          <div className="flex items-center gap-2 text-[#8ce7db]">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-[0.22em]">
+              Workspace status
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Keep leads moving, route service requests cleanly, and monitor payouts without chasing updates.
+          </p>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.href}
-            item={item}
-            active={
-              item.href === "/dashboard"
-                ? pathname === "/dashboard"
-                : pathname.startsWith(item.href)
-            }
-            onClick={onNavClick}
-          />
-        ))}
+      <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+        <div>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Revenue
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {primaryItems.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={
+                  item.href === "/dashboard"
+                    ? pathname === "/dashboard"
+                    : pathname.startsWith(item.href)
+                }
+                onClick={onNavClick}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Account
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {secondaryItems.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                active={pathname.startsWith(item.href)}
+                onClick={onNavClick}
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+          <div className="flex items-center gap-2 text-slate-200">
+            <LifeBuoy className="h-4 w-4 text-[#f2bc74]" />
+            <p className="text-sm font-semibold">Need support?</p>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Use profile details and registration context to keep your partnership information current.
+          </p>
+        </div>
       </nav>
 
-      {/* User footer */}
-      <div className="border-t border-zinc-800 p-3">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-800 transition-colors group">
-          <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
-            <span className="text-zinc-300 text-xs font-semibold">
+      <div className="border-t border-white/8 p-4">
+        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white">
               {userInitials}
-            </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-white">{userName}</p>
+              <p className="truncate text-xs text-slate-400">{userEmail}</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-zinc-200 text-sm font-medium truncate">
-              {userName}
-            </p>
-            <p className="text-zinc-500 text-xs truncate">{userEmail}</p>
-          </div>
+
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-zinc-700"
-            title="Sign out"
+            className="secondary-button mt-4 w-full justify-center"
           >
-            <LogOut className="w-3.5 h-3.5 text-zinc-400" />
+            <LogOut className="h-4 w-4" />
+            Sign out
           </button>
         </div>
       </div>
@@ -149,63 +201,67 @@ export function SidebarNav({
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 bg-zinc-900 border-r border-zinc-800 h-screen sticky top-0">
-        <SidebarContent
-          pathname={pathname}
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-        />
+      <aside className="hidden w-[320px] shrink-0 lg:block">
+        <div className="surface-card-strong sticky top-4 h-[calc(100vh-2rem)] overflow-hidden rounded-[2rem]">
+          <SidebarContent
+            pathname={pathname}
+            userName={userName}
+            userEmail={userEmail}
+            userInitials={userInitials}
+          />
+        </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">F</span>
+      <div className="surface-card sticky top-4 z-30 mb-4 flex items-center justify-between rounded-[1.4rem] px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-gradient-to-br from-[#58d5c4] via-[#8ce7db] to-[#f2bc74] text-sm font-black text-[#08111f]">
+            F
           </div>
-          <span className="text-zinc-100 font-semibold text-sm">
-            Finanshels Partner
-          </span>
+          <div>
+            <p className="font-heading text-base font-semibold text-white">
+              Finanshels
+            </p>
+            <p className="text-[11px] uppercase tracking-[0.22em] text-slate-400">
+              Partner workspace
+            </p>
+          </div>
         </div>
+
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+          className="flex h-11 w-11 items-center justify-center rounded-[1rem] bg-white/[0.05] text-slate-300 transition-colors hover:bg-white/[0.08] hover:text-white"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Mobile drawer overlay */}
-      {mobileOpen && (
+      {mobileOpen ? (
         <div
-          className="lg:hidden fixed inset-0 z-40 bg-zinc-950/80 backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-[#08111f]/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
-      )}
+      ) : null}
 
-      {/* Mobile drawer */}
       <div
-        className={`lg:hidden fixed top-0 left-0 h-full w-72 z-50 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-[88vw] max-w-[340px] p-4 transition-transform duration-300 lg:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="absolute top-3 right-3">
+        <div className="surface-card-strong relative h-full overflow-hidden rounded-[2rem]">
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+            className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.05] text-slate-300 hover:bg-white/[0.08] hover:text-white"
           >
-            <X className="w-4 h-4" />
+            <X className="h-4 w-4" />
           </button>
+          <SidebarContent
+            pathname={pathname}
+            userName={userName}
+            userEmail={userEmail}
+            userInitials={userInitials}
+            onNavClick={() => setMobileOpen(false)}
+          />
         </div>
-        <SidebarContent
-          pathname={pathname}
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-          onNavClick={() => setMobileOpen(false)}
-        />
       </div>
     </>
   )
