@@ -1,6 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server"
-import { db } from "@repo/db"
-import { partners, leads, commissions } from "@repo/db/schema"
+import { db, partners, leads, commissions } from "@repo/db"
 import { eq, count, sum } from "drizzle-orm"
 import Link from "next/link"
 import { Users, DollarSign, TrendingUp, Plus, ArrowRight, Wrench, FileText } from "lucide-react"
