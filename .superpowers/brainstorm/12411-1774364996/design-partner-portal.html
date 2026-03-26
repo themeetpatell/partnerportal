@@ -1,0 +1,164 @@
+<h2>Design Section 3 — Partner Portal</h2>
+<p class="subtitle">partner.finanshels.com — role-aware UI for Referral and Channel partners</p>
+
+<div class="section">
+  <h3>Navigation Structure</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">🟢 Referral Partner Sidebar</div>
+      <div class="mockup-body" style="font-size:0.85em;line-height:2.2;padding:12px">
+        <div style="color:#7c9cf8;font-weight:600;padding:6px 10px;background:rgba(124,156,248,0.15);border-radius:6px;margin-bottom:4px">📊 Dashboard</div>
+        <div style="color:#aaa;padding:6px 10px">📥 Submit a Lead</div>
+        <div style="color:#aaa;padding:6px 10px">📋 My Leads</div>
+        <div style="color:#aaa;padding:6px 10px">💰 Commissions</div>
+        <div style="color:#aaa;padding:6px 10px">💳 Payouts</div>
+        <div style="color:#aaa;padding:6px 10px">🔔 Notifications</div>
+        <div style="color:#aaa;padding:6px 10px">👤 Profile &amp; Docs</div>
+        <div style="color:#aaa;padding:6px 10px">📄 Resources</div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">🔵 Channel Partner Sidebar</div>
+      <div class="mockup-body" style="font-size:0.85em;line-height:2.2;padding:12px">
+        <div style="color:#7c9cf8;font-weight:600;padding:6px 10px;background:rgba(124,156,248,0.15);border-radius:6px;margin-bottom:4px">📊 Dashboard</div>
+        <div style="color:#aaa;padding:6px 10px">➕ New Service Request</div>
+        <div style="color:#aaa;padding:6px 10px">📋 Service Requests</div>
+        <div style="color:#aaa;padding:6px 10px">💰 Commissions</div>
+        <div style="color:#aaa;padding:6px 10px">🧾 Invoices</div>
+        <div style="color:#aaa;padding:6px 10px">🔔 Notifications</div>
+        <div style="color:#aaa;padding:6px 10px">🔌 API Access</div>
+        <div style="color:#aaa;padding:6px 10px">👤 Profile &amp; Docs</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key Pages</h3>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.82em">
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">1. Onboarding Flow (Pre-login)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/register</span> → Step 1: Partner type selection<br>
+        → Step 2: Company &amp; contact details<br>
+        → Step 3: Document upload (WorkDrive)<br>
+        → Step 4: Commission model selection<br>
+        → Step 5: T&amp;C acceptance + submit<br>
+        <span style="color:#888;font-size:0.9em">Referral: auto-approved → dashboard<br>
+        Channel: pending review → email notification</span>
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">2. Dashboard (Home)</div>
+      <div style="color:#aaa;line-height:1.8">
+        KPI cards: Total Leads / Active Requests<br>
+        KPI cards: Pending Commission / Paid<br>
+        Recent activity feed<br>
+        Quick actions (Submit Lead / New Request)<br>
+        Notifications panel<br>
+        Upcoming payment dates
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">3. Lead Submission (Referral)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/leads/new</span><br>
+        Customer name, email, phone<br>
+        Service interest (multi-select)<br>
+        Notes / additional context<br>
+        Document upload (optional)<br>
+        → Syncs to Zoho CRM as Lead<br>
+        → Status: Submitted
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">4. My Leads (Referral)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/leads</span><br>
+        Table: name, service, status, date, commission<br>
+        Status badges: Submitted | In Review | Converted | Rejected<br>
+        Click → Lead detail with full timeline<br>
+        Filter by status / date range<br>
+        Export to CSV
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">5. Service Request (Channel)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/service-requests/new</span><br>
+        Service catalog browser<br>
+        Customer company &amp; contact details<br>
+        Service start date<br>
+        Required document upload → WorkDrive<br>
+        → Status: Pending
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">6. Commission Dashboard</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/commissions</span><br>
+        Summary: Total earned / Pending / Paid<br>
+        Table: source, amount, status, date<br>
+        Commission model breakdown<br>
+        Milestone progress tracker (if applicable)<br>
+        Request payout button
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">7. Invoices (Channel)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/invoices</span><br>
+        Invoice list: number, period, amount, status<br>
+        Status: Draft | Sent | Paid | Overdue<br>
+        Click → Invoice detail + PDF download<br>
+        Pay via Stripe (embedded checkout)<br>
+        Tax invoice download
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:8px">8. API Access (Channel)</div>
+      <div style="color:#aaa;line-height:1.8">
+        <span style="color:#7c9cf8">/api-access</span><br>
+        Generate &amp; manage API keys<br>
+        Configure webhooks (URL + events)<br>
+        API usage stats (calls / errors)<br>
+        Link to API documentation<br>
+        Webhook delivery logs
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Onboarding State Machine</h3>
+  <div class="mockup">
+    <div class="mockup-header">Partner Registration Flow</div>
+    <div class="mockup-body" style="display:flex;align-items:center;gap:8px;padding:16px;flex-wrap:wrap;font-size:0.82em">
+      <div style="background:#1a1a2e;border:1px solid #7c9cf8;border-radius:6px;padding:8px 12px;color:#7c9cf8">Register</div>
+      <div style="color:#555">→</div>
+      <div style="background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:8px 12px;color:#aaa">Upload Docs</div>
+      <div style="color:#555">→</div>
+      <div style="background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:8px 12px;color:#aaa">Select Commission</div>
+      <div style="color:#555">→</div>
+      <div style="background:#1a1a2e;border:1px solid #f8c47c;border-radius:6px;padding:8px 12px;color:#f8c47c">Pending Review</div>
+      <div style="color:#555">→</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:#1a1a2e;border:1px solid #a8e6a3;border-radius:6px;padding:8px 12px;color:#a8e6a3">✓ Approved → Dashboard</div>
+        <div style="background:#1a1a2e;border:1px solid #f08080;border-radius:6px;padding:8px 12px;color:#f08080">✗ Rejected → Email + Reason</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.82em;color:#888;margin-top:8px">Referral partners skip "Pending Review" and go directly to Approved.</p>
+</div>
+
+<p style="margin-top:20px;color:#aaa;font-size:0.9em">Does the partner portal structure look right? Any pages to add or change?</p>

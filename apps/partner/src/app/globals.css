@@ -1,0 +1,114 @@
+@import "tailwindcss";
+@source "../**/*.{ts,tsx}";
+
+@theme {
+  --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-background: #09090b;
+  --color-foreground: #fafafa;
+  --color-card: #18181b;
+  --color-card-foreground: #fafafa;
+  --color-popover: #18181b;
+  --color-popover-foreground: #fafafa;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #27272a;
+  --color-secondary-foreground: #fafafa;
+  --color-muted: #27272a;
+  --color-muted-foreground: #a1a1aa;
+  --color-accent: #27272a;
+  --color-accent-foreground: #fafafa;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #fafafa;
+  --color-border: #27272a;
+  --color-input: #27272a;
+  --color-ring: #3b82f6;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+}
+
+:root {
+  color-scheme: dark;
+  background-color: #09090b;
+  color: #fafafa;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: #27272a;
+}
+
+body {
+  background-color: #09090b;
+  color: #fafafa;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #18181b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Clerk component overrides for dark theme */
+.cl-rootBox {
+  width: 100%;
+}
+
+.cl-card {
+  background-color: #18181b !important;
+  border: 1px solid #27272a !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+.cl-headerTitle,
+.cl-headerSubtitle,
+.cl-bodyText,
+.cl-formFieldLabel,
+.cl-footerActionText {
+  color: #fafafa !important;
+}
+
+.cl-formFieldInput {
+  background-color: #09090b !important;
+  border-color: #3f3f46 !important;
+  color: #fafafa !important;
+}
+
+.cl-formButtonPrimary {
+  background-color: #3b82f6 !important;
+}
+
+.cl-footerActionLink {
+  color: #60a5fa !important;
+}
+
+.cl-identityPreviewText,
+.cl-identityPreviewEditButton {
+  color: #a1a1aa !important;
+}

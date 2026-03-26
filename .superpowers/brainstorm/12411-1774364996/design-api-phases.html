@@ -1,0 +1,220 @@
+<h2>Design Section 7 — Public API, Webhooks & Phase Breakdown</h2>
+<p class="subtitle">REST API for white-label partners + phased delivery roadmap</p>
+
+<div class="section">
+  <h3>Public REST API — apps/api</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:0.81em">
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#7c9cf8;margin-bottom:8px">Authentication</div>
+      <div style="color:#aaa;line-height:1.8">
+        API Key in header: <code>X-API-Key: sk_live_...</code><br>
+        Keys scoped per partner + per tenant<br>
+        Scopes: <code>leads:write</code> <code>leads:read</code><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>services:write</code> <code>commissions:read</code><br>
+        Rate limiting: 1,000 req/hour per key<br>
+        Key management UI in partner portal
+      </div>
+    </div>
+
+    <div style="border:1px solid #333;border-radius:8px;padding:14px">
+      <div style="font-weight:700;color:#7c9cf8;margin-bottom:8px">Base URL</div>
+      <div style="color:#aaa;line-height:1.8;font-family:monospace;font-size:0.9em">
+        api.finanshels.com/v1/<br><br>
+        All responses:<br>
+        { data, meta, error }<br><br>
+        Errors:<br>
+        { code, message, details }
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:14px;font-size:0.81em">
+    <table style="width:100%;border-collapse:collapse">
+      <tr style="border-bottom:1px solid #333">
+        <th style="text-align:left;padding:8px 10px;color:#888;width:35%">Endpoint</th>
+        <th style="text-align:left;padding:8px 10px;color:#888;width:15%">Method</th>
+        <th style="text-align:left;padding:8px 10px;color:#888">Description</th>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#a8e6a3">/leads</td>
+        <td style="padding:8px 10px;color:#7c9cf8">POST</td>
+        <td style="padding:8px 10px;color:#aaa">Submit a new lead</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#a8e6a3">/leads/{id}</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">Get lead status &amp; details</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#a8e6a3">/leads</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">List partner's leads (paginated)</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#f8c47c">/service-requests</td>
+        <td style="padding:8px 10px;color:#7c9cf8">POST</td>
+        <td style="padding:8px 10px;color:#aaa">Submit a service request</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#f8c47c">/service-requests/{id}</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">Get service request status</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#c8a8e6">/commissions</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">List commissions earned</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#c8a8e6">/commissions/summary</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">Total earned, pending, paid</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#87ceeb">/services</td>
+        <td style="padding:8px 10px;color:#87ceeb">GET</td>
+        <td style="padding:8px 10px;color:#aaa">Service catalog</td>
+      </tr>
+      <tr style="border-bottom:1px solid #1a1a1a">
+        <td style="padding:8px 10px;font-family:monospace;color:#ffa07a">/webhooks</td>
+        <td style="padding:8px 10px;color:#7c9cf8">POST</td>
+        <td style="padding:8px 10px;color:#aaa">Register a webhook endpoint</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 10px;font-family:monospace;color:#ffa07a">/webhooks/{id}</td>
+        <td style="padding:8px 10px;color:#f08080">DELETE</td>
+        <td style="padding:8px 10px;color:#aaa">Remove a webhook</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Webhook Events Delivered to Partners</h3>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:0.8em">
+    <div style="border:1px solid #333;border-radius:6px;padding:10px">
+      <div style="color:#a8e6a3;font-weight:600;margin-bottom:6px">Lead Events</div>
+      <div style="color:#aaa;line-height:1.7;font-family:monospace;font-size:0.9em">
+        lead.submitted<br>lead.in_review<br>lead.qualified<br>lead.converted<br>lead.rejected
+      </div>
+    </div>
+    <div style="border:1px solid #333;border-radius:6px;padding:10px">
+      <div style="color:#7c9cf8;font-weight:600;margin-bottom:6px">Service Events</div>
+      <div style="color:#aaa;line-height:1.7;font-family:monospace;font-size:0.9em">
+        service.received<br>service.in_progress<br>service.completed<br>service.doc_requested
+      </div>
+    </div>
+    <div style="border:1px solid #333;border-radius:6px;padding:10px">
+      <div style="color:#f8c47c;font-weight:600;margin-bottom:6px">Finance Events</div>
+      <div style="color:#aaa;line-height:1.7;font-family:monospace;font-size:0.9em">
+        commission.earned<br>commission.paid<br>invoice.issued<br>invoice.paid<br>invoice.overdue
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:10px;background:#111;border-radius:6px;padding:10px;font-size:0.8em;color:#888">
+    Delivery: HTTPS POST with <code>X-Finanshels-Signature</code> (HMAC-SHA256). Retry: 3 attempts with exponential backoff. Delivery logs visible in partner portal.
+  </div>
+</div>
+
+<div class="section">
+  <h3>Phase Delivery Breakdown</h3>
+  <div style="font-size:0.81em">
+
+    <div style="border:1px solid #a8e6a3;border-radius:8px;padding:14px;margin-bottom:12px;background:rgba(168,230,163,0.04)">
+      <div style="font-weight:700;color:#a8e6a3;margin-bottom:10px">Phase 1 — Core Partner Management (Months 1–3)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;color:#aaa;line-height:1.7">
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Partner Portal</div>
+          Referral partner self-registration<br>
+          Document upload → WorkDrive<br>
+          Lead submission + tracking<br>
+          Basic commission dashboard<br>
+          Partner profile management
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Admin Portal</div>
+          Partner approval workflow<br>
+          Lead queue (Sales team)<br>
+          Basic analytics dashboard<br>
+          Team member management<br>
+          Commission model setup
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Infrastructure</div>
+          Turborepo monorepo setup<br>
+          Neon Postgres + Drizzle<br>
+          Clerk auth + RBAC<br>
+          Zoho CRM integration<br>
+          SendGrid onboarding emails<br>
+          Multi-tenant foundation
+        </div>
+      </div>
+    </div>
+
+    <div style="border:1px solid #7c9cf8;border-radius:8px;padding:14px;margin-bottom:12px;background:rgba(124,156,248,0.04)">
+      <div style="font-weight:700;color:#7c9cf8;margin-bottom:10px">Phase 2 — Advanced Operations (Months 4–6)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;color:#aaa;line-height:1.7">
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Partner Portal</div>
+          Channel partner onboarding<br>
+          Service request submission<br>
+          Invoice management + Stripe pay<br>
+          Payout requests (referral)<br>
+          In-app notifications centre
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Admin Portal</div>
+          Service queue (Ops team)<br>
+          Commission approval + payouts<br>
+          Invoice generation + sending<br>
+          Full analytics suite<br>
+          Stripe Connect onboarding
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Infrastructure</div>
+          Stripe payouts + invoicing<br>
+          Core REST API (apps/api)<br>
+          Webhook delivery system<br>
+          Tiered + milestone commission<br>
+          Zoho WorkDrive integration<br>
+          All SendGrid templates
+        </div>
+      </div>
+    </div>
+
+    <div style="border:1px solid #f8c47c;border-radius:8px;padding:14px;background:rgba(248,196,124,0.04)">
+      <div style="font-weight:700;color:#f8c47c;margin-bottom:10px">Phase 3 — White-Label & Integration Platform (Months 7–9)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;color:#aaa;line-height:1.7">
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">White-Label</div>
+          Tenant branding engine<br>
+          Custom domain support<br>
+          Freezone instance provisioning<br>
+          Tenant admin dashboard<br>
+          Branding config UI
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">API Platform</div>
+          Full API coverage<br>
+          API key management UI<br>
+          Developer documentation site<br>
+          Webhook event browser<br>
+          API usage analytics
+        </div>
+        <div>
+          <div style="color:#ccc;font-weight:600;margin-bottom:4px">Advanced Features</div>
+          Advanced analytics + BI reports<br>
+          Workflow customisation engine<br>
+          Stripe Tax (UAE VAT)<br>
+          SSO for enterprise partners<br>
+          Audit log export
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p style="margin-top:20px;color:#aaa;font-size:0.9em">Does the API design and phase breakdown look right? Any changes before we write the full spec?</p>
