@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core"
+import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core"
 import { tenants } from "./tenants"
 
 export const documents = pgTable("documents", {
@@ -58,5 +58,31 @@ export const webhooks = pgTable("webhooks", {
   secretHash: text("secret_hash").notNull(),
   isActive: text("is_active").notNull().default("true"),
   lastFiredAt: timestamp("last_fired_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+// Activity timeline per entity (partner | lead | service_request | invoice | commission)
+export const activityTimelines = pgTable("activity_timelines", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  entityType: text("entity_type").notNull(),
+  entityId: uuid("entity_id").notNull(),
+  actorId: text("actor_id").notNull(), // clerk_user_id
+  actorName: text("actor_name").notNull(),
+  action: text("action").notNull(), // e.g. "status_changed", "created", "note_added"
+  note: text("note"),
+  metadata: text("metadata"), // JSON: before/after values, etc.
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+})
+
+// Saved filter views per user per context
+export const savedFilters = pgTable("saved_filters", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(), // clerk_user_id
+  name: text("name").notNull(),
+  context: text("context").notNull(), // analytics | leads | partners | services | invoices
+  filters: text("filters").notNull().default("{}"), // JSON serialised filter state
+  isDefault: boolean("is_default").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 })

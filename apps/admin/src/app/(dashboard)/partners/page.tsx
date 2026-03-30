@@ -1,18 +1,18 @@
 import Link from "next/link"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { Building2, ArrowRight, UserCheck } from "lucide-react"
+import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     pending: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
     approved: "bg-green-950/60 border-green-800/40 text-green-400",
     rejected: "bg-red-950/60 border-red-800/40 text-red-400",
-    suspended: "bg-white/6 border-white/10 text-slate-400",
+    suspended: "bg-zinc-800 border-zinc-700 text-zinc-400",
   }
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-zinc-800 border-zinc-700 text-zinc-400"}`}
     >
       {status}
     </span>
@@ -52,15 +52,24 @@ export default async function PartnersPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Partners</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Manage partner accounts, approvals, and status
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Partners</h1>
+          <p className="text-zinc-400 text-sm mt-1">
+            Manage partner accounts, approvals, and status
+          </p>
+        </div>
+        <Link
+          href="/partners/new"
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          New Partner
+        </Link>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 surface-card rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1 w-fit">
         {tabs.map((tab) => {
           const isActive = status === tab.value || (!status && !tab.value)
           return (
@@ -69,8 +78,8 @@ export default async function PartnersPage({
               href={tab.value ? `/partners?status=${tab.value}` : "/partners"}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-white/6 text-white"
-                  : "text-slate-400 hover:text-white"
+                  ? "bg-zinc-800 text-zinc-100"
+                  : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               {tab.label}
@@ -80,16 +89,16 @@ export default async function PartnersPage({
       </div>
 
       {/* Table */}
-      <div className="surface-card rounded-2xl overflow-hidden">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <div className="w-12 h-12 rounded-full bg-white/6 border border-white/8 flex items-center justify-center mb-4">
-              <UserCheck className="w-6 h-6 text-slate-600" />
+            <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
+              <UserCheck className="w-6 h-6 text-zinc-600" />
             </div>
-            <p className="text-slate-400 font-medium text-sm">
+            <p className="text-zinc-400 font-medium text-sm">
               No {status ?? ""} partners found
             </p>
-            <p className="text-slate-600 text-xs mt-1">
+            <p className="text-zinc-600 text-xs mt-1">
               {status === "pending"
                 ? "All partner applications have been reviewed."
                 : "Partners will appear here once they register."}
@@ -99,39 +108,39 @@ export default async function PartnersPage({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                <tr className="border-b border-zinc-800">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Company
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/8">
+              <tbody className="divide-y divide-zinc-800">
                 {rows.map((partner) => (
                   <tr
                     key={partner.id}
-                    className="hover:bg-white/[0.04] transition-colors"
+                    className="hover:bg-zinc-800/40 transition-colors"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-white/6 border border-white/8 flex items-center justify-center flex-shrink-0">
-                          <Building2 className="w-4 h-4 text-slate-500" />
+                        <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-4 h-4 text-zinc-500" />
                         </div>
-                        <span className="text-white text-sm font-medium">
+                        <span className="text-zinc-200 text-sm font-medium">
                           {partner.companyName}
                         </span>
                       </div>
@@ -140,7 +149,7 @@ export default async function PartnersPage({
                       <p className="text-zinc-300 text-sm">
                         {partner.contactName}
                       </p>
-                      <p className="text-slate-500 text-xs">{partner.email}</p>
+                      <p className="text-zinc-500 text-xs">{partner.email}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-zinc-300 text-sm capitalize">
@@ -151,7 +160,7 @@ export default async function PartnersPage({
                       <StatusBadge status={partner.status} />
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-slate-500 text-sm">
+                      <span className="text-zinc-500 text-sm">
                         {new Date(partner.createdAt).toLocaleDateString(
                           "en-AE",
                           { day: "numeric", month: "short", year: "numeric" }
