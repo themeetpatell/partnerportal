@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { db, leads, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { Users, ArrowRight } from "lucide-react"
+import { Users, ArrowRight, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -58,11 +58,20 @@ export default async function LeadsPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Leads</h1>
-        <p className="text-zinc-400 text-sm mt-1">
-          Review and manage partner-submitted leads
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Leads</h1>
+          <p className="text-zinc-400 text-sm mt-1">
+            Review and manage partner-submitted leads
+          </p>
+        </div>
+        <Link
+          href="/leads/new"
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          New Lead
+        </Link>
       </div>
 
       {/* Tabs */}

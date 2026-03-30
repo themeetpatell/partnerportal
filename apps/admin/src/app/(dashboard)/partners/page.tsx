@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { Building2, ArrowRight, UserCheck } from "lucide-react"
+import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -52,11 +52,20 @@ export default async function PartnersPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Partners</h1>
-        <p className="text-zinc-400 text-sm mt-1">
-          Manage partner accounts, approvals, and status
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Partners</h1>
+          <p className="text-zinc-400 text-sm mt-1">
+            Manage partner accounts, approvals, and status
+          </p>
+        </div>
+        <Link
+          href="/partners/new"
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          New Partner
+        </Link>
       </div>
 
       {/* Tabs */}

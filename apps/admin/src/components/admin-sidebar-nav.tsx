@@ -26,6 +26,11 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
+    label: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
+  },
+  {
     label: "Partners",
     href: "/partners",
     icon: UserCheck,
@@ -51,13 +56,8 @@ const navItems = [
     icon: FileText,
   },
   {
-    label: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    label: "Settings",
-    href: "/settings",
+    label: "Users & Access",
+    href: "/settings/users",
     icon: Settings,
   },
 ]

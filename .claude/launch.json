@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Partner Portal (apps/partner)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@repo/partner", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Admin Portal (apps/admin)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@repo/admin", "dev"],
+      "port": 3001
+    }
+  ]
+}
