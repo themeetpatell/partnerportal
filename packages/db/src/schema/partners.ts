@@ -16,13 +16,44 @@ export const partners = pgTable("partners", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   clerkUserId: text("clerk_user_id").notNull().unique(),
+
+  // Core identity
   type: text("type").notNull(), // referral | channel
   companyName: text("company_name").notNull(),
   contactName: text("contact_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
   status: text("status").notNull().default("pending"), // pending | approved | rejected | suspended
+
+  // Commercial
   commissionModelId: uuid("commission_model_id").references(() => commissionModels.id),
+  commissionType: text("commission_type"), // flat | percentage | tiered
+  commissionRate: text("commission_rate"),
+
+  // Business profile
+  website: text("website"),
+  linkedinId: text("linkedin_id"),
+  nationality: text("nationality"),
+  businessSize: text("business_size"), // solo | small | medium | large
+  partnerIndustry: text("partner_industry"),
+  overview: text("overview"),
+  partnerAddress: text("partner_address"),
+
+  // Financial / compliance
+  vatRegistered: boolean("vat_registered"),
+  vatNumber: text("vat_number"),
+  tradeLicense: text("trade_license"),
+  emirateIdPassport: text("emirate_id_passport"),
+
+  // Bank details
+  beneficiaryName: text("beneficiary_name"),
+  bankName: text("bank_name"),
+  bankCountry: text("bank_country"),
+  accountNoIban: text("account_no_iban"),
+  swiftBicCode: text("swift_bic_code"),
+  paymentFrequency: text("payment_frequency"), // monthly | quarterly | on-request
+
+  // CRM / system
   zohoContactId: text("zoho_contact_id"),
   rejectionReason: text("rejection_reason"),
   onboardedAt: timestamp("onboarded_at"),

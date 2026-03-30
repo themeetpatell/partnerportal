@@ -12,7 +12,7 @@ export default function InvoicesPage() {
       </section>
 
       <section className="empty-state">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/6 text-[#f2bc74]">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-300">
           <ReceiptText className="h-6 w-6" />
         </div>
         <p className="mt-5 font-heading text-2xl font-semibold text-white">
@@ -23,7 +23,7 @@ export default function InvoicesPage() {
         </p>
 
         <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-slate-300">
-          <FileText className="h-4 w-4 text-[#8ce7db]" />
+          <FileText className="h-4 w-4 text-indigo-300" />
           Reserved for future billing workflows
         </div>
       </section>

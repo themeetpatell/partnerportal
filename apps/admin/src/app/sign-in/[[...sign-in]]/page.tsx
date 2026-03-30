@@ -2,36 +2,20 @@ import { SignIn } from "@clerk/nextjs"
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
-      {/* Navigation */}
-      <nav className="border-b border-zinc-800/60 px-6 py-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-2 w-fit">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">F</span>
-            </div>
-            <div>
-              <span className="text-zinc-100 font-semibold text-lg tracking-tight">
-                Finanshels
-              </span>
-              <span className="ml-2 text-xs text-zinc-500 font-medium uppercase tracking-wider">
-                Admin
-              </span>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Sign In */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+    <div className="relative min-h-screen">
+      <div className="flex min-h-screen flex-col items-center justify-center px-5 py-16">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)]">
+            <span className="text-xl font-bold tracking-tight">F</span>
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-white">
             Admin Portal
           </h1>
-          <p className="text-zinc-400 text-sm">
+          <p className="mt-2 text-sm text-slate-400">
             Sign in with your Finanshels team account
           </p>
         </div>
+
         <SignIn
           routing="path"
           path="/sign-in"

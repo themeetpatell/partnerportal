@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useUser } from "@clerk/nextjs"
 import Link from "next/link"
 import {
   ArrowLeft,
@@ -53,8 +54,7 @@ const PARTNER_MODELS = {
     description:
       "Best for consultants, accountants, and advisors who introduce clients to Finanshels.",
     badge: "Instant approval",
-    badgeClass:
-      "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+    badgeClass: "border border-white/20 bg-white/10 text-white",
   },
   channel: {
     icon: Handshake,
@@ -62,7 +62,7 @@ const PARTNER_MODELS = {
     description:
       "Best for agencies and operators who want a deeper commercial relationship and service resale motion.",
     badge: "Manual review",
-    badgeClass: "border border-amber-300/20 bg-amber-300/10 text-amber-100",
+    badgeClass: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
   },
 }
 
@@ -78,14 +78,14 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             key={step.number}
             className={`flex items-center gap-3 rounded-full px-4 py-2 text-sm transition-all ${
               complete || active
-                ? "border border-[#58d5c4]/25 bg-[#58d5c4]/10 text-white"
+                ? "border border-indigo-400/25 bg-indigo-500/10 text-white"
                 : "border border-white/8 bg-white/[0.03] text-slate-400"
             }`}
           >
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 complete || active
-                  ? "bg-[#58d5c4] text-[#08111f]"
+                  ? "bg-indigo-400 text-[#0f1027]"
                   : "bg-white/6 text-slate-400"
               }`}
             >
@@ -122,16 +122,16 @@ function Step1TypeSelection({
               onClick={() => onSelect(type)}
               className={`rounded-[1.75rem] border p-6 text-left transition-all ${
                 selected === type
-                  ? "border-[#58d5c4]/40 bg-[#58d5c4]/10 shadow-[0_20px_50px_rgba(88,213,196,0.14)]"
+                  ? "border-indigo-400/35 bg-indigo-500/10 shadow-[0_20px_50px_rgba(99,102,241,0.16)]"
                   : "border-white/8 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.05]"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/6 text-[#8ce7db]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
                   <config.icon className="h-5 w-5" />
                 </div>
                 {selected === type ? (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#58d5c4] text-[#08111f]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-400 text-[#0f1027]">
                     <Check className="h-4 w-4" />
                   </div>
                 ) : null}
@@ -163,45 +163,14 @@ function Step1TypeSelection({
 function Step2CompanyDetails({
   formData,
   onChange,
+  lockedContact,
+  lockedEmail,
 }: {
   formData: FormData
   onChange: (field: keyof FormData, value: string) => void
+  lockedContact: string
+  lockedEmail: string
 }) {
-  const fields = [
-    {
-      key: "companyName" as const,
-      label: "Company name",
-      placeholder: "Acme Consulting LLC",
-      icon: Building2,
-      type: "text",
-      required: true,
-    },
-    {
-      key: "contactName" as const,
-      label: "Primary contact",
-      placeholder: "John Smith",
-      icon: User,
-      type: "text",
-      required: true,
-    },
-    {
-      key: "email" as const,
-      label: "Business email",
-      placeholder: "john@acmeconsulting.com",
-      icon: Mail,
-      type: "email",
-      required: true,
-    },
-    {
-      key: "phone" as const,
-      label: "Phone number",
-      placeholder: "+971 50 123 4567",
-      icon: Phone,
-      type: "tel",
-      required: false,
-    },
-  ]
-
   return (
     <div>
       <h2 className="section-title">Add your company details</h2>
@@ -210,25 +179,76 @@ function Step2CompanyDetails({
       </p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {fields.map((field) => (
-          <div key={field.key} className={field.key === "email" ? "sm:col-span-2" : ""}>
-            <label className="field-label">
-              {field.label}
-              {field.required ? <span className="ml-1 text-rose-300">*</span> : null}
-            </label>
-            <div className="relative">
-              <field.icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-              <input
-                type={field.type}
-                value={formData[field.key] as string}
-                onChange={(event) => onChange(field.key, event.target.value)}
-                placeholder={field.placeholder}
-                required={field.required}
-                className="field-input pl-11"
-              />
-            </div>
+        {/* Company Name */}
+        <div>
+          <label className="field-label">
+            Company name <span className="ml-1 text-rose-300">*</span>
+          </label>
+          <div className="relative">
+            <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              value={formData.companyName}
+              onChange={(e) => onChange("companyName", e.target.value)}
+              placeholder="Acme Consulting LLC"
+              required
+              className="field-input pl-11"
+            />
           </div>
-        ))}
+        </div>
+
+        {/* Primary Contact — locked to signed-in user */}
+        <div>
+          <label className="field-label">
+            Primary contact
+            <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+              from your account
+            </span>
+          </label>
+          <div className="relative">
+            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text"
+              value={lockedContact}
+              readOnly
+              className="field-input pl-11 cursor-not-allowed opacity-60"
+            />
+          </div>
+        </div>
+
+        {/* Business Email — locked to signed-in user */}
+        <div className="sm:col-span-2">
+          <label className="field-label">
+            Business email
+            <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+              from your account
+            </span>
+          </label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="email"
+              value={lockedEmail}
+              readOnly
+              className="field-input pl-11 cursor-not-allowed opacity-60"
+            />
+          </div>
+        </div>
+
+        {/* Phone */}
+        <div className="sm:col-span-2">
+          <label className="field-label">Phone number</label>
+          <div className="relative">
+            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => onChange("phone", e.target.value)}
+              placeholder="+971 50 123 4567"
+              className="field-input pl-11"
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -289,14 +309,14 @@ function Step3Terms({
         onClick={onToggle}
         className={`mt-6 flex w-full items-start gap-3 rounded-[1.4rem] border px-4 py-4 text-left transition-all ${
           agreed
-            ? "border-[#58d5c4]/30 bg-[#58d5c4]/10"
+            ? "border-indigo-400/30 bg-indigo-500/10"
             : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
         }`}
       >
         <div
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
             agreed
-              ? "border-[#58d5c4] bg-[#58d5c4] text-[#08111f]"
+              ? "border-indigo-400 bg-indigo-400 text-[#0f1027]"
               : "border-white/15 bg-transparent text-transparent"
           }`}
         >
@@ -324,8 +344,8 @@ function Step4Success({
       <div
         className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ${
           isReferral
-            ? "bg-emerald-400/12 text-emerald-200"
-            : "bg-[#58d5c4]/12 text-[#8ce7db]"
+            ? "bg-white/12 text-white"
+            : "bg-indigo-500/12 text-indigo-200"
         }`}
       >
         {isReferral ? (
@@ -349,8 +369,8 @@ function Step4Success({
         <span
           className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${
             isReferral
-              ? "border border-emerald-400/20 bg-emerald-400/10 text-emerald-200"
-              : "border border-amber-300/20 bg-amber-300/10 text-amber-100"
+              ? "border border-white/20 bg-white/10 text-white"
+              : "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100"
           }`}
         >
           {isReferral ? <BadgeCheck className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
@@ -374,10 +394,17 @@ function Step4Success({
 }
 
 export default function RegisterPage() {
+  const { user } = useUser()
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const lockedContact =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.emailAddresses[0]?.emailAddress ||
+    ""
+  const lockedEmail = user?.primaryEmailAddress?.emailAddress || ""
 
   function handleChange(field: keyof FormData, value: string | boolean) {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -388,11 +415,6 @@ export default function RegisterPage() {
     if (step === 1 && !formData.type) return "Please select a partnership type."
     if (step === 2) {
       if (!formData.companyName.trim()) return "Company name is required."
-      if (!formData.contactName.trim()) return "Contact name is required."
-      if (!formData.email.trim()) return "Email is required."
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        return "Please enter a valid email address."
-      }
     }
     if (step === 3 && !formData.agreedToTerms) {
       return "You must accept the terms and conditions to continue."
@@ -419,8 +441,8 @@ export default function RegisterPage() {
           body: JSON.stringify({
             type: formData.type,
             companyName: formData.companyName,
-            contactName: formData.contactName,
-            email: formData.email,
+            contactName: lockedContact,
+            email: lockedEmail,
             phone: formData.phone,
             agreedToTerms: formData.agreedToTerms,
           }),
@@ -512,9 +534,9 @@ export default function RegisterPage() {
             </div>
 
             {selectedModel ? (
-              <div className="mt-8 rounded-[1.6rem] border border-[#58d5c4]/18 bg-[#58d5c4]/8 p-5">
+              <div className="mt-8 rounded-[1.6rem] border border-indigo-400/18 bg-indigo-500/8 p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/8 text-[#8ce7db]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
                     <selectedModel.icon className="h-5 w-5" />
                   </div>
                   <div>
@@ -544,7 +566,12 @@ export default function RegisterPage() {
             ) : null}
 
             {step === 2 ? (
-              <Step2CompanyDetails formData={formData} onChange={handleChange} />
+              <Step2CompanyDetails
+                formData={formData}
+                onChange={handleChange}
+                lockedContact={lockedContact}
+                lockedEmail={lockedEmail}
+              />
             ) : null}
 
             {step === 3 ? (

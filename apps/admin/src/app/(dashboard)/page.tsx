@@ -16,14 +16,14 @@ function StatusBadge({ status }: { status: string }) {
     pending: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
     approved: "bg-green-950/60 border-green-800/40 text-green-400",
     rejected: "bg-red-950/60 border-red-800/40 text-red-400",
-    suspended: "bg-zinc-800 border-zinc-700 text-zinc-400",
+    suspended: "bg-white/6 border-white/10 text-slate-400",
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-purple-950/60 border-purple-800/40 text-purple-400",
+    in_review: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     converted: "bg-green-950/60 border-green-800/40 text-green-400",
   }
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${map[status] ?? "bg-zinc-800 border-zinc-700 text-zinc-400"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
     >
       {status.replace("_", " ")}
     </span>
@@ -136,7 +136,7 @@ export default async function AdminOverviewPage() {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Admin Overview</h1>
-        <p className="text-zinc-400 text-sm mt-1">
+        <p className="text-slate-400 text-sm mt-1">
           Monitor partner activity, leads, and commissions across the platform
         </p>
       </div>
@@ -146,7 +146,7 @@ export default async function AdminOverviewPage() {
         {kpiCards.map((card) => (
           <div
             key={card.label}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+            className="surface-card rounded-2xl p-5 transition-colors hover:border-white/20"
           >
             <div className="flex items-start justify-between mb-4">
               <div
@@ -157,10 +157,10 @@ export default async function AdminOverviewPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{card.value}</p>
-              <p className="text-zinc-400 text-sm font-medium mt-0.5">
+              <p className="text-slate-400 text-sm font-medium mt-0.5">
                 {card.label}
               </p>
-              <p className="text-zinc-600 text-xs mt-1">{card.description}</p>
+              <p className="text-slate-500 text-xs mt-1">{card.description}</p>
             </div>
           </div>
         ))}
@@ -169,9 +169,9 @@ export default async function AdminOverviewPage() {
       {/* Pending Approvals + Recent Leads */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pending Partner Approvals */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl">
-          <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-            <h2 className="text-zinc-100 font-semibold flex items-center gap-2">
+        <div className="surface-card rounded-2xl">
+          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <h2 className="text-white font-semibold flex items-center gap-2">
               <Clock className="w-4 h-4 text-yellow-400" />
               Pending Partner Approvals
             </h2>
@@ -183,33 +183,33 @@ export default async function AdminOverviewPage() {
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-white/8">
             {pendingPartnersList.length === 0 ? (
               <div className="px-6 py-10 text-center">
-                <p className="text-zinc-500 text-sm">No pending approvals</p>
+                <p className="text-slate-500 text-sm">No pending approvals</p>
               </div>
             ) : (
               pendingPartnersList.map((partner) => (
                 <div
                   key={partner.id}
-                  className="px-6 py-3.5 flex items-center justify-between gap-4 hover:bg-zinc-800/40 transition-colors"
+                  className="px-6 py-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.04] transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0">
-                      <Building2 className="w-4 h-4 text-zinc-500" />
+                    <div className="w-8 h-8 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-4 h-4 text-slate-500" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-zinc-200 text-sm font-medium truncate">
+                      <p className="text-white text-sm font-medium truncate">
                         {partner.companyName}
                       </p>
-                      <p className="text-zinc-500 text-xs truncate">
+                      <p className="text-slate-500 text-xs truncate">
                         {partner.contactName} &middot;{" "}
                         <span className="capitalize">{partner.type}</span>
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <p className="text-zinc-600 text-xs hidden sm:block">
+                    <p className="text-slate-600 text-xs hidden sm:block">
                       {new Date(partner.createdAt).toLocaleDateString("en-AE", {
                         day: "numeric",
                         month: "short",
@@ -217,7 +217,7 @@ export default async function AdminOverviewPage() {
                     </p>
                     <Link
                       href={`/partners/${partner.id}`}
-                      className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                      className="text-xs bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
                     >
                       Review
                     </Link>
@@ -229,9 +229,9 @@ export default async function AdminOverviewPage() {
         </div>
 
         {/* Recent Leads */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl">
-          <div className="px-6 py-4 border-b border-zinc-800 flex items-center justify-between">
-            <h2 className="text-zinc-100 font-semibold flex items-center gap-2">
+        <div className="surface-card rounded-2xl">
+          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+            <h2 className="text-white font-semibold flex items-center gap-2">
               <Users className="w-4 h-4 text-blue-400" />
               Recent Leads
             </h2>
@@ -243,10 +243,10 @@ export default async function AdminOverviewPage() {
               <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <div className="divide-y divide-zinc-800">
+          <div className="divide-y divide-white/8">
             {recentLeadsList.length === 0 ? (
               <div className="px-6 py-10 text-center">
-                <p className="text-zinc-500 text-sm">No leads yet</p>
+                <p className="text-slate-500 text-sm">No leads yet</p>
               </div>
             ) : (
               recentLeadsList.map((lead) => {
@@ -262,13 +262,13 @@ export default async function AdminOverviewPage() {
                 return (
                   <div
                     key={lead.id}
-                    className="px-6 py-3.5 flex items-center justify-between gap-4 hover:bg-zinc-800/40 transition-colors"
+                    className="px-6 py-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.04] transition-colors"
                   >
                     <div className="min-w-0">
-                      <p className="text-zinc-200 text-sm font-medium truncate">
+                      <p className="text-white text-sm font-medium truncate">
                         {lead.customerName}
                       </p>
-                      <p className="text-zinc-500 text-xs truncate">
+                      <p className="text-slate-500 text-xs truncate">
                         {lead.customerCompany
                           ? `${lead.customerCompany} · `
                           : ""}
@@ -279,7 +279,7 @@ export default async function AdminOverviewPage() {
                       <StatusBadge status={lead.status} />
                       <Link
                         href={`/leads/${lead.id}`}
-                        className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                        className="text-xs text-slate-400 hover:text-white transition-colors"
                       >
                         <ArrowRight className="w-4 h-4" />
                       </Link>

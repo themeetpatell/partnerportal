@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { sendWelcomeEmail } from "@repo/notifications"
 
 export async function POST(
   _req: NextRequest,
@@ -28,5 +29,7 @@ export async function POST(
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
   }
 
-  return NextResponse.json({ partner: updated })
+  await sendWelcomeEmail(updated.email, updated.contactName)
+
+  return NextResponse.redirect(new URL(`/partners/${id}`, _req.url))
 }

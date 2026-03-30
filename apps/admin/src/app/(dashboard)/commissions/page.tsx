@@ -13,7 +13,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-zinc-800 border-zinc-700 text-zinc-400"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
     >
       {status}
     </span>
@@ -105,7 +105,7 @@ export default async function CommissionsPage({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Commissions</h1>
-        <p className="text-zinc-400 text-sm mt-1">
+        <p className="text-slate-400 text-sm mt-1">
           Review, approve, and process partner commission payouts
         </p>
       </div>
@@ -115,7 +115,7 @@ export default async function CommissionsPage({
         {summaryCards.map((card) => (
           <div
             key={card.label}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl p-5"
+            className="surface-card rounded-2xl p-5"
           >
             <div className="flex items-start gap-3">
               <div
@@ -125,7 +125,7 @@ export default async function CommissionsPage({
               </div>
               <div>
                 <p className="text-xl font-bold text-white">{card.value}</p>
-                <p className="text-zinc-400 text-xs mt-0.5">{card.label}</p>
+                <p className="text-slate-400 text-xs mt-0.5">{card.label}</p>
               </div>
             </div>
           </div>
@@ -133,7 +133,7 @@ export default async function CommissionsPage({
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 surface-card rounded-lg p-1 w-fit">
         {tabs.map((tab) => {
           const isActive = activeStatus === tab.value
           return (
@@ -142,8 +142,8 @@ export default async function CommissionsPage({
               href={`/commissions?status=${tab.value}`}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-zinc-800 text-zinc-100"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white/6 text-white"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               {tab.label}
@@ -153,16 +153,16 @@ export default async function CommissionsPage({
       </div>
 
       {/* Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
-              <DollarSign className="w-6 h-6 text-zinc-600" />
+            <div className="w-12 h-12 rounded-full bg-white/6 border border-white/8 flex items-center justify-center mb-4">
+              <DollarSign className="w-6 h-6 text-slate-600" />
             </div>
-            <p className="text-zinc-400 font-medium text-sm">
+            <p className="text-slate-400 font-medium text-sm">
               No {activeStatus} commissions
             </p>
-            <p className="text-zinc-600 text-xs mt-1">
+            <p className="text-slate-600 text-xs mt-1">
               Commissions will appear here once leads are converted.
             </p>
           </div>
@@ -170,38 +170,38 @@ export default async function CommissionsPage({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                <tr className="border-b border-white/10">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Partner
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Source
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Amount (AED)
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-white/8">
                 {rows.map((commission) => (
                   <tr
                     key={commission.id}
-                    className="hover:bg-zinc-800/40 transition-colors"
+                    className="hover:bg-white/[0.04] transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <p className="text-zinc-200 text-sm font-medium">
+                      <p className="text-white text-sm font-medium">
                         {commission.partnerCompanyName ?? "Unknown"}
                       </p>
-                      <p className="text-zinc-500 text-xs">
+                      <p className="text-slate-500 text-xs">
                         {commission.partnerContactName ?? ""}
                       </p>
                     </td>
@@ -209,12 +209,12 @@ export default async function CommissionsPage({
                       <span className="text-zinc-300 text-sm capitalize">
                         {commission.sourceType.replace("_", " ")}
                       </span>
-                      <p className="text-zinc-600 text-xs font-mono mt-0.5">
+                      <p className="text-slate-600 text-xs font-mono mt-0.5">
                         {commission.sourceId.slice(0, 8)}…
                       </p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-zinc-100 text-sm font-semibold">
+                      <span className="text-white text-sm font-semibold">
                         {Number(commission.amount).toLocaleString("en-AE", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -225,7 +225,7 @@ export default async function CommissionsPage({
                       <StatusBadge status={commission.status} />
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-zinc-500 text-sm">
+                      <span className="text-slate-500 text-sm">
                         {new Date(commission.calculatedAt).toLocaleDateString(
                           "en-AE",
                           { day: "numeric", month: "short", year: "numeric" }
@@ -241,7 +241,7 @@ export default async function CommissionsPage({
                           >
                             <button
                               type="submit"
-                              className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                              className="text-xs bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
                             >
                               Approve
                             </button>
@@ -257,7 +257,7 @@ export default async function CommissionsPage({
                         )}
                         <Link
                           href={`/leads/${commission.sourceId}`}
-                          className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
                         >
                           <ArrowRight className="w-3 h-3" />
                         </Link>

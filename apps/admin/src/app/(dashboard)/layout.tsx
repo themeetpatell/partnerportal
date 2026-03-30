@@ -33,7 +33,7 @@ export default async function DashboardLayout({
     (user.publicMetadata?.role as string) || "Admin"
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col lg:flex-row">
+    <div className="relative min-h-screen flex flex-col lg:flex-row">
       <AdminSidebarNav
         userName={userName}
         userEmail={userEmail}

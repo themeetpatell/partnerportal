@@ -9,13 +9,10 @@ import {
   DollarSign,
   FileText,
   LayoutDashboard,
-  LifeBuoy,
   LogOut,
   Menu,
   Plus,
-  Sparkles,
   User,
-  Users,
   Wrench,
   X,
 } from "lucide-react"
@@ -24,7 +21,7 @@ import { useClerk } from "@clerk/nextjs"
 const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Submit Lead", href: "/dashboard/leads/new", icon: Plus },
-  { label: "My Leads", href: "/dashboard/leads", icon: Users },
+  { label: "Clients", href: "/dashboard/clients", icon: ClipboardList },
   { label: "New Service Request", href: "/dashboard/service-requests/new", icon: Wrench },
   { label: "Service Requests", href: "/dashboard/service-requests", icon: ClipboardList },
   { label: "Commissions", href: "/dashboard/commissions", icon: DollarSign },
@@ -54,23 +51,23 @@ function NavLink({
     <Link
       href={item.href}
       onClick={onClick}
-      className={`group flex items-center gap-3 rounded-[1.1rem] px-3 py-3 text-sm font-medium transition-all ${
+      className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
         active
-          ? "bg-gradient-to-r from-[#58d5c4]/16 to-[#f2bc74]/10 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-          : "text-slate-400 hover:bg-white/[0.05] hover:text-white"
+          ? "border border-indigo-400/30 bg-indigo-500/15 text-indigo-200"
+          : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
       }`}
     >
       <div
-        className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+        className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
           active
-            ? "bg-[#58d5c4]/16 text-[#8ce7db]"
-            : "bg-white/[0.04] text-slate-500 group-hover:text-slate-200"
+            ? "bg-indigo-500/20 text-indigo-200"
+            : "bg-zinc-800 text-zinc-500 group-hover:text-zinc-300"
         }`}
       >
         <item.icon className="h-4 w-4" />
       </div>
       <span className="flex-1">{item.label}</span>
-      {active ? <ChevronRight className="h-4 w-4 text-[#8ce7db]" /> : null}
+      {active ? <ChevronRight className="h-3.5 w-3.5 text-indigo-400" /> : null}
     </Link>
   )
 }
@@ -92,29 +89,17 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-white/8 px-5 py-5">
+      <div className="border-b border-zinc-800 px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-[1.2rem] bg-gradient-to-br from-[#58d5c4] via-[#8ce7db] to-[#f2bc74] text-sm font-black text-[#08111f] shadow-[0_18px_45px_rgba(88,213,196,0.28)]">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 via-indigo-500 to-violet-500 text-sm font-bold text-white shadow-[0_10px_28px_rgba(99,102,241,0.35)]">
             F
           </div>
           <div>
-            <p className="font-heading text-lg font-semibold text-white">Finanshels</p>
-            <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+            <p className="text-sm font-semibold leading-none text-white">Finanshels</p>
+            <p className="mt-0.5 text-[11px] uppercase tracking-[0.2em] text-zinc-500">
               Partner Portal
             </p>
           </div>
-        </div>
-
-        <div className="mt-5 rounded-[1.4rem] border border-[#58d5c4]/18 bg-[#58d5c4]/8 p-4">
-          <div className="flex items-center gap-2 text-[#8ce7db]">
-            <Sparkles className="h-4 w-4" />
-            <span className="text-xs font-semibold uppercase tracking-[0.22em]">
-              Workspace status
-            </span>
-          </div>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Keep leads moving, route service requests cleanly, and monitor payouts without chasing updates.
-          </p>
         </div>
       </div>
 
@@ -154,22 +139,12 @@ function SidebarContent({
             ))}
           </div>
         </div>
-
-        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
-          <div className="flex items-center gap-2 text-slate-200">
-            <LifeBuoy className="h-4 w-4 text-[#f2bc74]" />
-            <p className="text-sm font-semibold">Need support?</p>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
-            Use profile details and registration context to keep your partnership information current.
-          </p>
-        </div>
       </nav>
 
-      <div className="border-t border-white/8 p-4">
-        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-3">
+      <div className="border-t border-zinc-800 p-3">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/8 text-sm font-semibold text-white">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500/15 text-xs font-semibold text-indigo-200">
               {userInitials}
             </div>
             <div className="min-w-0 flex-1">
@@ -214,7 +189,7 @@ export function SidebarNav({
 
       <div className="surface-card sticky top-4 z-30 mb-4 flex items-center justify-between rounded-[1.4rem] px-4 py-3 lg:hidden">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-gradient-to-br from-[#58d5c4] via-[#8ce7db] to-[#f2bc74] text-sm font-black text-[#08111f]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[1rem] bg-gradient-to-br from-indigo-400 via-indigo-500 to-violet-500 text-sm font-black text-white shadow-[0_10px_28px_rgba(99,102,241,0.35)]">
             F
           </div>
           <div>
@@ -237,7 +212,7 @@ export function SidebarNav({
 
       {mobileOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-[#08111f]/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[#050505]/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       ) : null}

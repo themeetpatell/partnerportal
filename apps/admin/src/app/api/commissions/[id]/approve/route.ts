@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { db, commissions } from "@repo/db"
+import { db, commissions, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { sendCommissionApprovedEmail } from "@repo/notifications"
 
 export async function POST(
   _req: NextRequest,
@@ -43,5 +44,25 @@ export async function POST(
     .where(eq(commissions.id, id))
     .returning()
 
-  return NextResponse.json({ commission: updated })
+  if (updated) {
+    try {
+      const [partner] = await db
+        .select()
+        .from(partners)
+        .where(eq(partners.id, updated.partnerId))
+        .limit(1)
+
+      if (partner?.email) {
+        await sendCommissionApprovedEmail(
+          partner.email,
+          Number(updated.amount),
+          updated.currency
+        )
+      }
+    } catch (err) {
+      console.error("Commission approval email failed:", err)
+    }
+  }
+
+  return NextResponse.redirect(new URL("/commissions", _req.url))
 }

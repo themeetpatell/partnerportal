@@ -31,34 +31,34 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorBackground: "#18181b",
-          colorInputBackground: "#09090b",
-          colorInputText: "#fafafa",
-          colorText: "#fafafa",
-          colorTextSecondary: "#a1a1aa",
-          colorPrimary: "#6366f1",
-          colorDanger: "#ef4444",
-          borderRadius: "0.5rem",
+          colorBackground: "#050505",
+          colorInputBackground: "#050505",
+          colorInputText: "#f5f5f5",
+          colorText: "#f5f5f5",
+          colorTextSecondary: "#b3b3b3",
+          colorPrimary: "#818cf8",
+          colorDanger: "#ff7b78",
+          borderRadius: "1rem",
           fontFamily: "Inter, sans-serif",
         },
         elements: {
-          card: "bg-zinc-900 border border-zinc-800 shadow-2xl",
+          card: "border border-white/10 shadow-2xl backdrop-blur-xl",
           headerTitle: "text-white",
-          headerSubtitle: "text-zinc-400",
+          headerSubtitle: "text-slate-300",
           formFieldInput:
-            "bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-indigo-500 focus:ring-indigo-500",
+            "border-white/10 bg-[#050505] text-white placeholder:text-slate-500 focus:border-indigo-400 focus:ring-indigo-400",
           formButtonPrimary:
-            "bg-indigo-600 hover:bg-indigo-700 text-white font-medium",
+            "bg-indigo-400 hover:bg-indigo-500 text-white font-semibold",
           footerActionLink: "text-indigo-400 hover:text-indigo-300",
           socialButtonsBlockButton:
-            "bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700",
-          dividerLine: "bg-zinc-700",
-          dividerText: "text-zinc-500",
+            "border-white/10 bg-white/5 text-white hover:bg-white/10",
+          dividerLine: "bg-white/10",
+          dividerText: "text-slate-500",
         },
       }}
     >
       <html lang="en" className={inter.variable} suppressHydrationWarning>
-        <body className="min-h-screen bg-zinc-950 text-zinc-100 antialiased font-sans">
+        <body className="min-h-screen text-white antialiased font-sans">
           {children}
           <Toaster
             position="bottom-right"

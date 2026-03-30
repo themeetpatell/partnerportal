@@ -6,7 +6,7 @@ import { Users, ArrowRight } from "lucide-react"
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-purple-950/60 border-purple-800/40 text-purple-400",
+    in_review: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
     converted: "bg-green-950/60 border-green-800/40 text-green-400",
@@ -14,7 +14,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-zinc-800 border-zinc-700 text-zinc-400"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
     >
       {status.replace(/_/g, " ")}
     </span>
@@ -60,13 +60,13 @@ export default async function LeadsPage({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Leads</h1>
-        <p className="text-zinc-400 text-sm mt-1">
+        <p className="text-slate-400 text-sm mt-1">
           Review and manage partner-submitted leads
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1 w-fit flex-wrap">
+      <div className="flex gap-1 surface-card rounded-lg p-1 w-fit flex-wrap">
         {tabs.map((tab) => {
           const isActive = status === tab.value || (!status && !tab.value)
           return (
@@ -75,8 +75,8 @@ export default async function LeadsPage({
               href={tab.value ? `/leads?status=${tab.value}` : "/leads"}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
-                  ? "bg-zinc-800 text-zinc-100"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-white/6 text-white"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               {tab.label}
@@ -86,14 +86,14 @@ export default async function LeadsPage({
       </div>
 
       {/* Table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="surface-card rounded-2xl overflow-hidden">
         {rows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-            <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
-              <Users className="w-6 h-6 text-zinc-600" />
+            <div className="w-12 h-12 rounded-full bg-white/6 border border-white/8 flex items-center justify-center mb-4">
+              <Users className="w-6 h-6 text-slate-600" />
             </div>
-            <p className="text-zinc-400 font-medium text-sm">No leads found</p>
-            <p className="text-zinc-600 text-xs mt-1">
+            <p className="text-slate-400 font-medium text-sm">No leads found</p>
+            <p className="text-slate-600 text-xs mt-1">
               {status
                 ? `There are no leads with status "${status.replace(/_/g, " ")}".`
                 : "Leads submitted by partners will appear here."}
@@ -103,31 +103,31 @@ export default async function LeadsPage({
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                <tr className="border-b border-white/10">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Partner
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Services
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Date
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Assigned To
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800">
+              <tbody className="divide-y divide-white/8">
                 {rows.map((lead) => {
                   const services = (() => {
                     try {
@@ -142,13 +142,13 @@ export default async function LeadsPage({
                   return (
                     <tr
                       key={lead.id}
-                      className="hover:bg-zinc-800/40 transition-colors"
+                      className="hover:bg-white/[0.04] transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <p className="text-zinc-200 text-sm font-medium">
+                        <p className="text-white text-sm font-medium">
                           {lead.customerName}
                         </p>
-                        <p className="text-zinc-500 text-xs">
+                        <p className="text-slate-500 text-xs">
                           {lead.customerCompany || lead.customerEmail}
                         </p>
                       </td>
@@ -156,12 +156,12 @@ export default async function LeadsPage({
                         <p className="text-zinc-300 text-sm">
                           {lead.partnerCompanyName ?? "—"}
                         </p>
-                        <p className="text-zinc-500 text-xs">
+                        <p className="text-slate-500 text-xs">
                           {lead.partnerContactName ?? ""}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-zinc-400 text-sm truncate max-w-[160px]">
+                        <p className="text-slate-400 text-sm truncate max-w-[160px]">
                           {services || "—"}
                         </p>
                       </td>
@@ -169,7 +169,7 @@ export default async function LeadsPage({
                         <StatusBadge status={lead.status} />
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-zinc-500 text-sm">
+                        <span className="text-slate-500 text-sm">
                           {new Date(lead.createdAt).toLocaleDateString(
                             "en-AE",
                             {
@@ -181,13 +181,13 @@ export default async function LeadsPage({
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-zinc-500 text-sm">
+                        <span className="text-slate-500 text-sm">
                           {lead.assignedTo ? (
                             <span className="text-zinc-300">
                               {lead.assignedTo.slice(0, 8)}…
                             </span>
                           ) : (
-                            <span className="text-zinc-600">Unassigned</span>
+                            <span className="text-slate-600">Unassigned</span>
                           )}
                         </span>
                       </td>

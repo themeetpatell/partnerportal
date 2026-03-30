@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { sendPartnerRejectedEmail } from "@repo/notifications"
 
 export async function POST(
   req: NextRequest,
@@ -15,11 +16,18 @@ export async function POST(
   const { id } = await params
 
   let reason: string | undefined
+  const contentType = req.headers.get("content-type") ?? ""
   try {
-    const body = await req.json()
-    reason = typeof body?.reason === "string" ? body.reason : undefined
+    if (contentType.includes("application/json")) {
+      const body = await req.json()
+      reason = typeof body?.reason === "string" ? body.reason : undefined
+    } else {
+      const form = await req.formData()
+      const r = form.get("reason")
+      reason = typeof r === "string" && r ? r : undefined
+    }
   } catch {
-    // body may be empty for form POSTs; reason is optional
+    // reason is optional
   }
 
   const [updated] = await db
@@ -36,5 +44,11 @@ export async function POST(
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
   }
 
-  return NextResponse.json({ partner: updated })
+  await sendPartnerRejectedEmail(
+    updated.email,
+    updated.contactName,
+    updated.rejectionReason
+  )
+
+  return NextResponse.redirect(new URL(`/partners/${id}`, req.url))
 }

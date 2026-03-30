@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server"
 import { db, leads, partners, commissions } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { calculateCommission } from "@repo/commission-engine"
+import { sendLeadStatusEmail } from "@repo/notifications"
 
 const VALID_STATUSES = [
   "submitted",
@@ -36,10 +37,19 @@ export async function POST(
   const { id } = await params
 
   let body: { status?: string; reason?: string }
+  const contentType = req.headers.get("content-type") ?? ""
   try {
-    body = await req.json()
+    if (contentType.includes("application/json")) {
+      body = await req.json()
+    } else {
+      const form = await req.formData()
+      body = {
+        status: form.get("status")?.toString(),
+        reason: form.get("reason")?.toString(),
+      }
+    }
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
   }
 
   const newStatus = body.status as LeadStatus | undefined
@@ -92,6 +102,26 @@ export async function POST(
     .set(updatePayload)
     .where(eq(leads.id, id))
     .returning()
+
+  if (updatedLead) {
+    try {
+      const [partner] = await db
+        .select()
+        .from(partners)
+        .where(eq(partners.id, updatedLead.partnerId))
+        .limit(1)
+
+      if (partner?.email) {
+        await sendLeadStatusEmail(
+          partner.email,
+          updatedLead.customerCompany || updatedLead.customerName,
+          newStatus
+        )
+      }
+    } catch (err) {
+      console.error("Lead status email failed:", err)
+    }
+  }
 
   // If converted: calculate and create a commission record
   if (newStatus === "converted" && updatedLead) {
@@ -152,5 +182,5 @@ export async function POST(
     }
   }
 
-  return NextResponse.json({ lead: updatedLead })
+  return NextResponse.redirect(new URL(`/leads/${id}`, req.url))
 }

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { db } from "@repo/db"
 import { partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { sendPartnerApplicationReceivedEmail, sendWelcomeEmail } from "@repo/notifications"
 
 const PLACEHOLDER_TENANT_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -86,6 +87,17 @@ export async function POST(request: NextRequest) {
         onboardedAt: type === "referral" ? new Date() : null,
       })
       .returning()
+
+    if (status === "approved") {
+      await sendWelcomeEmail(newPartner.email, newPartner.contactName)
+    } else {
+      await sendPartnerApplicationReceivedEmail(
+        newPartner.email,
+        newPartner.contactName,
+        newPartner.companyName,
+        newPartner.type as "referral" | "channel"
+      )
+    }
 
     return NextResponse.json(
       {

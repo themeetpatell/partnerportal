@@ -15,10 +15,10 @@ type ServiceRequest = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending: "border border-amber-300/20 bg-amber-300/10 text-amber-100",
-  in_progress: "border border-sky-300/20 bg-sky-400/10 text-sky-100",
-  completed: "border border-emerald-300/20 bg-emerald-400/10 text-emerald-100",
-  cancelled: "border border-rose-300/20 bg-rose-400/10 text-rose-100",
+  pending: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
+  in_progress: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
+  completed: "border border-white/20 bg-white/10 text-white",
+  cancelled: "border border-zinc-600/20 bg-zinc-500/10 text-zinc-300",
 }
 
 export default function ServiceRequestsPage() {
@@ -90,7 +90,7 @@ export default function ServiceRequestsPage() {
           </div>
         ) : requests.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/6 text-[#8ce7db]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
               <ClipboardList className="h-6 w-6" />
             </div>
             <p className="mt-5 font-heading text-2xl font-semibold text-white">

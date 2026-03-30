@@ -1,18 +1,12 @@
 import type { Metadata } from "next"
-import { Manrope, Space_Grotesk } from "next/font/google"
+import { Inter } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
 import { Toaster } from "sonner"
 import "./globals.css"
 
-const manrope = Manrope({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
+  variable: "--font-inter",
   display: "swap",
 })
 
@@ -22,7 +16,7 @@ export const metadata: Metadata = {
     template: "%s | Finanshels Partner Portal",
   },
   description:
-    "The official partner portal for Finanshels — manage leads, commissions, and client service requests.",
+    "The official partner portal for Finanshels — manage clients, commissions, and service requests.",
   robots: {
     index: false,
     follow: false,
@@ -38,35 +32,35 @@ export default function RootLayout({
     <ClerkProvider
       appearance={{
         variables: {
-          colorBackground: "#0b1629",
-          colorInputBackground: "#08111f",
-          colorInputText: "#f3f8fc",
-          colorText: "#f3f8fc",
-          colorTextSecondary: "#9ab0c7",
-          colorPrimary: "#58d5c4",
-          colorDanger: "#ff7b78",
-          borderRadius: "1rem",
-          fontFamily: "Manrope, sans-serif",
+          colorBackground: "#18181b",
+          colorInputBackground: "#09090b",
+          colorInputText: "#fafafa",
+          colorText: "#fafafa",
+          colorTextSecondary: "#a1a1aa",
+          colorPrimary: "#818cf8",
+          colorDanger: "#ef4444",
+          borderRadius: "0.625rem",
+          fontFamily: "Inter, sans-serif",
         },
         elements: {
-          card: "border border-white/10 shadow-2xl backdrop-blur-xl",
+          card: "bg-zinc-900 border border-zinc-800 shadow-2xl",
           headerTitle: "text-white",
-          headerSubtitle: "text-slate-300",
+          headerSubtitle: "text-zinc-400",
           formFieldInput:
-            "border-white/10 bg-[#08111f] text-white placeholder:text-slate-500 focus:border-[#58d5c4] focus:ring-[#58d5c4]",
+            "bg-zinc-950 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-indigo-400 focus:ring-indigo-400",
           formButtonPrimary:
-            "bg-[#58d5c4] hover:bg-[#73ead8] text-[#08111f] font-semibold",
-          footerActionLink: "text-[#8ce7db] hover:text-[#b5f4eb]",
+            "bg-indigo-400 hover:bg-indigo-500 text-white font-semibold",
+          footerActionLink: "text-indigo-400 hover:text-indigo-300",
           socialButtonsBlockButton:
-            "border-white/10 bg-white/5 text-white hover:bg-white/10",
-          dividerLine: "bg-white/10",
-          dividerText: "text-slate-500",
+            "bg-zinc-800 border-zinc-700 text-white hover:bg-zinc-700",
+          dividerLine: "bg-zinc-700",
+          dividerText: "text-zinc-500",
         },
       }}
     >
       <html
         lang="en"
-        className={`${manrope.variable} ${spaceGrotesk.variable}`}
+        className={inter.variable}
         suppressHydrationWarning
       >
         <body className="min-h-screen font-sans text-white antialiased">
@@ -76,9 +70,9 @@ export default function RootLayout({
             theme="dark"
             toastOptions={{
               style: {
-                background: "rgba(10, 20, 37, 0.94)",
-                border: "1px solid rgba(152, 182, 216, 0.14)",
-                color: "#f3f8fc",
+                background: "rgba(10, 10, 10, 0.94)",
+                border: "1px solid rgba(255, 255, 255, 0.14)",
+                color: "#f5f5f5",
                 backdropFilter: "blur(20px)",
               },
             }}

@@ -11,11 +11,11 @@ type Commission = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending: "border border-amber-300/20 bg-amber-300/10 text-amber-100",
-  approved: "border border-sky-300/20 bg-sky-400/10 text-sky-100",
-  processing: "border border-violet-300/20 bg-violet-400/10 text-violet-100",
-  paid: "border border-emerald-300/20 bg-emerald-400/10 text-emerald-100",
-  disputed: "border border-rose-300/20 bg-rose-400/10 text-rose-100",
+  pending: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
+  approved: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
+  processing: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-100",
+  paid: "border border-white/20 bg-white/10 text-white",
+  disputed: "border border-zinc-600/20 bg-zinc-500/10 text-zinc-300",
 }
 
 export default function CommissionsPage() {
@@ -84,7 +84,7 @@ export default function CommissionsPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryCards.map((card) => (
             <div key={card.label} className="metric-card">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/6 text-[#8ce7db]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
                 <card.icon className="h-5 w-5" />
               </div>
               <p className="metric-value mt-5">{card.value}</p>
@@ -109,7 +109,7 @@ export default function CommissionsPage() {
           </div>
         ) : commissions.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/6 text-[#8ce7db]">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
               <CircleDollarSign className="h-6 w-6" />
             </div>
             <p className="mt-5 font-heading text-2xl font-semibold text-white">

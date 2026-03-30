@@ -3,7 +3,12 @@
   "private": true,
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev": "node ./scripts/dev.mjs",
+    "dev:turbo": "turbo run dev",
+    "db:generate": "corepack pnpm --filter @repo/db db:generate",
+    "db:migrate": "corepack pnpm --filter @repo/db db:migrate",
+    "db:push": "corepack pnpm --filter @repo/db db:push",
+    "db:studio": "corepack pnpm --filter @repo/db db:studio",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "test": "turbo run test",

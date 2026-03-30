@@ -1,31 +1,36 @@
 import { SignUp } from "@clerk/nextjs"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col">
-      {/* Navigation */}
-      <nav className="border-b border-zinc-800/60 px-6 py-4">
-        <div className="max-w-6xl mx-auto">
-          <Link href="/" className="flex items-center gap-2 w-fit">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">F</span>
-            </div>
-            <span className="text-zinc-100 font-semibold text-lg tracking-tight">
-              Finanshels
-            </span>
+    <div className="page-wrap min-h-screen">
+      <div className="mx-auto max-w-7xl px-5 py-5 sm:px-8">
+        <div className="mb-8 flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
           </Link>
+          <span className="tag-pill">Partner portal</span>
         </div>
-      </nav>
+      </div>
 
-      {/* Sign Up */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-16">
+      <div className="flex flex-col items-center justify-center px-5 pb-16 pt-4">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Create an account</h1>
-          <p className="text-zinc-400 text-sm">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)]">
+            <span className="text-xl font-bold tracking-tight">F</span>
+          </div>
+          <h1 className="font-heading text-3xl font-semibold text-white">
+            Create your account
+          </h1>
+          <p className="mt-2 text-sm text-slate-400">
             Join the Finanshels Partner network
           </p>
         </div>
+
         <SignUp
           routing="path"
           path="/sign-up"
@@ -33,11 +38,12 @@ export default function SignUpPage() {
           forceRedirectUrl="/register"
           fallbackRedirectUrl="/register"
         />
-        <p className="mt-6 text-zinc-500 text-sm">
+
+        <p className="mt-6 text-sm text-slate-500">
           Already have an account?{" "}
           <Link
             href="/sign-in"
-            className="text-blue-400 hover:text-blue-300 transition-colors"
+            className="font-medium text-white transition-colors hover:text-slate-200"
           >
             Sign in
           </Link>

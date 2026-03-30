@@ -50,7 +50,7 @@ export default function LandingPage() {
         <nav className="surface-card rounded-[1.8rem] px-5 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#58d5c4] via-[#83f2e0] to-[#f2bc74] text-sm font-black text-[#08111f] shadow-[0_16px_40px_rgba(88,213,196,0.26)]">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 via-indigo-500 to-violet-500 text-sm font-black text-white shadow-[0_16px_40px_rgba(99,102,241,0.3)]">
                 F
               </div>
               <div>
@@ -83,8 +83,8 @@ export default function LandingPage() {
         <main className="grid flex-1 gap-6 lg:grid-cols-[1.25fr_0.9fr]">
           <section className="surface-card-strong relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-8 sm:py-12 lg:px-10">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-            <div className="absolute -left-16 top-16 h-40 w-40 rounded-full bg-[#58d5c4]/10 blur-3xl" />
-            <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-[#f2bc74]/10 blur-3xl" />
+            <div className="absolute -left-16 top-16 h-40 w-40 rounded-full bg-indigo-400/12 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-violet-500/12 blur-3xl" />
 
             <div className="relative max-w-3xl">
               <div className="eyebrow mb-6">
@@ -137,15 +137,15 @@ export default function LandingPage() {
             <div className="surface-card rounded-[2rem] p-6 sm:p-7">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#8ce7db]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-indigo-300">
                     Control room
                   </p>
                   <h2 className="font-heading mt-2 text-2xl font-semibold text-white">
                     Built for disciplined partner operations
                   </h2>
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/5 p-3">
-                  <BriefcaseBusiness className="h-5 w-5 text-[#f2bc74]" />
+                <div className="rounded-full border border-indigo-400/18 bg-indigo-500/10 p-3">
+                  <BriefcaseBusiness className="h-5 w-5 text-indigo-300" />
                 </div>
               </div>
 
@@ -155,7 +155,7 @@ export default function LandingPage() {
                     key={step}
                     className="flex items-start gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-3"
                   >
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#58d5c4]/14 text-sm font-bold text-[#8ce7db]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/14 text-sm font-bold text-indigo-200">
                       0{index + 1}
                     </div>
                     <p className="pt-1 text-sm leading-6 text-slate-300">{step}</p>
@@ -170,7 +170,7 @@ export default function LandingPage() {
                   key={feature.title}
                   className="surface-card rounded-[1.75rem] p-5"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/6 text-[#8ce7db]">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
                     <feature.icon className="h-5 w-5" />
                   </div>
                   <h3 className="mt-4 font-heading text-xl font-semibold text-white">
@@ -187,7 +187,7 @@ export default function LandingPage() {
 
         <footer className="flex flex-col gap-4 rounded-[1.75rem] border border-white/8 bg-white/[0.03] px-5 py-4 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <BadgeCheck className="h-4 w-4 text-[#8ce7db]" />
+            <BadgeCheck className="h-4 w-4 text-indigo-300" />
             Finanshels partner workspace for referrals, service requests, and commission visibility.
           </div>
           <div className="flex items-center gap-5">
