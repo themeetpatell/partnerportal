@@ -1,12 +1,17 @@
 import { auth } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSignInForm } from "@/components/admin-sign-in-form"
+import { getActiveTeamMember } from "@/lib/admin-auth"
 
 export default async function SignInPage() {
   const { userId } = await auth()
 
   if (userId) {
-    redirect("/dashboard")
+    const teamMember = await getActiveTeamMember(userId)
+
+    if (teamMember) {
+      redirect("/dashboard")
+    }
   }
 
   return (

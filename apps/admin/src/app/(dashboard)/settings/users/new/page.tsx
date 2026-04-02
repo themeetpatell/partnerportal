@@ -5,15 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-
-const ROLES = [
-  { value: "admin",             label: "Admin",             desc: "Full access to all modules" },
-  { value: "partnership",       label: "Partnership",       desc: "Partners, leads, services management" },
-  { value: "sales",             label: "Sales",             desc: "Lead pipeline and conversions" },
-  { value: "appointment_setter",label: "Appointment Setter",desc: "Create and edit leads only" },
-  { value: "finance",           label: "Finance",           desc: "Invoices and commissions" },
-  { value: "viewer",            label: "Viewer",            desc: "Read-only analytics" },
-] as const
+import { TEAM_ROLE_OPTIONS } from "@/lib/rbac"
 
 const SCOPES = [
   { value: "all",  label: "All records" },
@@ -29,7 +21,7 @@ export default function NewUserPage() {
     email: "",
     phone: "",
     designation: "",
-    role: "sales" as (typeof ROLES)[number]["value"],
+    role: "sdr" as (typeof TEAM_ROLE_OPTIONS)[number]["value"],
     rowScope: "all" as (typeof SCOPES)[number]["value"],
   })
 
@@ -58,7 +50,7 @@ export default function NewUserPage() {
     }
   }
 
-  const selectedRole = ROLES.find((r) => r.value === form.role)
+  const selectedRole = TEAM_ROLE_OPTIONS.find((r) => r.value === form.role)
 
   return (
     <div className="max-w-xl space-y-8">
@@ -105,7 +97,7 @@ export default function NewUserPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Role *">
               <select value={form.role} onChange={set("role")} className={selectCls}>
-                {ROLES.map((r) => (
+                {TEAM_ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
               </select>

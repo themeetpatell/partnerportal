@@ -4,6 +4,7 @@ const CONNECTION_ERROR_CODES = new Set([
   "ECONNRESET",
   "ETIMEDOUT",
   "EAI_AGAIN",
+  "57014",
 ])
 
 const CONNECTION_MESSAGE_PATTERNS = [
@@ -14,6 +15,9 @@ const CONNECTION_MESSAGE_PATTERNS = [
   "failed to connect",
   "could not connect to server",
   "server closed the connection unexpectedly",
+  "statement timeout",
+  "max client connections reached",
+  "too many clients already",
 ]
 
 function isRecord(value: unknown): value is Record<string, unknown> {

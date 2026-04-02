@@ -357,11 +357,10 @@ export function PipelineFilters({
         onChange={(v) => update("leadStatus", v)}
         options={[
           { label: "Submitted", value: "submitted" },
-          { label: "In Review", value: "in_review" },
           { label: "Qualified", value: "qualified" },
           { label: "Proposal Sent", value: "proposal_sent" },
-          { label: "Converted", value: "converted" },
-          { label: "Rejected", value: "rejected" },
+          { label: "Deal Won", value: "deal_won" },
+          { label: "Deal Lost", value: "deal_lost" },
         ]}
       />
       <Select
@@ -613,11 +612,10 @@ export function AnalyticsFilterBar({
           onChange={(v) => update("leadStatus", v)}
           options={[
             { label: "Submitted", value: "submitted" },
-            { label: "In Review", value: "in_review" },
             { label: "Qualified", value: "qualified" },
             { label: "Proposal Sent", value: "proposal_sent" },
-            { label: "Converted", value: "converted" },
-            { label: "Rejected", value: "rejected" },
+            { label: "Deal Won", value: "deal_won" },
+            { label: "Deal Lost", value: "deal_lost" },
           ]}
         />
         <Select

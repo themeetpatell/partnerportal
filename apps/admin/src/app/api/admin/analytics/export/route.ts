@@ -3,6 +3,7 @@ import { auth } from "@repo/auth/server"
 import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 function getDateRange(preset: string | undefined) {
   const now = new Date()
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
     .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
-  if (!member || !["admin", "partnership", "finance"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "finance"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

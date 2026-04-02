@@ -20,8 +20,10 @@ function StatusBadge({ status }: { status: string }) {
     rejected: "bg-red-950/60 border-red-800/40 text-red-400",
     suspended: "bg-white/6 border-white/10 text-slate-400",
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
-    converted: "bg-green-950/60 border-green-800/40 text-green-400",
+    qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
+    proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
+    deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
+    deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
   }
   return (
     <span

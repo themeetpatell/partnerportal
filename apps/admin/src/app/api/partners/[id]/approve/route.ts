@@ -4,6 +4,7 @@ import { db, partners, teamMembers, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
 import { sendPartnerApprovedEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 export async function POST(
   _req: NextRequest,
@@ -25,7 +26,7 @@ export async function POST(
     .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
-  if (!member || !["admin", "partnership"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -61,7 +62,7 @@ export async function POST(
     action: "partner.approved",
     entityType: "partner",
     entityId: id,
-    note: "Partner approved and workspace activated.",
+    note: "Partner approved. Workspace unlocks after contract signing and admin acceptance.",
   })
 
   return NextResponse.redirect(new URL(`/partners/${id}`, _req.url))

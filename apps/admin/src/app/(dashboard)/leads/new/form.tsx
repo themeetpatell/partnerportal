@@ -41,12 +41,12 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  function toggleService(id: string) {
+  function toggleService(name: string) {
     setForm((f) => ({
       ...f,
-      serviceInterest: f.serviceInterest.includes(id)
-        ? f.serviceInterest.filter((s) => s !== id)
-        : [...f.serviceInterest, id],
+      serviceInterest: f.serviceInterest.includes(name)
+        ? f.serviceInterest.filter((service) => service !== name)
+        : [...f.serviceInterest, name],
     }))
   }
 
@@ -145,12 +145,12 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
           <h2 className="text-zinc-100 font-semibold text-sm">Service Interest</h2>
           <div className="flex flex-wrap gap-2">
             {services.map((s) => {
-              const active = form.serviceInterest.includes(s.id)
+              const active = form.serviceInterest.includes(s.name)
               return (
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => toggleService(s.id)}
+                  onClick={() => toggleService(s.name)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                     active
                       ? "bg-indigo-600/20 border-indigo-600/50 text-indigo-300"

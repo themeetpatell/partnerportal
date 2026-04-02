@@ -4,6 +4,7 @@ import { db, partners, teamMembers, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
 import { sendPartnerRejectedEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 export async function POST(
   req: NextRequest,
@@ -25,7 +26,7 @@ export async function POST(
     .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
-  if (!member || !["admin", "partnership"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

@@ -7,17 +7,17 @@ import { Plus, Shield, Users } from "lucide-react"
 import { UserActionsMenu } from "./actions"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import {
+  ACCESS_MODULES,
+  ROLE_DEFAULT_PERMISSIONS,
+  TEAM_ROLE_META,
+  TEAM_ROLE_ORDER,
+  USER_MANAGEMENT_ROLES,
+  getTeamRoleMeta,
+  hasAnyTeamRole,
+} from "@/lib/rbac"
 
-const ROLE_META: Record<string, { label: string; color: string; perms: string }> = {
-  admin:            { label: "Admin",            color: "bg-red-950/60 border-red-800/40 text-red-400",         perms: "Full access" },
-  partnership:      { label: "Partnership",      color: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400", perms: "Partners + Leads + Services" },
-  sales:            { label: "Sales",            color: "bg-blue-950/60 border-blue-800/40 text-blue-400",       perms: "Lead pipeline + conversions" },
-  appointment_setter:{ label: "Appt. Setter",   color: "bg-cyan-950/60 border-cyan-800/40 text-cyan-400",       perms: "Create/edit leads only" },
-  finance:          { label: "Finance",          color: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400", perms: "Invoices + commissions" },
-  viewer:           { label: "Viewer",           color: "bg-zinc-800 border-zinc-700 text-zinc-400",             perms: "Read-only analytics" },
-}
-
-const MODULES = ["partners", "leads", "services", "invoices", "commissions", "users", "analytics"]
+const MODULES = [...ACCESS_MODULES]
 
 export default async function UsersPage() {
   const { userId } = await auth()
@@ -26,7 +26,7 @@ export default async function UsersPage() {
   }
 
   const member = await getActiveTeamMember(userId)
-  if (!member || member.role !== "admin") {
+  if (!member || !hasAnyTeamRole(member.role, USER_MANAGEMENT_ROLES)) {
     redirect("/")
   }
 
@@ -76,7 +76,8 @@ export default async function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800/50">
-              {Object.entries(ROLE_META).map(([role, meta]) => {
+              {TEAM_ROLE_ORDER.map((role) => {
+                const meta = TEAM_ROLE_META[role]
                 const defaultPerms = getDefaultPerms(role)
                 return (
                   <tr key={role}>
@@ -134,7 +135,7 @@ export default async function UsersPage() {
               </thead>
               <tbody className="divide-y divide-zinc-800">
                 {members.map((m) => {
-                  const roleMeta = ROLE_META[m.role] ?? ROLE_META.viewer!
+                  const roleMeta = getTeamRoleMeta(m.role)
                   return (
                     <tr key={m.id} className="hover:bg-zinc-800/40 transition-colors">
                       <td className="px-6 py-4">
@@ -185,13 +186,5 @@ export default async function UsersPage() {
 }
 
 function getDefaultPerms(role: string): Record<string, string> {
-  const matrix: Record<string, Record<string, string>> = {
-    admin:             { partners:"rw", leads:"rw", services:"rw", invoices:"rw", commissions:"rw", users:"rw", analytics:"r" },
-    partnership:       { partners:"rw", leads:"rw", services:"rw", invoices:"r",  commissions:"r",  users:"r",  analytics:"r" },
-    sales:             { partners:"r",  leads:"rw", services:"r",  invoices:"r",  commissions:"r",  users:"",   analytics:"r" },
-    appointment_setter:{ partners:"r",  leads:"rw", services:"",   invoices:"",   commissions:"",   users:"",   analytics:"" },
-    finance:           { partners:"r",  leads:"r",  services:"r",  invoices:"rw", commissions:"rw", users:"",   analytics:"r" },
-    viewer:            { partners:"r",  leads:"r",  services:"r",  invoices:"r",  commissions:"r",  users:"",   analytics:"r" },
-  }
-  return matrix[role] ?? {}
+  return ROLE_DEFAULT_PERMISSIONS[role as keyof typeof ROLE_DEFAULT_PERMISSIONS] ?? {}
 }

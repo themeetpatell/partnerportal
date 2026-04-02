@@ -1,10 +1,56 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, leads, logActivity } from "@repo/db"
-import { eq, and, or, isNull } from "drizzle-orm"
+import { db, leads, logActivity, partners, services } from "@repo/db"
+import { eq, and, or, isNull, inArray } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
+import { createZohoLead, normalizeZohoLeadServices } from "@repo/zoho"
 import { getActiveTeamMember, getActorName } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole } from "@/lib/rbac"
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+async function resolveServiceInterestNames(tenantId: string, rawValues: unknown) {
+  const cleaned = Array.isArray(rawValues)
+    ? rawValues
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : []
+
+  const serviceIds = cleaned.filter((value) => uuidPattern.test(value))
+  if (serviceIds.length === 0) {
+    return [...new Set(cleaned)]
+  }
+
+  const rows = await db
+    .select({ id: services.id, name: services.name })
+    .from(services)
+    .where(and(eq(services.tenantId, tenantId), inArray(services.id, serviceIds)))
+
+  const serviceNameById = new Map(rows.map((row) => [row.id, row.name]))
+  return [
+    ...new Set(cleaned.map((value) => serviceNameById.get(value) ?? value)),
+  ]
+}
+
+function splitCustomerName(fullName: string) {
+  const trimmed = fullName.trim()
+  if (!trimmed) {
+    return { firstName: undefined, lastName: "Unknown" }
+  }
+
+  const parts = trimmed.split(/\s+/)
+  if (parts.length === 1) {
+    return { firstName: undefined, lastName: parts[0]! }
+  }
+
+  return {
+    firstName: parts.slice(0, -1).join(" "),
+    lastName: parts.at(-1)!,
+  }
+}
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -16,8 +62,7 @@ export async function POST(req: NextRequest) {
   const actorName = await getActorName()
   const member = await getActiveTeamMember(userId)
 
-  const allowedRoles = ["admin", "partnership", "sales", "appointment_setter"]
-  if (!member || !allowedRoles.includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -79,6 +124,54 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const [partner] = await db
+    .select({
+      id: partners.id,
+      companyName: partners.companyName,
+      contactName: partners.contactName,
+    })
+    .from(partners)
+    .where(and(eq(partners.id, partnerId), eq(partners.tenantId, tenantId)))
+    .limit(1)
+
+  if (!partner) {
+    return NextResponse.json({ error: "Partner not found" }, { status: 404 })
+  }
+
+  const serviceInterestNames = await resolveServiceInterestNames(
+    tenantId,
+    serviceInterest
+  )
+  const { firstName, lastName } = splitCustomerName(customerName)
+  const zohoServices = normalizeZohoLeadServices(serviceInterestNames)
+  const zohoLeadId = await createZohoLead({
+    First_Name: firstName,
+    Last_Name: lastName,
+    Email: customerEmail,
+    Phone: customerPhone || undefined,
+    Company: customerCompany || customerName,
+    Lead_Source: "Manually Added",
+    Lead_Status: "New (Incoming)",
+    Services_List: zohoServices.length > 0 ? zohoServices : undefined,
+    Description: [
+      `Created by ${actorName} on behalf of ${partner.contactName} (${partner.companyName}).`,
+      `Partner note: ${onBehalfNote.trim()}`,
+      serviceInterestNames.length > 0
+        ? `Services interested: ${serviceInterestNames.join(", ")}`
+        : null,
+      notes?.trim() ? `Notes: ${notes.trim()}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+  })
+
+  if (!zohoLeadId) {
+    return NextResponse.json(
+      { error: "Lead could not be created in Zoho CRM. Please try again." },
+      { status: 502 }
+    )
+  }
+
   const [created] = await db
     .insert(leads)
     .values({
@@ -88,7 +181,7 @@ export async function POST(req: NextRequest) {
       customerEmail,
       customerPhone: customerPhone || null,
       customerCompany: customerCompany || null,
-      serviceInterest: JSON.stringify(serviceInterest),
+      serviceInterest: JSON.stringify(serviceInterestNames),
       notes: notes || null,
       status: "submitted",
       source,
@@ -99,6 +192,7 @@ export async function POST(req: NextRequest) {
       assignedTo: assignedTo || null,
       createdBy: userId,
       onBehalfNote: onBehalfNote.trim(),
+      zohoLeadId,
     })
     .returning()
 

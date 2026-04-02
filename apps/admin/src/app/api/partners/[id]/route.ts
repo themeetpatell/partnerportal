@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 const updatePartnerSchema = z.object({
   // Identity (admin-only)
@@ -81,7 +82,7 @@ export async function PATCH(
 
   // Verify admin/partnership role
   const member = await getActiveTeamMember(userId)
-  if (!member || !["admin", "partnership"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

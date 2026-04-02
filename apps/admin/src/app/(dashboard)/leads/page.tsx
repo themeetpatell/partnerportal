@@ -6,11 +6,10 @@ import { Users, ArrowRight, Plus } from "lucide-react"
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-purple-950/60 border-purple-800/40 text-purple-400",
     qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
-    converted: "bg-green-950/60 border-green-800/40 text-green-400",
-    rejected: "bg-red-950/60 border-red-800/40 text-red-400",
+    deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
+    deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
   }
   return (
     <span
@@ -24,9 +23,10 @@ function StatusBadge({ status }: { status: string }) {
 const tabs = [
   { label: "All", value: undefined },
   { label: "Submitted", value: "submitted" },
-  { label: "In Review", value: "in_review" },
-  { label: "Converted", value: "converted" },
-  { label: "Rejected", value: "rejected" },
+  { label: "Qualified", value: "qualified" },
+  { label: "Proposal Sent", value: "proposal_sent" },
+  { label: "Deal Won", value: "deal_won" },
+  { label: "Deal Lost", value: "deal_lost" },
 ] as const
 
 export default async function LeadsPage({
@@ -62,7 +62,7 @@ export default async function LeadsPage({
         <div>
           <h1 className="text-2xl font-bold text-white">Leads</h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Review and manage partner-submitted leads
+            Review partner-submitted leads and sync their status from Zoho CRM
           </p>
         </div>
         <Link

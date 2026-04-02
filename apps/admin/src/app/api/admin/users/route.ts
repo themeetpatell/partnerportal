@@ -5,41 +5,20 @@ import { eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-
-// Default permission matrices per role
-const ROLE_PERMISSIONS: Record<string, Record<string, string>> = {
-  admin: {
-    partners: "rw", leads: "rw", services: "rw",
-    invoices: "rw", commissions: "rw", users: "rw", analytics: "r",
-  },
-  partnership: {
-    partners: "rw", leads: "rw", services: "rw",
-    invoices: "r", commissions: "r", users: "r", analytics: "r",
-  },
-  sales: {
-    partners: "r", leads: "rw", services: "r",
-    invoices: "r", commissions: "r", users: "", analytics: "r",
-  },
-  appointment_setter: {
-    partners: "r", leads: "rw", services: "",
-    invoices: "", commissions: "", users: "", analytics: "",
-  },
-  finance: {
-    partners: "r", leads: "r", services: "r",
-    invoices: "rw", commissions: "rw", users: "", analytics: "r",
-  },
-  viewer: {
-    partners: "r", leads: "r", services: "r",
-    invoices: "r", commissions: "r", users: "", analytics: "r",
-  },
-}
+import {
+  TEAM_ROLE_OPTIONS,
+  USER_MANAGEMENT_ROLES,
+  getDefaultPermissionsForRole,
+  hasAnyTeamRole,
+  normalizeTeamRole,
+} from "@/lib/rbac"
 
 export async function GET() {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const caller = await getActiveTeamMember(userId)
-  if (!caller || caller.role !== "admin") {
+  if (!caller || !hasAnyTeamRole(caller.role, USER_MANAGEMENT_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
   }
 
@@ -65,7 +44,7 @@ export async function POST(req: NextRequest) {
   const tenantId = getRequiredTenantId()
 
   // Only admin can create users
-  if (!caller || caller.role !== "admin") {
+  if (!caller || !hasAnyTeamRole(caller.role, USER_MANAGEMENT_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
   }
 
@@ -79,13 +58,19 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const validRoles = ["admin", "partnership", "sales", "appointment_setter", "finance", "viewer"]
-  if (!validRoles.includes(role)) {
-    return NextResponse.json({ error: `Invalid role. Must be one of: ${validRoles.join(", ")}` }, { status: 400 })
+  const normalizedRole = normalizeTeamRole(role)
+  if (!normalizedRole) {
+    return NextResponse.json(
+      {
+        error: `Invalid role. Must be one of: ${TEAM_ROLE_OPTIONS.map((item) => item.value).join(", ")}`,
+      },
+      { status: 400 },
+    )
   }
 
   // Use provided permissions or default to role matrix
-  const resolvedPermissions = permissions ?? ROLE_PERMISSIONS[role] ?? {}
+  const resolvedPermissions =
+    permissions ?? getDefaultPermissionsForRole(normalizedRole) ?? {}
   const placeholderAuthUserId = `manual_${crypto.randomUUID()}`
 
   const [created] = await db
@@ -97,7 +82,7 @@ export async function POST(req: NextRequest) {
       email,
       phone: phone || null,
       designation: designation || null,
-      role,
+      role: normalizedRole,
       rowScope,
       permissions: JSON.stringify(resolvedPermissions),
       isActive: true,
@@ -131,7 +116,7 @@ export async function PATCH(req: NextRequest) {
 
   const caller = await getActiveTeamMember(userId)
 
-  if (!caller || caller.role !== "admin") {
+  if (!caller || !hasAnyTeamRole(caller.role, USER_MANAGEMENT_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
   }
 
@@ -143,7 +128,19 @@ export async function PATCH(req: NextRequest) {
   const { role, rowScope, permissions, isActive } = body
 
   const updates: Partial<typeof teamMembers.$inferInsert> = {}
-  if (role !== undefined) updates.role = role
+  if (role !== undefined) {
+    const normalizedRole = normalizeTeamRole(role)
+    if (!normalizedRole) {
+      return NextResponse.json(
+        {
+          error: `Invalid role. Must be one of: ${TEAM_ROLE_OPTIONS.map((item) => item.value).join(", ")}`,
+        },
+        { status: 400 },
+      )
+    }
+
+    updates.role = normalizedRole
+  }
   if (rowScope !== undefined) updates.rowScope = rowScope
   if (permissions !== undefined) updates.permissions = JSON.stringify(permissions)
   if (isActive !== undefined) updates.isActive = isActive

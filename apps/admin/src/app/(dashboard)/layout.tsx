@@ -33,10 +33,10 @@ export default async function DashboardLayout({
 
   const userName =
     [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-    user.emailAddresses[0]?.emailAddress ||
+    user.email ||
     "Admin"
 
-  const userEmail = user.emailAddresses[0]?.emailAddress || ""
+  const userEmail = user.email || ""
 
   const userInitials =
     [user.firstName?.[0], user.lastName?.[0]]

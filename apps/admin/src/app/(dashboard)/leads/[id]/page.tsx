@@ -10,6 +10,7 @@ import {
   Calendar,
   FileText,
   ExternalLink,
+  RefreshCw,
   User,
   Tag,
 } from "lucide-react"
@@ -31,61 +32,18 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function StatusUpdateForm({
-  leadId,
-  nextStatus,
-  label,
-  variant = "primary",
-}: {
-  leadId: string
-  nextStatus: string
-  label: string
-  variant?: "primary" | "danger" | "secondary"
-}) {
-  const styles = {
-    primary:
-      "bg-indigo-400 hover:bg-indigo-500 text-white",
-    danger:
-      "bg-red-600 hover:bg-red-500 text-white",
-    secondary:
-      "bg-zinc-700 hover:bg-zinc-600 text-white",
-  }
+function ZohoSyncForm({ leadId }: { leadId: string }) {
   return (
-    <form
-      action={`/api/leads/${leadId}/status`}
-      method="POST"
-      className="inline"
-    >
-      <input type="hidden" name="status" value={nextStatus} />
+    <form action={`/api/leads/${leadId}/sync?redirectTo=/leads/${leadId}`} method="POST">
       <button
         type="submit"
-        className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${styles[variant]}`}
+        className="inline-flex items-center gap-2 rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
       >
-        {label}
+        <RefreshCw className="h-4 w-4" />
+        Sync from CRM
       </button>
     </form>
   )
-}
-
-const statusTransitions: Record<
-  string,
-  { nextStatus: string; label: string; variant: "primary" | "danger" | "secondary" }[]
-> = {
-  submitted: [
-    { nextStatus: "qualified", label: "Mark Qualified", variant: "primary" },
-  ],
-  qualified: [
-    {
-      nextStatus: "proposal_sent",
-      label: "Mark Proposal Sent",
-      variant: "primary",
-    },
-    { nextStatus: "deal_lost", label: "Mark Deal Lost", variant: "danger" },
-  ],
-  proposal_sent: [
-    { nextStatus: "deal_won", label: "Mark Deal Won", variant: "primary" },
-    { nextStatus: "deal_lost", label: "Mark Deal Lost", variant: "danger" },
-  ],
 }
 
 const statusTimeline = [
@@ -97,10 +55,13 @@ const statusTimeline = [
 
 export default async function LeadDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ sync?: string; reason?: string; status?: string }>
 }) {
   const { id } = await params
+  const query = await searchParams
 
   const [lead] = await db
     .select()
@@ -129,9 +90,37 @@ export default async function LeadDetailPage({
     }
   })()
 
-  const transitions = statusTransitions[lead.status] ?? []
-
   const currentStep = statusTimeline.indexOf(lead.status)
+  const syncBanner =
+    query.sync === "ok"
+      ? {
+          tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100",
+          text: query.status
+            ? `Lead synced from Zoho CRM. Current status: ${query.status.replace(/_/g, " ")}.`
+            : "Lead synced from Zoho CRM.",
+        }
+      : query.sync === "required"
+        ? {
+            tone: "border-amber-400/16 bg-amber-500/8 text-amber-100",
+            text: "Lead status is controlled by Zoho CRM. Use sync instead of changing it manually.",
+          }
+        : query.sync === "error"
+          ? {
+              tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
+              text:
+                query.reason === "missing_zoho_lead"
+                  ? "This lead is missing its Zoho Lead ID."
+                  : query.reason === "deal_create_failed"
+                    ? "Zoho marked the lead as qualified, but the associated deal could not be created."
+                    : query.reason === "deal_fetch_failed"
+                      ? "The associated Zoho deal could not be fetched."
+                      : query.reason === "lead_fetch_failed"
+                        ? "The Zoho lead could not be fetched."
+                        : query.reason === "missing_deal_amount"
+                          ? "Zoho deal amount is missing, so commission could not be calculated."
+                          : "Lead sync from Zoho CRM failed.",
+            }
+          : null
 
   return (
     <div className="space-y-6">
@@ -155,20 +144,18 @@ export default async function LeadDetailPage({
         </div>
       </div>
 
-      {/* Status Action Buttons */}
-      {transitions.length > 0 && (
-        <div className="flex gap-3 flex-wrap">
-          {transitions.map((t) => (
-            <StatusUpdateForm
-              key={t.nextStatus}
-              leadId={lead.id}
-              nextStatus={t.nextStatus}
-              label={t.label}
-              variant={t.variant}
-            />
-          ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <ZohoSyncForm leadId={lead.id} />
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
+          Status is read-only here and syncs from Zoho CRM.
         </div>
-      )}
+      </div>
+
+      {syncBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${syncBanner.tone}`}>
+          {syncBanner.text}
+        </div>
+      ) : null}
 
       {/* Timeline */}
       <div className="surface-card rounded-2xl p-6">

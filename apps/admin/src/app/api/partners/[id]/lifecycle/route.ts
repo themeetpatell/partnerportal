@@ -9,6 +9,7 @@ import {
 } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 type LifecycleAction =
   | "approve"
@@ -23,16 +24,11 @@ function redirectToPartner(request: NextRequest, partnerId: string) {
   return NextResponse.redirect(new URL(`/partners/${partnerId}`, request.url))
 }
 
-function getPartnerAgreementUrl(type: string) {
+function getPartnerAgreementUrl() {
   const partnerAppUrl =
     process.env.NEXT_PUBLIC_PARTNER_APP_URL || "http://localhost:3000"
 
-  const filePath =
-    type === "channel"
-      ? "/contracts/channel-partner-agreement-2026-v1-2.docx"
-      : "/contracts/referral-partner-agreement-2026-v1-2.docx"
-
-  return `${partnerAppUrl}${filePath}`
+  return `${partnerAppUrl}/api/profile/contract/agreement`
 }
 
 export async function POST(
@@ -48,14 +44,14 @@ export async function POST(
   if (limited) return limited
 
   const member = await getActiveTeamMember(userId)
-  if (!member || !["admin", "partnership"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const user = await currentUser()
   const actorName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
+    user?.email ||
     "Admin"
 
   const { id } = await params
@@ -96,7 +92,7 @@ export async function POST(
       updates.rejectionReason = null
       updates.suspensionReason = null
       updates.activationDate = partner.activationDate ?? now
-      note = "Partner approved and workspace activated."
+      note = "Partner application approved. Contract step pending before workspace unlock."
       emailAction = "approved"
       logAction = "partner.approved"
       break
@@ -124,7 +120,7 @@ export async function POST(
           { status: 400 }
         )
       }
-      updates.agreementUrl = getPartnerAgreementUrl(partner.type)
+      updates.agreementUrl = getPartnerAgreementUrl()
       updates.contractSentAt = now
       updates.contractStatus = "sent"
       note = "Contract shared for in-portal signing."
@@ -145,7 +141,7 @@ export async function POST(
         )
       }
       updates.onboardedAt = now
-      note = "Partner marked as onboarded."
+      note = "Signed contract accepted. Partner marked as onboarded and workspace unlocked."
       logAction = "partner.onboarded"
       break
     case "start_nurturing":

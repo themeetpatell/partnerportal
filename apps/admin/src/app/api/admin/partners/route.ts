@@ -4,6 +4,7 @@ import { db, partners, logActivity } from "@repo/db"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   const tenantId = getRequiredTenantId()
 
   // Only admin or partnership roles may create partners
-  if (!member || !["admin", "partnership"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

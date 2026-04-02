@@ -4,6 +4,7 @@ import { db, serviceRequests, logActivity } from "@repo/db"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -16,8 +17,7 @@ export async function POST(req: NextRequest) {
   const member = await getActiveTeamMember(userId)
   const tenantId = getRequiredTenantId()
 
-  const allowedRoles = ["admin", "partnership", "sales"]
-  if (!member || !allowedRoles.includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

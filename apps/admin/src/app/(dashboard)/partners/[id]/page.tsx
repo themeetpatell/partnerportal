@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import Image from "next/image"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
 import {
   db,
@@ -16,7 +15,6 @@ import {
 import { eq, and, isNull, sum } from "drizzle-orm"
 import {
   Building2,
-  FileSignature,
   Mail,
   Phone,
   Calendar,
@@ -39,8 +37,10 @@ function StatusBadge({ status }: { status: string }) {
     rejected: "bg-red-950/60 border-red-800/40 text-red-400",
     suspended: "bg-white/6 border-white/10 text-slate-400",
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
-    converted: "bg-green-950/60 border-green-800/40 text-green-400",
+    qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
+    proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
+    deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
+    deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
   }
   return (
     <span
@@ -74,9 +74,26 @@ function LifecycleBadge({
   )
 }
 
-function getWorkspaceAccessState(status: string) {
-  switch (status) {
+function getWorkspaceAccessState(partner: {
+  status: string
+  contractStatus: string | null
+  contractSignedAt: Date | null
+  onboardedAt: Date | null
+}) {
+  switch (partner.status) {
     case "approved":
+      if (!partner.onboardedAt) {
+        return {
+          label: "locked until onboarding accepted",
+          tone: "amber" as const,
+          description:
+            partner.contractSignedAt
+              ? "The partner has signed the contract. Workspace access stays locked until admin accepts the signed agreement."
+              : partner.contractStatus === "sent"
+                ? "The contract is out for signature. Workspace access stays locked until the signed agreement is accepted."
+                : "The application is approved, but workspace access stays locked until the contract is sent, signed, and accepted.",
+        }
+      }
       return {
         label: "active access",
         tone: "emerald" as const,
@@ -146,10 +163,6 @@ export default async function PartnerDetailPage({
     "en-AE",
     { minimumFractionDigits: 2, maximumFractionDigits: 2 }
   )
-  const signedAgreementDoc = partnerDocs.find(
-    (doc) => doc.documentType === "signed_agreement_pdf"
-  )
-
   const formatDate = (d: Date | null | undefined) =>
     d
       ? new Date(d).toLocaleDateString("en-AE", {
@@ -238,7 +251,21 @@ export default async function PartnerDetailPage({
       : onboardingStage === "yet_to_onboard"
         ? "amber"
         : "indigo"
-  const workspaceAccess = getWorkspaceAccessState(partner.status)
+  const workspaceAccess = getWorkspaceAccessState({
+    status: partner.status,
+    contractStatus: partner.contractStatus,
+    contractSignedAt: partner.contractSignedAt,
+    onboardedAt: partner.onboardedAt,
+  })
+
+  const onboardingSnapshotRows = [
+    { label: "Partner type", value: partner.type?.replace("_", " ") },
+    { label: "Company name", value: partner.companyName },
+    { label: "Primary contact", value: partner.contactName },
+    { label: "Business email", value: partner.email },
+    { label: "Phone number", value: partner.phone },
+    { label: "Submitted on", value: formatDate(partner.createdAt) },
+  ]
 
   return (
     <div className="space-y-6">
@@ -264,15 +291,47 @@ export default async function PartnerDetailPage({
                 label={formatPartnerOperationalStatus(operationalStatus)}
                 tone={operationalTone}
               />
-              <LifecycleBadge
-                label={formatPartnerOnboardingStage(onboardingStage)}
-                tone={onboardingTone}
-              />
+              {onboardingStage !== "activated" && (
+                <LifecycleBadge
+                  label={formatPartnerOnboardingStage(onboardingStage)}
+                  tone={onboardingTone}
+                />
+              )}
             </div>
           </div>
           <StatusBadge status={partner.status} />
         </div>
       </div>
+
+      {partner.status === "pending" && (
+        <section className="surface-card rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-white font-semibold">Onboarding Snapshot</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Review these details submitted during onboarding before approving access.
+              </p>
+            </div>
+            <Users className="mt-0.5 h-5 w-5 text-indigo-300" />
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {onboardingSnapshotRows.map((row) => (
+              <div
+                key={row.label}
+                className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3"
+              >
+                <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                  {row.label}
+                </p>
+                <p className="mt-1 text-sm font-medium text-white capitalize">
+                  {row.value?.trim() ? row.value : "Not provided"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Application / Access Actions */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -286,10 +345,10 @@ export default async function PartnerDetailPage({
               <input type="hidden" name="action" value="approve" />
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-white font-semibold">Approve and activate workspace</h2>
+                  <h2 className="text-white font-semibold">Approve application</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    Marks the application as approved, unlocks partner access, and sends the
-                    activation email immediately.
+                    Confirms the partner passed review. Workspace access stays locked until the
+                    contract is signed and the signed agreement is accepted.
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-green-400" />
@@ -299,7 +358,7 @@ export default async function PartnerDetailPage({
                 className="mt-4 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500"
               >
                 <CheckCircle className="h-4 w-4" />
-                Approve and activate
+                Approve application
               </button>
             </form>
 
@@ -340,40 +399,99 @@ export default async function PartnerDetailPage({
         )}
 
         {partner.status === "approved" && (
-          <form
-            action={`/api/partners/${partner.id}/lifecycle`}
-            method="POST"
-            className="surface-card rounded-2xl p-5 xl:col-span-2"
-          >
-            <input type="hidden" name="action" value="suspend" />
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-white font-semibold">Suspend workspace access</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  Pauses partner access without deleting the record and sends a suspension email.
-                </p>
-              </div>
-              <PauseCircle className="mt-0.5 h-5 w-5 text-slate-400" />
-            </div>
-            <label className="mt-4 block max-w-2xl">
-              <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                Optional suspension reason
-              </span>
-              <textarea
-                name="reason"
-                rows={3}
-                placeholder="Capture why access is being paused."
-                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
-              />
-            </label>
-            <button
-              type="submit"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
+          <>
+            <form
+              action={`/api/partners/${partner.id}/lifecycle`}
+              method="POST"
+              className="surface-card rounded-2xl p-5"
             >
-              <PauseCircle className="h-4 w-4" />
-              Suspend access
-            </button>
-          </form>
+              <input type="hidden" name="action" value="send_contract" />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-white font-semibold">
+                    {partner.contractStatus === "sent"
+                      ? "Contract awaiting partner signature"
+                      : "Send contract for signature"}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    {partner.contractStatus === "sent"
+                      ? "The agreement is already available in the partner portal. The partner must sign it before you can complete onboarding."
+                      : "Share the agreement in the partner portal after approval so the partner can fill the required signer details and sign it."}
+                  </p>
+                </div>
+                <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />
+              </div>
+              <button
+                type="submit"
+                disabled={partner.contractStatus === "signed" || Boolean(partner.onboardedAt)}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600"
+              >
+                <CheckCircle className="h-4 w-4" />
+                {partner.contractStatus === "sent" ? "Resend contract" : "Send contract"}
+              </button>
+            </form>
+
+            {partner.contractSignedAt && !partner.onboardedAt && (
+              <form
+                action={`/api/partners/${partner.id}/lifecycle`}
+                method="POST"
+                className="surface-card rounded-2xl p-5"
+              >
+                <input type="hidden" name="action" value="mark_onboarded" />
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-white font-semibold">Accept signed contract</h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Review the signed agreement and accept it to mark this partner as onboarded and unlock the workspace.
+                    </p>
+                  </div>
+                  <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-300" />
+                </div>
+                <button
+                  type="submit"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Accept signed contract
+                </button>
+              </form>
+            )}
+
+            <form
+              action={`/api/partners/${partner.id}/lifecycle`}
+              method="POST"
+              className="surface-card rounded-2xl p-5"
+            >
+              <input type="hidden" name="action" value="suspend" />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-white font-semibold">Suspend workspace access</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Pauses partner access without deleting the record and sends a suspension email.
+                  </p>
+                </div>
+                <PauseCircle className="mt-0.5 h-5 w-5 text-slate-400" />
+              </div>
+              <label className="mt-4 block max-w-2xl">
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                  Optional suspension reason
+                </span>
+                <textarea
+                  name="reason"
+                  rows={3}
+                  placeholder="Capture why access is being paused."
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
+                />
+              </label>
+              <button
+                type="submit"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
+              >
+                <PauseCircle className="h-4 w-4" />
+                Suspend access
+              </button>
+            </form>
+          </>
         )}
 
         {(partner.status === "rejected" || partner.status === "suspended") && (
@@ -447,183 +565,6 @@ export default async function PartnerDetailPage({
           <p className="mt-3 text-sm text-slate-400">
             Tracks contract, onboarding, and operational readiness inside the workspace.
           </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="surface-card rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2">
-            <FileSignature className="w-4 h-4 text-slate-400" />
-            <h2 className="text-white font-semibold">Contract And Onboarding</h2>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-            <p className="text-slate-500 text-xs uppercase tracking-wider">Contract delivery</p>
-            <p className="mt-2">
-              Contracts are hosted inside the partner portal and signed there.
-            </p>
-            {partner.contractSentAt && (
-              <p className="mt-2">
-                Sent on:{" "}
-                <span className="text-white">
-                  {new Date(partner.contractSentAt).toLocaleDateString("en-AE")}
-                </span>
-              </p>
-            )}
-            {partner.agreementUrl && (
-              <p className="mt-2 break-all">
-                Agreement:{" "}
-                <a
-                  href={partner.agreementUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-indigo-300 hover:text-indigo-200"
-                >
-                  Open agreement file
-                </a>
-              </p>
-            )}
-            {signedAgreementDoc && (
-              <p className="mt-2">
-                Signed PDF:{" "}
-                <a
-                  href={`/api/documents/${signedAgreementDoc.id}/download`}
-                  className="text-indigo-300 hover:text-indigo-200"
-                >
-                  Download signed PDF
-                </a>
-              </p>
-            )}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-1">
-            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
-              <input type="hidden" name="action" value="send_contract" />
-              <button
-                type="submit"
-                disabled={partner.contractStatus === "signed"}
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600"
-              >
-                Send contract
-              </button>
-            </form>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
-              <input type="hidden" name="action" value="mark_meeting_done" />
-              <button
-                type="submit"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-              >
-                Mark meeting done
-              </button>
-            </form>
-
-            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
-              <input type="hidden" name="action" value="start_nurturing" />
-              <button
-                type="submit"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
-              >
-                Start nurturing
-              </button>
-            </form>
-
-            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST" className="sm:col-span-2">
-              <input type="hidden" name="action" value="mark_onboarded" />
-              <button
-                type="submit"
-                disabled={!partner.contractSignedAt}
-                className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600"
-              >
-                Mark onboarded
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <div className="surface-card rounded-2xl p-6">
-          <h2 className="text-white font-semibold mb-4">Lifecycle Timeline</h2>
-          <div className="space-y-3 text-sm">
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract status</p>
-              <p className="mt-1 text-white capitalize">{partner.contractStatus.replaceAll("_", " ")}</p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract signed</p>
-              <p className="mt-1 text-white">
-                {partner.contractSignedAt
-                  ? new Date(partner.contractSignedAt).toLocaleDateString("en-AE")
-                  : "Pending partner signature"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract sent</p>
-              <p className="mt-1 text-white">
-                {partner.contractSentAt
-                  ? new Date(partner.contractSentAt).toLocaleDateString("en-AE")
-                  : "Not sent"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Signed by</p>
-              <p className="mt-1 text-white">
-                {partner.contractSignedName || "Pending signature"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Signature method</p>
-              <p className="mt-1 text-white capitalize">
-                {partner.contractSignatureType || "Not captured"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Signed designation</p>
-              <p className="mt-1 text-white">
-                {partner.contractSignedDesignation || "Not provided"}
-              </p>
-            </div>
-            {partner.contractSignatureType === "upload" &&
-              partner.contractSignatureDataUrl && (
-                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-                  <p className="text-slate-500 text-xs uppercase tracking-wider">
-                    Uploaded signature
-                  </p>
-                  <Image
-                    src={partner.contractSignatureDataUrl}
-                    alt="Partner signature"
-                    width={160}
-                    height={80}
-                    unoptimized
-                    className="mt-3 max-h-24 rounded-lg bg-white p-2"
-                  />
-                </div>
-              )}
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Meeting completed</p>
-              <p className="mt-1 text-white">
-                {partner.meetingCompletedAt
-                  ? new Date(partner.meetingCompletedAt).toLocaleDateString("en-AE")
-                  : "Not recorded"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Onboarded</p>
-              <p className="mt-1 text-white">
-                {partner.onboardedAt
-                  ? new Date(partner.onboardedAt).toLocaleDateString("en-AE")
-                  : "Pending"}
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-              <p className="text-slate-500 text-xs uppercase tracking-wider">Nurturing</p>
-              <p className="mt-1 text-white">
-                {partner.nurturingStartedAt
-                  ? new Date(partner.nurturingStartedAt).toLocaleDateString("en-AE")
-                  : "Not started"}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1004,11 +945,13 @@ export default async function PartnerDetailPage({
                           {
                             submitted:
                               "bg-blue-950/60 border-blue-800/40 text-blue-400",
-                            in_review:
+                            qualified:
                               "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
-                            converted:
+                            proposal_sent:
+                              "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
+                            deal_won:
                               "bg-green-950/60 border-green-800/40 text-green-400",
-                            rejected:
+                            deal_lost:
                               "bg-red-950/60 border-red-800/40 text-red-400",
                           }[lead.status] ??
                           "bg-white/6 border-white/10 text-slate-400"

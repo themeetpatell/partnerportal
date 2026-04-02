@@ -378,7 +378,7 @@ export default async function AnalyticsPage({
 
   const totalPartners = Number(totalPartnersResult[0]?.count ?? 0)
   const totalLeads = leadRows.length
-  const convertedLeads = leadRows.filter((row) => row.status === "converted").length
+  const convertedLeads = leadRows.filter((row) => row.status === "deal_won").length
   const conversionRate =
     totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : "0.0"
 
@@ -416,7 +416,7 @@ export default async function AnalyticsPage({
     const bucket = monthSeeds.find((item) => item.key === key)
     if (!bucket) continue
     bucket.created += 1
-    if (row.status === "converted") {
+    if (row.status === "deal_won") {
       bucket.converted += 1
     }
   }
@@ -448,10 +448,10 @@ export default async function AnalyticsPage({
     if (!row.assignedTo) continue
     const current = teamMap.get(row.assignedTo) ?? { total: 0, qualified: 0, converted: 0 }
     current.total += 1
-    if (row.status === "qualified" || row.status === "converted") {
+    if (["qualified", "proposal_sent", "deal_won"].includes(row.status)) {
       current.qualified += 1
     }
-    if (row.status === "converted") {
+    if (row.status === "deal_won") {
       current.converted += 1
     }
     teamMap.set(row.assignedTo, current)
@@ -485,7 +485,7 @@ export default async function AnalyticsPage({
       convertedLeads: 0,
     }
     current.totalLeads += 1
-    if (row.status === "converted") {
+    if (row.status === "deal_won") {
       current.convertedLeads += 1
     }
     partnerMap.set(row.partnerId, current)
@@ -596,10 +596,10 @@ export default async function AnalyticsPage({
           <StatCard
             label="Clients Closed"
             value={String(convertedLeads)}
-            sub="Converted leads"
+            sub="Closed won leads"
             icon={TrendingUp}
             color="bg-green-950/40 border-green-800/30 text-green-400"
-            href="/leads?status=converted"
+            href="/leads?status=deal_won"
           />
           <StatCard
             label="Total Partners"
@@ -618,7 +618,7 @@ export default async function AnalyticsPage({
               <h2 className="text-zinc-100 font-semibold text-sm">Monthly Lead Trend</h2>
             </div>
             <p className="text-zinc-500 text-xs mb-6">
-              Leads created vs converted over the last six months
+              Leads created vs closed won over the last six months
             </p>
             {chartData.every((row) => row.created === 0 && row.converted === 0) ? (
               <div className="h-24 flex items-center justify-center">
@@ -634,7 +634,7 @@ export default async function AnalyticsPage({
                   </span>
                   <span className="flex items-center gap-1.5 text-xs text-zinc-500">
                     <span className="w-3 h-2 rounded-sm bg-green-600/70 inline-block" />
-                    Converted
+                    Closed won
                   </span>
                 </div>
               </>
@@ -699,7 +699,7 @@ export default async function AnalyticsPage({
               <div>
                 <h2 className="text-zinc-100 font-semibold text-sm">Team Performance</h2>
                 <p className="text-zinc-500 text-xs">
-                  Leads handled, qualified, and converted per team member
+                  Leads handled, qualified, and closed won per team member
                 </p>
               </div>
             </div>
@@ -807,7 +807,7 @@ export default async function AnalyticsPage({
                   Top Partners By Lead Volume
                 </h2>
                 <p className="text-zinc-500 text-xs">
-                  Which partners are bringing the most pipeline and conversions
+                  Which partners are bringing the most pipeline and closed won deals
                 </p>
               </div>
             </div>

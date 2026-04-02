@@ -5,6 +5,7 @@ import { and, count, eq, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
   const tenantId = getRequiredTenantId()
 
   // Finance and admin only
-  if (!member || !["admin", "finance"].includes(member.role)) {
+  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])) {
     return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 
