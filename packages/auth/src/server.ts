@@ -1,12 +1,16 @@
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
-import { getSupabaseAuthEnv, mapSupabaseUser } from "./shared"
+import { getOptionalSupabaseAuthEnv, mapSupabaseUser } from "./shared"
 
 export async function createAuthServerClient() {
-  const { url, publishableKey } = getSupabaseAuthEnv()
   const cookieStore = await cookies()
+  const env = getOptionalSupabaseAuthEnv()
 
-  return createServerClient(url, publishableKey, {
+  if (!env) {
+    return null
+  }
+
+  return createServerClient(env.url, env.publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll()
@@ -24,6 +28,10 @@ export async function createAuthServerClient() {
 
 export async function currentUser() {
   const supabase = await createAuthServerClient()
+  if (!supabase) {
+    return null
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

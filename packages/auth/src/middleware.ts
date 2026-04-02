@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import { getSupabaseAuthEnv, mapSupabaseUser } from "./shared"
+import { getOptionalSupabaseAuthEnv, mapSupabaseUser } from "./shared"
 
 export function createRouteMatcher(routes: string[]) {
   const patterns = routes.map((route) => new RegExp(`^${route}$`))
@@ -11,14 +11,21 @@ export function createRouteMatcher(routes: string[]) {
 }
 
 export async function updateSession(request: NextRequest) {
-  const { url, publishableKey } = getSupabaseAuthEnv()
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   })
+  const env = getOptionalSupabaseAuthEnv()
 
-  const supabase = createServerClient(url, publishableKey, {
+  if (!env) {
+    return {
+      response,
+      user: null,
+    }
+  }
+
+  const supabase = createServerClient(env.url, env.publishableKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll()

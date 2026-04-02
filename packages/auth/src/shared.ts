@@ -43,15 +43,21 @@ export function mapSupabaseUser(user: User | null): AppAuthUser | null {
 }
 
 export function getSupabaseAuthEnv() {
+  const env = getOptionalSupabaseAuthEnv()
+
+  if (!env) {
+    throw new Error("Supabase auth environment variables are required")
+  }
+
+  return env
+}
+
+export function getOptionalSupabaseAuthEnv() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim()
 
-  if (!url) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL is required")
-  }
-
-  if (!publishableKey) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required")
+  if (!url || !publishableKey) {
+    return null
   }
 
   return { url, publishableKey }
