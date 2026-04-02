@@ -1,3 +1,4 @@
+import { cache } from "react"
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 import { getOptionalSupabaseAuthEnv, mapSupabaseUser } from "./shared"
@@ -26,7 +27,7 @@ export async function createAuthServerClient() {
   })
 }
 
-export async function currentUser() {
+export const currentUser = cache(async function currentUser() {
   const supabase = await createAuthServerClient()
   if (!supabase) {
     return null
@@ -37,7 +38,7 @@ export async function currentUser() {
   } = await supabase.auth.getUser()
 
   return mapSupabaseUser(user)
-}
+})
 
 export async function auth() {
   const user = await currentUser()
