@@ -40,7 +40,7 @@ The Finanshels Partner Portal is a secure platform where approved partners can:
 ### Accessing the Portal
 
 - **URL**: Your partner portal URL (e.g., `https://partner.finanshels.com`)
-- **Authentication**: Powered by Clerk — supports email/password, social login, and multi-factor authentication
+- **Authentication**: Powered by Supabase Auth — currently configured for email/password sign-in
 
 ---
 
@@ -72,7 +72,7 @@ Provide your basic information:
 
 - **Company name** (required)
 - **Contact name** (required)
-- **Email** (pre-filled from your Clerk account)
+- **Email** (pre-filled from your signed-in account)
 - **Phone number** (required)
 
 #### Step 3: Review Terms & Agreement
@@ -365,7 +365,7 @@ If your partnership requires a formal agreement, you'll see a **contract signing
 ### Account & Access
 
 **Q: I forgot my password. How do I reset it?**
-A: On the sign-in page, click "Forgot password?" in the Clerk sign-in form. You'll receive a reset email.
+A: Supabase password reset is not wired into the current UI yet. An admin can reset access directly in Supabase Auth, or the repo can be extended with a dedicated reset-password flow.
 
 **Q: My account is showing "pending". When will it be approved?**
 A: The Finanshels partnership team reviews applications. Referral partners are typically approved instantly. Channel partners may take 1-3 business days.

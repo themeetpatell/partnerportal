@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
@@ -17,7 +17,7 @@ async function getPartner(userId: string) {
   const [partner] = await db
     .select()
     .from(partners)
-    .where(eq(partners.clerkUserId, userId))
+    .where(eq(partners.authUserId, userId))
     .limit(1)
 
   return partner

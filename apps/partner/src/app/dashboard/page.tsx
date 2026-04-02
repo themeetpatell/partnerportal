@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { currentUser } from "@repo/auth/server"
 import { db, commissions, leads, partners, serviceRequests, services } from "@repo/db"
 import { and, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
 import Link from "next/link"
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
       const [partner] = await db
         .select()
         .from(partners)
-        .where(eq(partners.clerkUserId, user.id))
+        .where(eq(partners.authUserId, user.id))
         .limit(1)
 
       if (partner) {

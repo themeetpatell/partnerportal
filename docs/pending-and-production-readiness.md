@@ -56,7 +56,7 @@
 
 **Status:** Partial (Next.js Server Actions have built-in CSRF tokens, but some routes use raw `fetch`)  
 **Issue:** API routes called via client-side `fetch` (e.g., `approve`, `reject`, `register`) lack explicit CSRF tokens.  
-**Fix:** Clerk's auth middleware provides session validation which mitigates most CSRF; verify all mutating endpoints require valid Clerk session.
+**Fix:** Supabase session middleware provides session validation; verify all mutating endpoints require a valid authenticated session.
 
 ### P2 — Audit Log IP Address Collection
 
@@ -80,14 +80,14 @@
 - `apps/admin/src/app/api/partners/[id]/route.ts` (PUT handler — has proper RBAC)
 - `apps/admin/src/app/api/admin/leads/route.ts` (POST handler — has proper RBAC)
 
-### P0 — Partner Registration Creates Placeholder ClerkUserId
+### P0 — Partner Registration Creates Placeholder Auth User ID
 
 **Status:** Bug — manually-created partners have `manual_${uuid}` as clerkUserId  
 **Location:** `apps/admin/src/app/(dashboard)/partners/new/page.tsx`  
-**Issue:** Admin-created partners get a fake `clerkUserId` that doesn't map to any Clerk account. These partners cannot log in, and any query filtering by `clerkUserId` will fail.  
+**Issue:** Admin-created partners get a fake auth user ID that doesn't map to a real Supabase Auth account. These partners cannot log in, and any query filtering by `authUserId` will fail.  
 **Fix:** Either:
-1. Generate a Clerk invitation for the partner's email and use the resulting user ID, or
-2. Add a nullable `clerkUserId` and handle the "no Clerk account" case in queries.
+1. Create the real Supabase Auth user up front and use that user ID, or
+2. Add a nullable `authUserId` and handle the "no auth account" case in queries.
 
 ### P1 — Analytics Export Route Lacks Auth Check
 
@@ -398,8 +398,8 @@
 **Issue:** Missing env vars cause runtime errors deep in API calls (e.g., `process.env.DEFAULT_TENANT_ID!` crashes if unset).  
 **Fix:** Add a shared env validation module using `zod` or `@t3-oss/env-nextjs`:
 ```
-Required: DATABASE_URL, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY, DEFAULT_TENANT_ID
-Optional: ZOHO_*, SENDGRID_*, STRIPE_*
+Required: DATABASE_URL, NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, DEFAULT_TENANT_ID
+Optional: SUPABASE_SECRET_KEY, ZOHO_*, SENDGRID_*, STRIPE_*
 ```
 
 ### P0 — No Database Migrations in CI/CD
@@ -543,7 +543,7 @@ Optional: ZOHO_*, SENDGRID_*, STRIPE_*
 - [ ] `DEFAULT_TENANT_ID` env var set and validated
 - [ ] Zoho CRM credentials configured and tested
 - [ ] SendGrid API key configured and verified
-- [ ] Clerk production keys configured
+- [ ] Supabase Auth keys configured
 - [ ] Database migrations applied to production
 - [ ] DNS/domains configured for both apps
 - [ ] SSL certificates active

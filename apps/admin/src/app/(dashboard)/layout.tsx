@@ -1,15 +1,33 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
+import { getActiveTeamMember } from "@/lib/admin-auth"
+
+function formatRoleLabel(role: string | null | undefined) {
+  if (!role) {
+    return "Admin"
+  }
+
+  return role
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await currentUser()
+  const [{ userId }, user] = await Promise.all([auth(), currentUser()])
 
-  if (!user) {
+  if (!userId || !user) {
+    redirect("/sign-in")
+  }
+
+  const teamMember = await getActiveTeamMember(userId)
+
+  if (!teamMember) {
     redirect("/sign-in")
   }
 
@@ -28,9 +46,7 @@ export default async function DashboardLayout({
     userEmail.slice(0, 2).toUpperCase() ||
     "A"
 
-  // Role is stored in public metadata; default to "Admin" for display
-  const userRole =
-    (user.publicMetadata?.role as string) || "Admin"
+  const userRole = formatRoleLabel(teamMember.role)
 
   return (
     <div className="relative min-h-screen flex flex-col lg:flex-row">

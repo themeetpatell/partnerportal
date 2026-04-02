@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, derivePartnerOperationalStatus, formatPartnerOperationalStatus, leads, partners } from "@repo/db"
-import { eq, inArray, isNull } from "drizzle-orm"
+import { inArray, isNull } from "drizzle-orm"
 import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {

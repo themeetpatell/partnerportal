@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db, partners } from "@repo/db"
@@ -85,7 +85,7 @@ export async function PATCH(request: NextRequest) {
         ...(data.paymentFrequency !== undefined && { paymentFrequency: data.paymentFrequency }),
         updatedAt: new Date(),
       })
-      .where(eq(partners.clerkUserId, userId))
+      .where(eq(partners.authUserId, userId))
       .returning()
 
     if (!updated) {

@@ -4,13 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "node ../../scripts/start-next-dev.mjs 3000",
-    "build": "node ../../node_modules/next/dist/bin/next build",
-    "start": "node ../../node_modules/next/dist/bin/next start",
+    "build": "node ../../scripts/run-next.mjs build",
+    "start": "node ../../scripts/run-next.mjs start",
     "lint": "node ../../node_modules/eslint/bin/eslint.js src --ext .ts,.tsx",
     "type-check": "node ../../node_modules/typescript/bin/tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/nextjs": "^7.0.0",
     "@repo/auth": "*",
     "@repo/commission-engine": "*",
     "@repo/db": "*",

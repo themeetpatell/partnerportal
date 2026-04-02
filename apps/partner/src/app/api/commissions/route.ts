@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, partners, commissions } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { NextResponse } from "next/server"
@@ -10,7 +10,7 @@ export async function GET() {
   const [partner] = await db
     .select()
     .from(partners)
-    .where(eq(partners.clerkUserId, userId))
+    .where(eq(partners.authUserId, userId))
     .limit(1)
 
   if (!partner) return NextResponse.json({ commissions: [] })

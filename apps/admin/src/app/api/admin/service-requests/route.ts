@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, serviceRequests, logActivity } from "@repo/db"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"

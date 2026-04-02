@@ -9,10 +9,9 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const port = process.argv[2]
 const localDefaultTenantId = "00000000-0000-0000-0000-000000000001"
 const importantEnvKeys = [
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-  "CLERK_SECRET_KEY",
-  "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-  "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
 ]
 
 if (!port) {
@@ -163,7 +162,7 @@ function warnOnEnvOverrides(rootEnv, appEnv, appDirPath) {
 
   console.warn(
     `[dev] ${path.relative(rootDir, appDirPath)} overrides root .env.local for: ${overriddenKeys.join(", ")}. ` +
-      "Keep Clerk values aligned across env files to avoid auth confusion.",
+      "Keep Supabase auth values aligned across env files to avoid auth confusion.",
   )
 }
 

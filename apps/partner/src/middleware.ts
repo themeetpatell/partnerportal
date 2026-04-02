@@ -1,17 +1,25 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
+import { NextResponse, type NextRequest } from "next/server"
+import { PUBLIC_PARTNER_ROUTES } from "@repo/auth"
+import { createRouteMatcher, updateSession } from "@repo/auth/middleware"
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/register(.*)",
-])
+const isPublicRoute = createRouteMatcher(PUBLIC_PARTNER_ROUTES)
 
-export default clerkMiddleware(async (auth, req) => {
-  if (!isPublicRoute(req)) {
-    await auth.protect()
+export default async function middleware(req: NextRequest) {
+  const { response, user } = await updateSession(req)
+  const pathname = req.nextUrl.pathname
+
+  if (!isPublicRoute(req) && !user) {
+    const redirectUrl = new URL("/sign-in", req.url)
+    redirectUrl.searchParams.set("next", pathname)
+    return NextResponse.redirect(redirectUrl)
   }
-})
+
+  if (user && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
+    return NextResponse.redirect(new URL("/dashboard", req.url))
+  }
+
+  return response
+}
 
 export const config = {
   matcher: [

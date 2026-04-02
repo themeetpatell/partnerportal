@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, leads, partners, commissions, teamMembers } from "@repo/db"
 import { eq, and } from "drizzle-orm"
 import { calculateCommission } from "@repo/commission-engine"
@@ -43,7 +43,7 @@ export async function POST(
   const [member] = await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
   if (!member || !["admin", "partnership", "sales"].includes(member.role)) {

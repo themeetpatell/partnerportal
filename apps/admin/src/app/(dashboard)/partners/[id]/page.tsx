@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
 import {
   db,
@@ -28,16 +29,7 @@ import {
   PauseCircle,
   RotateCcw,
   ExternalLink,
-  Briefcase,
-  Globe,
-  Hash,
-  Landmark,
-  Link2,
-  MapPin,
-  Shield,
   CreditCard,
-  GraduationCap,
-  Banknote,
 } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -468,9 +460,12 @@ export default async function PartnerDetailPage({
                   <p className="text-slate-500 text-xs uppercase tracking-wider">
                     Uploaded signature
                   </p>
-                  <img
+                  <Image
                     src={partner.contractSignatureDataUrl}
                     alt="Partner signature"
+                    width={160}
+                    height={80}
+                    unoptimized
                     className="mt-3 max-h-24 rounded-lg bg-white p-2"
                   />
                 </div>

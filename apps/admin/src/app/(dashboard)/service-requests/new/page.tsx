@@ -20,7 +20,7 @@ export default async function NewServiceRequestPage() {
       .where(isNull(leads.deletedAt))
       .orderBy(leads.createdAt),
     db
-      .select({ clerkUserId: teamMembers.clerkUserId, name: teamMembers.name })
+      .select({ authUserId: teamMembers.authUserId, name: teamMembers.name })
       .from(teamMembers)
       .where(eq(teamMembers.isActive, true))
       .orderBy(teamMembers.name),

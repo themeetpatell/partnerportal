@@ -1,7 +1,14 @@
-import { ClerkFailed, ClerkLoaded, ClerkLoading, SignIn } from "@clerk/nextjs"
-import { ClerkFallbackCard } from "@/components/clerk-fallback-card"
+import { auth } from "@repo/auth/server"
+import { redirect } from "next/navigation"
+import { AdminSignInForm } from "@/components/admin-sign-in-form"
 
-export default function SignInPage() {
+export default async function SignInPage() {
+  const { userId } = await auth()
+
+  if (userId) {
+    redirect("/dashboard")
+  }
+
   return (
     <div className="relative min-h-screen">
       <div className="flex min-h-screen flex-col items-center justify-center px-5 py-16">
@@ -17,22 +24,7 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <ClerkLoading>
-          <div className="h-[540px] w-full max-w-[420px] rounded-[1.75rem] border border-white/10 bg-white/[0.03]" />
-        </ClerkLoading>
-
-        <ClerkLoaded>
-          <SignIn
-            routing="path"
-            path="/sign-in"
-            forceRedirectUrl="/dashboard"
-            fallbackRedirectUrl="/dashboard"
-          />
-        </ClerkLoaded>
-
-        <ClerkFailed>
-          <ClerkFallbackCard />
-        </ClerkFailed>
+        <AdminSignInForm />
       </div>
     </div>
   )

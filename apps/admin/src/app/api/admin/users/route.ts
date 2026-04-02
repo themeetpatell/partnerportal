@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, teamMembers, logActivity } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
@@ -86,13 +86,13 @@ export async function POST(req: NextRequest) {
 
   // Use provided permissions or default to role matrix
   const resolvedPermissions = permissions ?? ROLE_PERMISSIONS[role] ?? {}
-  const placeholderClerkId = `manual_${crypto.randomUUID()}`
+  const placeholderAuthUserId = `manual_${crypto.randomUUID()}`
 
   const [created] = await db
     .insert(teamMembers)
     .values({
       tenantId,
-      clerkUserId: placeholderClerkId,
+      authUserId: placeholderAuthUserId,
       name,
       email,
       phone: phone || null,

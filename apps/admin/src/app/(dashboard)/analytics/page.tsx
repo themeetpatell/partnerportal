@@ -30,7 +30,7 @@ import {
   Building2,
   Receipt,
 } from "lucide-react"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import {
   AnalyticsGlobalBar,
   PipelineFilters,
@@ -318,7 +318,7 @@ export default async function AnalyticsPage({
         id: teamMembers.id,
         name: teamMembers.name,
         role: teamMembers.role,
-        clerkUserId: teamMembers.clerkUserId,
+        authUserId: teamMembers.authUserId,
       })
       .from(teamMembers)
       .where(eq(teamMembers.isActive, true)),
@@ -459,7 +459,7 @@ export default async function AnalyticsPage({
 
   const teamData = membersList
     .map((member) => {
-      const stats = teamMap.get(member.clerkUserId) ?? {
+      const stats = teamMap.get(member.authUserId) ?? {
         total: 0,
         qualified: 0,
         converted: 0,
@@ -580,7 +580,7 @@ export default async function AnalyticsPage({
           teamMembers={membersList.map((m) => ({
             id: m.id,
             name: m.name,
-            clerkUserId: m.clerkUserId,
+            authUserId: m.authUserId,
           }))}
           currentFilters={currentFilters}
         />
@@ -661,7 +661,7 @@ export default async function AnalyticsPage({
           teamMembers={membersList.map((m) => ({
             id: m.id,
             name: m.name,
-            clerkUserId: m.clerkUserId,
+            authUserId: m.authUserId,
           }))}
           currentFilters={currentFilters}
         />

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useUser } from "@clerk/nextjs"
+import { useState } from "react"
+import { useUser } from "@repo/auth/client"
 import Link from "next/link"
 import {
   ArrowLeft,

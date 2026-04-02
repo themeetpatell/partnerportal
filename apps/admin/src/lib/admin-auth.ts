@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server"
+import { currentUser } from "@repo/auth/server"
 import { db, teamMembers } from "@repo/db"
 import { and, eq } from "drizzle-orm"
 
@@ -6,7 +6,7 @@ export async function getActiveTeamMember(userId: string) {
   const [member] = await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
   return member ?? null

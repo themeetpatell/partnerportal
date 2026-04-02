@@ -177,5 +177,10 @@ export function buildClientRecords(
       const bTime = b.lastActivity?.getTime() ?? 0
       return bTime - aTime || a.displayName.localeCompare(b.displayName)
     })
-    .map(({ latestLeadAt: _latestLeadAt, latestRequestAt: _latestRequestAt, ...client }) => client)
+    .map((client) => {
+      const { latestLeadAt, latestRequestAt, ...rest } = client
+      void latestLeadAt
+      void latestRequestAt
+      return rest
+    })
 }

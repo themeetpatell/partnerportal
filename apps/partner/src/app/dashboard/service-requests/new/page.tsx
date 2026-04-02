@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Building2, ClipboardList, Mail, UserRound, Wrench } from "lucide-react"
+import { Building2, Mail, UserRound, Wrench } from "lucide-react"
 import { toast } from "sonner"
 
 const SERVICES = [

@@ -38,7 +38,7 @@ The admin portal is for the Finanshels internal team. Users are assigned one of 
 ### Accessing the Portal
 
 - **URL**: Your admin portal URL (e.g., `https://admin.finanshels.com`)
-- **Authentication**: Clerk auth — only `/sign-in` is public, all other routes require authentication
+- **Authentication**: Supabase Auth — only `/sign-in` is public, all other routes require authentication
 - **Row Scope**: Users can be scoped to "all records", "team records", or "own records only"
 
 ---
@@ -95,7 +95,7 @@ Use this when a partner doesn't self-register through the portal. Fields:
 | **Location** | Region, country, city |
 | **Agreement** | Agreement URL (optional link to external doc) |
 
-> **Note**: Manually created partners get a placeholder Clerk user ID. They won't be able to log in until linked to a real Clerk account.
+> **Note**: Manually created partners get a placeholder auth user ID. They won't be able to log in until linked to a real Supabase Auth account.
 
 ### Partner Detail Page
 
@@ -400,7 +400,7 @@ Parameters: Date range, partner ID, partner type, lead status/source, service st
 | Role | Yes | Select from: Admin, Partnership, Sales, Appointment Setter, Finance, Viewer |
 | Row Scope | No | All records (default), Team records, Own records only |
 
-> **Note**: New team members are created with a placeholder identity. They need to be linked to a Clerk account for actual portal access.
+> **Note**: New team members are created with a placeholder identity. They need to be linked to a real Supabase Auth account for actual portal access.
 
 ### Editing User Access
 

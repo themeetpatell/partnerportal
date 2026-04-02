@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { db, documents, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   const [partner] = await db
     .select()
     .from(partners)
-    .where(eq(partners.clerkUserId, userId))
+    .where(eq(partners.authUserId, userId))
     .limit(1)
 
   if (!partner) {

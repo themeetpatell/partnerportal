@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, partners, logActivity } from "@repo/db"
-import { eq, and } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -47,14 +46,14 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Generate a placeholder clerkUserId for manually-created partners (no Clerk account yet)
-  const placeholderClerkId = `manual_${crypto.randomUUID()}`
+  // Generate a placeholder authUserId for manually-created partners (no auth account yet)
+  const placeholderAuthUserId = `manual_${crypto.randomUUID()}`
 
   const [created] = await db
     .insert(partners)
     .values({
       tenantId,
-      clerkUserId: placeholderClerkId,
+      authUserId: placeholderAuthUserId,
       companyName,
       contactName,
       email,

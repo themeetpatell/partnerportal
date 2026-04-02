@@ -15,7 +15,8 @@ export const commissionModels = pgTable("commission_models", {
 export const partners = pgTable("partners", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  clerkUserId: text("clerk_user_id").notNull().unique(),
+  // Transitional mapping: the physical column remains `clerk_user_id` until a DB migration renames it.
+  authUserId: text("clerk_user_id").notNull().unique(),
 
   // Core identity
   type: text("type").notNull(), // referral | channel
@@ -103,7 +104,8 @@ export const partners = pgTable("partners", {
 export const teamMembers = pgTable("team_members", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  clerkUserId: text("clerk_user_id").notNull(),
+  // Transitional mapping: the physical column remains `clerk_user_id` until a DB migration renames it.
+  authUserId: text("clerk_user_id").notNull(),
   // admin | appointment_setter | partnership | sales | finance | viewer
   role: text("role").notNull(),
   name: text("name").notNull(),

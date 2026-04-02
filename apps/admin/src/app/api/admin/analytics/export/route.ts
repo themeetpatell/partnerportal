@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   const [member] = await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
   if (!member || !["admin", "partnership", "finance"].includes(member.role)) {

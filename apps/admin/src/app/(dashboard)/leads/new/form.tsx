@@ -11,7 +11,7 @@ const CHANNELS = ["manual", "website", "referral", "campaign"] as const
 
 interface Props {
   partners: { id: string; companyName: string }[]
-  teamMembers: { clerkUserId: string; name: string }[]
+  teamMembers: { authUserId: string; name: string }[]
   services: { id: string; name: string }[]
 }
 
@@ -185,7 +185,7 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
               <select value={form.assignedTo} onChange={set("assignedTo")} className={selectCls}>
                 <option value="">Unassigned</option>
                 {teamMembers.map((m) => (
-                  <option key={m.clerkUserId} value={m.clerkUserId}>{m.name}</option>
+                  <option key={m.authUserId} value={m.authUserId}>{m.name}</option>
                 ))}
               </select>
             </Field>

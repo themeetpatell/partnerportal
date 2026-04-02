@@ -15,7 +15,7 @@ import {
   Wrench,
   X,
 } from "lucide-react"
-import { useClerk } from "@clerk/nextjs"
+import { useAuthClient } from "@repo/auth/client"
 
 const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -83,7 +83,7 @@ function SidebarContent({
   userInitials: string
   onNavClick?: () => void
 }) {
-  const { signOut } = useClerk()
+  const { signOut } = useAuthClient()
 
   return (
     <div className="flex h-full flex-col">

@@ -312,7 +312,7 @@ export function AnalyticsGlobalBar({
 /* Pipeline filters: Partner, Partner Type, Team, Lead Status, Lead Source */
 interface PipelineFilterProps {
   partners: { id: string; companyName: string }[]
-  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  teamMembers: { id: string; name: string; authUserId: string }[]
   currentFilters: Record<string, string | undefined>
 }
 
@@ -348,7 +348,7 @@ export function PipelineFilters({
         onChange={(v) => update("teamMemberId", v)}
         options={teamMembers.map((m) => ({
           label: m.name,
-          value: m.clerkUserId,
+          value: m.authUserId,
         }))}
       />
       <Select
@@ -391,7 +391,7 @@ export function PipelineFilters({
 /* Delivery filters: Partner, Partner Type, Team, Service Status */
 interface DeliveryFilterProps {
   partners: { id: string; companyName: string }[]
-  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  teamMembers: { id: string; name: string; authUserId: string }[]
   currentFilters: Record<string, string | undefined>
 }
 
@@ -427,7 +427,7 @@ export function DeliveryFilters({
         onChange={(v) => update("teamMemberId", v)}
         options={teamMembers.map((m) => ({
           label: m.name,
-          value: m.clerkUserId,
+          value: m.authUserId,
         }))}
       />
       <Select
@@ -555,7 +555,7 @@ function SectionFilterRow({ children }: { children: React.ReactNode }) {
 
 interface AnalyticsFilterBarProps {
   partners: { id: string; companyName: string }[]
-  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  teamMembers: { id: string; name: string; authUserId: string }[]
   currentFilters: {
     dateRange?: string
     partnerId?: string
@@ -604,7 +604,7 @@ export function AnalyticsFilterBar({
           onChange={(v) => update("teamMemberId", v)}
           options={teamMembers.map((member) => ({
             label: member.name,
-            value: member.clerkUserId,
+            value: member.authUserId,
           }))}
         />
         <Select
@@ -648,7 +648,7 @@ export function AnalyticsFilterBar({
         )}
         {currentFilters.teamMemberId && (
           <FilterChip
-            label={`Team: ${teamMembers.find((member) => member.clerkUserId === currentFilters.teamMemberId)?.name ?? currentFilters.teamMemberId}`}
+            label={`Team: ${teamMembers.find((member) => member.authUserId === currentFilters.teamMemberId)?.name ?? currentFilters.teamMemberId}`}
             onRemove={() => update("teamMemberId", "")}
           />
         )}

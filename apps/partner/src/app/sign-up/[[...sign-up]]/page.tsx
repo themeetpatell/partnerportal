@@ -1,12 +1,13 @@
-import { ClerkFailed, ClerkLoaded, ClerkLoading, SignUp } from "@clerk/nextjs"
+import { auth } from "@repo/auth/server"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import {
   ArrowLeft,
   BadgeCheck,
   Check,
   Sparkles,
 } from "lucide-react"
-import { ClerkFallbackCard } from "@/components/clerk-fallback-card"
+import { PartnerSignUpForm } from "@/components/auth/partner-sign-up-form"
 
 const perks = [
   "Free to join — no upfront costs",
@@ -17,7 +18,13 @@ const perks = [
   "Tiered growth from Bronze to Platinum",
 ]
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const { userId } = await auth()
+
+  if (userId) {
+    redirect("/register")
+  }
+
   return (
     <div className="page-wrap min-h-screen flex flex-col">
       {/* Top bar */}
@@ -98,23 +105,7 @@ export default function SignUpPage() {
             </div>
 
             <div className="w-full max-w-[400px]">
-              <ClerkLoading>
-                <div className="surface-card-strong h-[620px] rounded-[1.75rem] border border-white/8 bg-white/[0.03]" />
-              </ClerkLoading>
-
-              <ClerkLoaded>
-                <SignUp
-                  routing="path"
-                  path="/sign-up"
-                  signInUrl="/sign-in"
-                  forceRedirectUrl="/register"
-                  fallbackRedirectUrl="/register"
-                />
-              </ClerkLoaded>
-
-              <ClerkFailed>
-                <ClerkFallbackCard ctaHref="/register" ctaLabel="Open registration form" />
-              </ClerkFailed>
+              <PartnerSignUpForm />
             </div>
 
             <p className="mt-6 text-sm text-slate-500">

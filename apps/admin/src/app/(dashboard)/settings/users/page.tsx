@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, teamMembers } from "@repo/db"
 import { eq } from "drizzle-orm"
 import Link from "next/link"

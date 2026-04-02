@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
@@ -42,11 +42,11 @@ export async function POST(request: NextRequest) {
     const limited = rateLimit(`leads:${userId}`, 30, 60_000)
     if (limited) return limited
 
-    // Look up partner record for this Clerk user
+    // Look up the partner record for the authenticated user
     const [partner] = await db
       .select()
       .from(partners)
-      .where(eq(partners.clerkUserId, userId))
+      .where(eq(partners.authUserId, userId))
       .limit(1)
 
     if (!partner) {
@@ -152,7 +152,7 @@ export async function GET() {
     const [partner] = await db
       .select()
       .from(partners)
-      .where(eq(partners.clerkUserId, userId))
+      .where(eq(partners.authUserId, userId))
       .limit(1)
 
     if (!partner) {

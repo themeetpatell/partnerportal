@@ -264,7 +264,7 @@ body::after {
   }
 }
 
-/* Clerk overrides */
+/* Auth form overrides */
 .cl-rootBox {
   width: 100%;
 }

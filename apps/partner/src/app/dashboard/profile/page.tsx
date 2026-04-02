@@ -1,5 +1,5 @@
-import { currentUser } from "@clerk/nextjs/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@repo/auth/server"
+import Image from "next/image"
 import {
   db,
   derivePartnerOnboardingStage,
@@ -147,7 +147,7 @@ export default async function ProfilePage() {
     ? await db
         .select()
         .from(partners)
-        .where(eq(partners.clerkUserId, userId))
+        .where(eq(partners.authUserId, userId))
         .limit(1)
         .then((rows) => rows[0] ?? null)
     : null
@@ -444,9 +444,12 @@ export default async function ProfilePage() {
                       <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
                         Uploaded signature
                       </p>
-                      <img
+                      <Image
                         src={partnerRecord.contractSignatureDataUrl}
                         alt="Uploaded signature"
+                        width={160}
+                        height={80}
+                        unoptimized
                         className="mt-3 max-h-24 rounded-lg bg-white p-2"
                       />
                     </div>

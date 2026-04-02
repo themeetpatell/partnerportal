@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const existingPartner = await db
       .select()
       .from(partners)
-      .where(eq(partners.clerkUserId, userId))
+      .where(eq(partners.authUserId, userId))
       .limit(1)
 
     if (existingPartner.length > 0) {
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       .insert(partners)
       .values({
         tenantId: getTenantId(),
-        clerkUserId: userId,
+        authUserId: userId,
         type,
         companyName,
         contactName,

@@ -2,7 +2,6 @@ import Link from "next/link"
 import {
   ArrowRight,
   BadgeCheck,
-  BarChart3,
   BriefcaseBusiness,
   Building2,
   Check,

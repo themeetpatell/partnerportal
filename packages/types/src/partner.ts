@@ -9,7 +9,7 @@ export type PartnerStatus = z.infer<typeof PartnerStatusSchema>
 export const PartnerSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),
-  clerkUserId: z.string(),
+  authUserId: z.string(),
   type: PartnerTypeSchema,
   companyName: z.string().min(1),
   contactName: z.string().min(1),
@@ -93,7 +93,7 @@ export type Partner = z.infer<typeof PartnerSchema>
 
 export const CreatePartnerSchema = PartnerSchema.omit({
   id: true,
-  clerkUserId: true,
+  authUserId: true,
   status: true,
   zohoContactId: true,
   rejectionReason: true,

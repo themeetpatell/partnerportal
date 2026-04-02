@@ -15,10 +15,9 @@ const apps = [
 const children = new Set()
 let shuttingDown = false
 const importantEnvKeys = [
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-  "CLERK_SECRET_KEY",
-  "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
-  "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "SUPABASE_SECRET_KEY",
 ]
 
 function sleep(ms) {
@@ -166,7 +165,7 @@ function warnOnEnvOverrides(appName, appEnv) {
 
   console.warn(
     `[dev] ${appName} overrides root .env.local for: ${overriddenKeys.join(", ")}. ` +
-      "Keep Clerk values aligned across env files to avoid auth confusion.",
+      "Keep Supabase auth values aligned across env files to avoid auth confusion.",
   )
 }
 

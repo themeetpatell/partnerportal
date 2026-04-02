@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, partners, teamMembers, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
 import { sendWelcomeEmail } from "@repo/notifications"
@@ -22,7 +22,7 @@ export async function POST(
   const [member] = await db
     .select()
     .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .where(and(eq(teamMembers.authUserId, userId), eq(teamMembers.isActive, true)))
     .limit(1)
 
   if (!member || !["admin", "partnership"].includes(member.role)) {

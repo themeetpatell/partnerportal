@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"

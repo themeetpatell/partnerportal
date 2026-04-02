@@ -15,7 +15,7 @@ Shared code lives under `packages/*` for auth, database access, UI, notification
 - React 19
 - TypeScript
 - Tailwind CSS 4
-- Clerk authentication
+- Supabase Auth
 - Drizzle ORM
 - Supabase Postgres
 - SendGrid
@@ -31,7 +31,7 @@ You need:
 - Node.js `20+`
 - npm `10+`
 - A Supabase project with Postgres enabled
-- Clerk dev credentials
+- Supabase Auth publishable and secret keys
 - `lsof` available in your shell path
 - `psql` installed if you want to apply the Supabase bootstrap SQL locally
 
@@ -78,10 +78,9 @@ At minimum, local development requires these values:
 ```bash
 DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require
 DATABASE_URL_DIRECT=postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres?sslmode=require
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_SUPABASE_URL=https://[project-ref].supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...
 DEFAULT_TENANT_ID=00000000-0000-0000-0000-000000000001
 NEXT_PUBLIC_PARTNER_APP_URL=http://localhost:3000
 NEXT_PUBLIC_ADMIN_APP_URL=http://localhost:3001
@@ -91,7 +90,7 @@ Important:
 
 - `DEFAULT_TENANT_ID` is required by both apps at runtime
 - if you use the seeded local tenant, keep it as `00000000-0000-0000-0000-000000000001`
-- keep Clerk values aligned across root and app env files or auth behavior becomes confusing
+- keep Supabase auth values aligned across root and app env files or auth behavior becomes confusing
 - `DATABASE_URL` is the Supabase runtime connection and should use the pooler host
 - `DATABASE_URL_DIRECT` is the direct Supabase host for Drizzle migrations and bootstrap SQL
 
@@ -258,12 +257,13 @@ Conventions worth following:
 Both apps validate env on startup. If boot fails, check:
 
 - `DATABASE_URL`
-- Clerk keys
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `DEFAULT_TENANT_ID`
 
 ### Auth works in one app but not the other
 
-You likely have conflicting Clerk values between the root `.env.local` and an app-level `.env.local`. Align them.
+You likely have conflicting Supabase auth values between the root `.env.local` and an app-level `.env.local`. Align them.
 
 ### The app boots but tenant-scoped data fails
 
@@ -291,4 +291,4 @@ The partner app and admin app are intended to be deployed separately. They share
 
 - never commit real `.env.local` files
 - rotate any secret that has been exposed in chat, logs, screenshots, or terminal history
-- treat database, Clerk, SendGrid, Stripe, and Zoho credentials as production secrets
+- treat database, Supabase Auth, SendGrid, Stripe, and Zoho credentials as production secrets

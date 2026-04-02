@@ -17,7 +17,7 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react"
-import { useClerk } from "@clerk/nextjs"
+import { useAuthClient } from "@repo/auth/client"
 
 const navItems = [
   {
@@ -112,7 +112,7 @@ function SidebarContent({
   userRole: string
   onNavClick?: () => void
 }) {
-  const { signOut } = useClerk()
+  const { signOut } = useAuthClient()
 
   return (
     <div className="flex flex-col h-full">

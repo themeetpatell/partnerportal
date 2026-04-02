@@ -10,7 +10,7 @@ interface Props {
   partners: { id: string; companyName: string }[]
   services: { id: string; name: string; category: string }[]
   leads: { id: string; customerName: string; customerCompany: string | null; partnerId: string }[]
-  teamMembers: { clerkUserId: string; name: string }[]
+  teamMembers: { authUserId: string; name: string }[]
 }
 
 export function NewServiceRequestForm({ partners, services, leads, teamMembers }: Props) {
@@ -164,7 +164,7 @@ export function NewServiceRequestForm({ partners, services, leads, teamMembers }
               <select value={form.assignedTo} onChange={set("assignedTo")} className={selectCls}>
                 <option value="">Unassigned</option>
                 {teamMembers.map((m) => (
-                  <option key={m.clerkUserId} value={m.clerkUserId}>{m.name}</option>
+                  <option key={m.authUserId} value={m.authUserId}>{m.name}</option>
                 ))}
               </select>
             </Field>

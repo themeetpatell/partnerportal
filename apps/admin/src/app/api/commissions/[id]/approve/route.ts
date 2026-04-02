@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@repo/auth/server"
 import { db, commissions, partners, logActivity } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { sendCommissionApprovedEmail } from "@repo/notifications"
