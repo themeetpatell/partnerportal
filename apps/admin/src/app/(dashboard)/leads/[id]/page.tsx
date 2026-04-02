@@ -67,7 +67,7 @@ export default async function LeadDetailPage({
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
-      .leftJoin(partners, eq(partners.id, leads.partnerId))
+      .innerJoin(partners, eq(partners.id, leads.partnerId))
       .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
       .limit(1),
     db
@@ -79,7 +79,7 @@ export default async function LeadDetailPage({
   if (!leadRow) notFound()
 
   const lead = leadRow.lead
-  const partner = leadRow.partner ?? null
+  const partner = leadRow.partner
 
   const services = (() => {
     try {
