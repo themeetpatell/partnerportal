@@ -1,8 +1,11 @@
-import { auth } from "@repo/auth/server"
+"use client"
+
+import { useEffect } from "react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { FolderKanban, BellRing, ShieldCheck } from "lucide-react"
 import { PartnerSignInForm } from "@/components/auth/partner-sign-in-form"
+import { useAuth } from "@repo/auth/client"
 
 const workspacePoints = [
   {
@@ -25,9 +28,19 @@ const workspacePoints = [
   },
 ]
 
-export default async function SignInPage() {
-  const { userId } = await auth()
-  if (userId) redirect("/dashboard")
+export default function SignInPage() {
+  const router = useRouter()
+  const { userId, isLoaded } = useAuth()
+
+  useEffect(() => {
+    if (isLoaded && userId) {
+      router.replace("/dashboard")
+    }
+  }, [isLoaded, router, userId])
+
+  if (isLoaded && userId) {
+    return null
+  }
 
   return (
     <div className="min-h-screen flex bg-[#080810]">

@@ -12,7 +12,7 @@ type DatabaseFallbackCardProps = {
 
 export function DatabaseFallbackCard({
   title = "Database connection failed",
-  message = "The partner UI rendered, but it could not reach Postgres. Check DATABASE_URL, confirm the database host resolves locally, and verify your network or VPN before retrying.",
+  message = "The partner UI rendered, but Postgres is either unreachable or overloaded. Check DATABASE_URL, confirm the database host resolves locally, and verify your network, VPN, or database load before retrying.",
   host,
   retryLabel = "Retry",
   onRetry,
@@ -48,7 +48,7 @@ export function DatabaseFallbackCard({
               </button>
             ) : null}
             <p className="text-xs text-slate-500">
-              Typical local causes: placeholder Supabase hostname, offline VPN, or a typo in `DATABASE_URL`.
+              Typical local causes: placeholder Supabase hostname, offline VPN, a typo in `DATABASE_URL`, or exhausted / slow database connections.
             </p>
           </div>
         </div>

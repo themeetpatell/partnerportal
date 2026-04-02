@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { auth } from "@repo/auth/server"
 import {
   ArrowRight,
   BadgeCheck,
@@ -20,6 +21,10 @@ import {
   Users,
   Zap,
 } from "lucide-react"
+import {
+  getPartnerRecordByAuthUserId,
+  hasApprovedWorkspaceAccess,
+} from "@/lib/partner-record"
 
 /* ── Data ─────────────────────────────────────────────── */
 
@@ -34,10 +39,10 @@ const partnerModels = [
   {
     icon: Users,
     title: "Referral Partner",
-    description: "Introduce clients. Earn commissions on every converted referral. Instant approval — start earning the same day.",
+    description: "Introduce clients, complete onboarding, and operate through one partner workspace after approval.",
     badge: "Popular",
     badgeClass: "bg-emerald-500/12 border-emerald-400/25 text-emerald-300",
-    perks: ["No upfront cost", "Per-deal commission", "Dashboard access", "Instant approval"],
+    perks: ["No upfront cost", "Per-deal commission", "Structured onboarding", "Admin-reviewed activation"],
     rates: { initial: "30%", renewal: "20%", addon: "15%", alt: "30% first payment" },
   },
   {
@@ -56,13 +61,13 @@ const howItWorks = [
     step: "01",
     icon: Rocket,
     title: "Apply in 2 minutes",
-    description: "Pick your model, add company details, accept terms. Referral partners are live instantly.",
+    description: "Pick your model, create your login, complete onboarding, and submit your application for review.",
   },
   {
     step: "02",
     icon: Send,
     title: "Submit opportunities",
-    description: "Use the portal to send leads or service requests. Each one is tracked with full status visibility.",
+    description: "Once approved, use the portal to send leads or service requests with full status visibility.",
   },
   {
     step: "03",
@@ -137,7 +142,7 @@ const faqs = [
   },
   {
     q: "How quickly can I start earning?",
-    a: "Referral partners are approved instantly. Submit your first lead the same day. Commissions are tracked in real-time from the moment a lead converts.",
+    a: "After you create your account, complete onboarding, and receive admin approval, the revenue workspace unlocks and you can start submitting opportunities.",
   },
   {
     q: "What services can I refer clients for?",
@@ -149,9 +154,111 @@ const faqs = [
   },
 ]
 
+function getLandingCtaState({
+  isSignedIn,
+  hasPartnerRecord,
+  hasWorkspaceAccess,
+  partnerStatus,
+}: {
+  isSignedIn: boolean
+  hasPartnerRecord: boolean
+  hasWorkspaceAccess: boolean
+  partnerStatus: string | null
+}) {
+  if (!isSignedIn) {
+    return {
+      statusPill: null,
+      primaryHref: "/register",
+      primaryLabel: "Become a partner",
+      secondaryHref: "/sign-in",
+      secondaryLabel: "Sign in",
+      heroHref: "/register",
+      heroLabel: "Start your application",
+      heroSubtext: "Free to apply — Create account — Complete onboarding — Wait for approval",
+      ctaHref: "/register",
+      ctaLabel: "Start your application",
+      ctaSubcopy:
+        "Create your account, complete onboarding, and start operating after approval.",
+      ctaSecondaryHref: "/sign-in",
+      ctaSecondaryLabel: "Already a partner? Sign in",
+    }
+  }
+
+  if (!hasPartnerRecord) {
+    return {
+      statusPill: "Signed in · onboarding not submitted",
+      primaryHref: "/onboarding",
+      primaryLabel: "Continue onboarding",
+      secondaryHref: "/dashboard/profile",
+      secondaryLabel: "Profile",
+      heroHref: "/onboarding",
+      heroLabel: "Continue onboarding",
+      heroSubtext: "Your login exists. Finish the partner application to move into review.",
+      ctaHref: "/onboarding",
+      ctaLabel: "Continue onboarding",
+      ctaSubcopy:
+        "Your login is active. Submit the partner application to move into admin review.",
+      ctaSecondaryHref: "/dashboard/profile",
+      ctaSecondaryLabel: "Go to profile",
+    }
+  }
+
+  if (hasWorkspaceAccess) {
+    return {
+      statusPill: "Signed in · workspace active",
+      primaryHref: "/dashboard",
+      primaryLabel: "Open workspace",
+      secondaryHref: "/dashboard/profile",
+      secondaryLabel: "Profile",
+      heroHref: "/dashboard",
+      heroLabel: "Open workspace",
+      heroSubtext: "Your partner access is active.",
+      ctaHref: "/dashboard",
+      ctaLabel: "Open workspace",
+      ctaSubcopy:
+        "Your partner access is active. Continue with leads, clients, requests, and commissions.",
+      ctaSecondaryHref: "/dashboard/profile",
+      ctaSecondaryLabel: "Review profile",
+    }
+  }
+
+  const statusText =
+    partnerStatus === "pending"
+      ? "Signed in · application pending review"
+      : partnerStatus === "rejected"
+        ? "Signed in · application needs attention"
+        : "Signed in · access paused"
+
+  return {
+    statusPill: statusText,
+    primaryHref: "/dashboard/profile",
+    primaryLabel: "Review status",
+    secondaryHref: "/dashboard/profile",
+    secondaryLabel: "Profile",
+    heroHref: "/dashboard/profile",
+    heroLabel: "Review status",
+    heroSubtext: "Your account is signed in, but revenue tools stay locked until approval.",
+    ctaHref: "/dashboard/profile",
+    ctaLabel: "Review approval status",
+    ctaSubcopy:
+      "Your account exists, but the workspace remains locked until the partnership team approves access.",
+    ctaSecondaryHref: "/dashboard/profile",
+    ctaSecondaryLabel: "Open profile",
+  }
+}
+
 /* ── Page ─────────────────────────────────────────────── */
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { userId } = await auth()
+  const partner = userId ? await getPartnerRecordByAuthUserId(userId) : null
+  const landingCta = getLandingCtaState({
+    isSignedIn: Boolean(userId),
+    hasPartnerRecord: Boolean(partner),
+    hasWorkspaceAccess: hasApprovedWorkspaceAccess(partner),
+    partnerStatus: partner?.status ?? null,
+  })
+
   return (
     <div className="page-wrap min-h-screen">
       {/* ── Navbar ──────────────────────────────────── */}
@@ -184,11 +291,17 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/sign-in" className="secondary-button !py-2 !px-3.5 text-xs sm:text-sm sm:!px-4">
-              Sign in
+            <Link
+              href={landingCta.secondaryHref}
+              className="secondary-button !py-2 !px-3.5 text-xs sm:text-sm sm:!px-4"
+            >
+              {landingCta.secondaryLabel}
             </Link>
-            <Link href="/register" className="primary-button !py-2 !px-3.5 text-xs sm:text-sm sm:!px-4">
-              Become a partner
+            <Link
+              href={landingCta.primaryHref}
+              className="primary-button !py-2 !px-3.5 text-xs sm:text-sm sm:!px-4"
+            >
+              {landingCta.primaryLabel}
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -207,6 +320,12 @@ export default function LandingPage() {
               Trusted by 150+ partners across the GCC
             </div>
 
+            {landingCta.statusPill ? (
+              <div className="mx-auto mb-6 w-fit rounded-full border border-indigo-400/18 bg-indigo-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-200">
+                {landingCta.statusPill}
+              </div>
+            ) : null}
+
             <h1 className="hero-title text-white">
               Earn commissions by referring clients to&nbsp;
               <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent">
@@ -221,10 +340,10 @@ export default function LandingPage() {
 
             <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/register"
+                href={landingCta.heroHref}
                 className="primary-button !rounded-xl !px-7 !py-3.5 text-base shadow-[0_16px_48px_rgba(99,102,241,0.25)] hover:shadow-[0_20px_60px_rgba(99,102,241,0.35)] transition-shadow"
               >
-                Start earning today
+                {landingCta.heroLabel}
                 <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
@@ -236,7 +355,7 @@ export default function LandingPage() {
             </div>
 
             <p className="mt-6 text-xs text-slate-600">
-              Free to join — No license required — Referral partners approved instantly
+              {landingCta.heroSubtext}
             </p>
           </div>
 
@@ -338,7 +457,7 @@ export default function LandingPage() {
             </div>
             <h2 className="page-title">Start earning in three steps</h2>
             <p className="page-subtitle mt-3">
-              No complex onboarding. No hidden requirements. Apply, submit leads, earn commissions.
+              Clear onboarding, structured approval, and one operational workspace after activation.
             </p>
           </div>
 
@@ -481,19 +600,21 @@ export default function LandingPage() {
                 Ready to grow your revenue?
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
-                Join 150+ partners earning commissions through the Finanshels network.
-                Apply in 2 minutes — start referring the same day.
+                {landingCta.ctaSubcopy}
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
                 <Link
-                  href="/register"
+                  href={landingCta.ctaHref}
                   className="primary-button !rounded-xl !px-8 !py-3.5 text-base shadow-[0_16px_48px_rgba(99,102,241,0.3)]"
                 >
-                  Become a partner
+                  {landingCta.ctaLabel}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/sign-in" className="secondary-button !rounded-xl !px-8 !py-3.5 text-base">
-                  Already a partner? Sign in
+                <Link
+                  href={landingCta.ctaSecondaryHref}
+                  className="secondary-button !rounded-xl !px-8 !py-3.5 text-base"
+                >
+                  {landingCta.ctaSecondaryLabel}
                 </Link>
               </div>
             </div>

@@ -7,8 +7,6 @@ export interface AppAuthUser {
   lastName: string | null
   fullName: string | null
   partnerType: "referral" | "channel" | null
-  emailAddresses: { emailAddress: string }[]
-  primaryEmailAddress: { emailAddress: string } | null
 }
 
 export function mapSupabaseUser(user: User | null): AppAuthUser | null {
@@ -43,8 +41,6 @@ export function mapSupabaseUser(user: User | null): AppAuthUser | null {
     lastName,
     fullName,
     partnerType,
-    emailAddresses: [{ emailAddress: user.email }],
-    primaryEmailAddress: { emailAddress: user.email },
   }
 }
 

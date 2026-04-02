@@ -7,6 +7,7 @@ import {
   createSignedAgreementPdf,
   getAgreementFilePath,
   getAgreementTitle,
+  getMissingAgreementFields,
 } from "@/lib/signed-agreement"
 
 const MAX_SIGNATURE_FILE_SIZE = 2 * 1024 * 1024
@@ -66,6 +67,33 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const missingAgreementFields = getMissingAgreementFields({
+    type: partner.type as "referral" | "channel",
+    companyName: partner.companyName,
+    contactName: partner.contactName,
+    email: partner.email,
+    partnerAddress: partner.partnerAddress,
+    emirateIdPassport: partner.emirateIdPassport,
+    tradeLicense: partner.tradeLicense,
+    beneficiaryName: partner.beneficiaryName,
+    bankName: partner.bankName,
+    bankCountry: partner.bankCountry,
+    accountNoIban: partner.accountNoIban,
+    swiftBicCode: partner.swiftBicCode,
+    contractSentAt: partner.contractSentAt,
+  })
+
+  if (missingAgreementFields.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Complete the missing contract details in your profile before signing: ${missingAgreementFields
+          .map((field) => field.label)
+          .join(", ")}.`,
+      },
+      { status: 400 }
+    )
+  }
+
   let signatureDataUrl: string | null = null
   let signatureImageBytes: Uint8Array | null = null
   let signatureImageMimeType: string | null = null
@@ -106,6 +134,21 @@ export async function POST(request: NextRequest) {
     partnerCompanyName: partner.companyName,
     partnerTypeLabel:
       partner.type === "channel" ? "Channel Partner" : "Referral Partner",
+    partner: {
+      type: partner.type as "referral" | "channel",
+      companyName: partner.companyName,
+      contactName: partner.contactName,
+      email: partner.email,
+      partnerAddress: partner.partnerAddress,
+      emirateIdPassport: partner.emirateIdPassport,
+      tradeLicense: partner.tradeLicense,
+      beneficiaryName: partner.beneficiaryName,
+      bankName: partner.bankName,
+      bankCountry: partner.bankCountry,
+      accountNoIban: partner.accountNoIban,
+      swiftBicCode: partner.swiftBicCode,
+      contractSentAt: partner.contractSentAt,
+    },
     signerName: signedName.trim(),
     signerDesignation:
       typeof signedDesignation === "string" && signedDesignation.trim()
@@ -160,7 +203,7 @@ export async function POST(request: NextRequest) {
     actorId: userId,
     actorName:
       [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-      user?.emailAddresses[0]?.emailAddress ||
+      user?.email ||
       partner.contactName,
     action: "updated",
     note:

@@ -455,13 +455,10 @@ function Step4Success({
         </span>
       </div>
 
-      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+      <div className="mt-8 flex justify-center">
         <Link href="/dashboard/profile" className="primary-button">
           Go to profile
           <ArrowRight className="h-4 w-4" />
-        </Link>
-        <Link href="/dashboard/profile" className="secondary-button">
-          Review onboarding status
         </Link>
       </div>
     </div>
@@ -496,9 +493,9 @@ export default function OnboardingPage() {
 
   const lockedContact =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
+    user?.email ||
     ""
-  const lockedEmail = user?.primaryEmailAddress?.emailAddress || ""
+  const lockedEmail = user?.email || ""
 
   function handleChange(field: keyof FormData, value: string | boolean) {
     setFormData((prev) => ({ ...prev, [field]: value }))

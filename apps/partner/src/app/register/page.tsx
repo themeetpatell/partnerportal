@@ -1,7 +1,10 @@
-import { auth } from "@repo/auth/server"
+"use client"
+
+import { useEffect } from "react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, Check, Handshake, ShieldCheck, Users } from "lucide-react"
+import { useAuth } from "@repo/auth/client"
 
 const models = [
   {
@@ -32,11 +35,18 @@ const models = [
   },
 ] as const
 
-export default async function RegisterPage() {
-  const { userId } = await auth()
+export default function RegisterPage() {
+  const router = useRouter()
+  const { userId, isLoaded } = useAuth()
 
-  if (userId) {
-    redirect("/onboarding")
+  useEffect(() => {
+    if (isLoaded && userId) {
+      router.replace("/dashboard")
+    }
+  }, [isLoaded, router, userId])
+
+  if (isLoaded && userId) {
+    return null
   }
 
   return (
@@ -50,7 +60,15 @@ export default async function RegisterPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
-          <span className="tag-pill">Partner registration</span>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/sign-in"
+              className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
+            >
+              Sign in
+            </Link>
+            <span className="tag-pill">Partner registration</span>
+          </div>
         </div>
 
         <section className="surface-card-strong rounded-[2.2rem] p-6 sm:p-8 lg:p-10">

@@ -1,6 +1,6 @@
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const QUALIFIED_STATUSES = new Set(["qualified", "proposal_sent", "converted"])
+const QUALIFIED_STATUSES = new Set(["qualified", "proposal_sent", "deal_won"])
 
 export type PartnerOperationalStatus =
   | "active_partner"
@@ -30,10 +30,18 @@ export function derivePartnerOperationalStatus(
     return "yet_to_onboard"
   }
 
+  if (!partner.onboardedAt) {
+    return "yet_to_onboard"
+  }
+
   const leadDates = leads.map((lead) => new Date(lead.createdAt).getTime())
   const qualifiedLeadDates = leads
     .filter((lead) => QUALIFIED_STATUSES.has(lead.status))
     .map((lead) => new Date(lead.createdAt).getTime())
+
+  if (leadDates.length === 0) {
+    return "yet_to_activate"
+  }
 
   const sixtyDaysAgo = now.getTime() - 60 * DAY_MS
   const ninetyDaysAgo = now.getTime() - 90 * DAY_MS
@@ -42,15 +50,15 @@ export function derivePartnerOperationalStatus(
     return "active_partner"
   }
 
+  if (leadDates.some((timestamp) => timestamp >= sixtyDaysAgo)) {
+    return "active_partner"
+  }
+
   if (leadDates.length > 0 && leadDates.every((timestamp) => timestamp < ninetyDaysAgo)) {
     return "inactive_partner"
   }
 
-  if (partner.onboardedAt) {
-    return "yet_to_activate"
-  }
-
-  return "yet_to_onboard"
+  return "active_partner"
 }
 
 export function derivePartnerOnboardingStage(
@@ -61,7 +69,7 @@ export function derivePartnerOnboardingStage(
   },
   leads: { createdAt: Date | string }[],
 ): PartnerOnboardingStage {
-  if (leads.length > 0) {
+  if (partner.onboardedAt && leads.length > 0) {
     return "activated"
   }
 

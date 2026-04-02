@@ -1,10 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
-export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-
-export function parseEnvFile(filePath) {
+function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) {
     return {}
   }
@@ -39,15 +36,19 @@ export function parseEnvFile(filePath) {
   return env
 }
 
-export function loadWorkspaceEnv(appRelativePath) {
-  const rootEnv = parseEnvFile(path.join(rootDir, ".env.local"))
-  const appEnv = appRelativePath
-    ? parseEnvFile(path.join(rootDir, appRelativePath, ".env.local"))
-    : {}
+export function loadWorkspaceEnv({ rootDir, appDir }) {
+  const envSources = [
+    parseEnvFile(path.join(rootDir, ".env.local")),
+    parseEnvFile(path.join(appDir, ".env.local")),
+  ]
 
-  return {
-    ...rootEnv,
-    ...appEnv,
-    ...process.env,
+  for (const source of envSources) {
+    for (const [key, value] of Object.entries(source)) {
+      if (!process.env[key] && value) {
+        process.env[key] = value
+      }
+    }
   }
+
+  return process.env
 }

@@ -1,37 +1,24 @@
-import { spawn } from "node:child_process"
 import path from "node:path"
+import { fileURLToPath } from "node:url"
+import { spawnSync } from "node:child_process"
 import { createRequire } from "node:module"
-import { rootDir, loadWorkspaceEnv } from "./env.mjs"
+import { loadWorkspaceEnv } from "./env.mjs"
 
-const command = process.argv[2]
-const extraArgs = process.argv.slice(3)
-const localDefaultTenantId = "00000000-0000-0000-0000-000000000001"
-
-if (!command) {
-  console.error("Missing Next.js command. Usage: node ../../scripts/run-next.mjs <build|start> [...args]")
-  process.exit(1)
-}
-
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const rootDir = path.resolve(__dirname, "..")
 const appDir = process.cwd()
-const appRelativePath = path.relative(rootDir, appDir)
-const appRequire = createRequire(path.join(appDir, "package.json"))
-const nextBin = appRequire.resolve("next/dist/bin/next")
-const env = loadWorkspaceEnv(appRelativePath)
 
-const child = spawn(process.execPath, [nextBin, command, ...extraArgs], {
+loadWorkspaceEnv({ rootDir, appDir })
+
+const require = createRequire(import.meta.url)
+const nextBin = require.resolve("next/dist/bin/next")
+const args = process.argv.slice(2)
+
+const result = spawnSync(process.execPath, [nextBin, ...args], {
   cwd: appDir,
-  env: {
-    ...env,
-    DEFAULT_TENANT_ID: env.DEFAULT_TENANT_ID || localDefaultTenantId,
-  },
   stdio: "inherit",
+  env: process.env,
 })
 
-child.on("exit", (code, signal) => {
-  if (signal) {
-    process.kill(process.pid, signal)
-    return
-  }
-
-  process.exit(code ?? 0)
-})
+process.exit(result.status ?? 1)

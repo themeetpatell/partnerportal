@@ -9,8 +9,9 @@
   "scripts": {
     "build": "npm run --workspaces --if-present build",
     "dev": "node ./scripts/dev.mjs",
-    "dev:apps": "npm run dev --workspace @repo/partner --workspace @repo/admin --if-present --parallel",
+    "dev:apps": "node ./scripts/dev.mjs",
     "db:bootstrap:supabase": "node ./scripts/db-bootstrap-supabase.mjs",
+    "db:reset:supabase": "node ./scripts/db-reset-supabase.mjs",
     "db:generate": "npm run db:generate --workspace @repo/db",
     "db:migrate": "npm run db:migrate --workspace @repo/db",
     "db:push": "npm run db:push --workspace @repo/db",

@@ -1,8 +1,11 @@
-import { auth } from "@repo/auth/server"
+"use client"
+
+import { useEffect } from "react"
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ClipboardList, FileCheck2, Handshake } from "lucide-react"
 import { PartnerSignUpForm } from "@/components/auth/partner-sign-up-form"
+import { useAuth } from "@repo/auth/client"
 
 const highlights = [
   { icon: ClipboardList, label: "Structured onboarding", sub: "Create an account, then complete the registration flow" },
@@ -10,19 +13,30 @@ const highlights = [
   { icon: Handshake, label: "Built for partner operations", sub: "Use the portal to manage the relationship after approval" },
 ]
 
-export default async function SignUpPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string }>
-}) {
-  const { userId } = await auth()
-  const { type } = await searchParams
+export default function SignUpPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { userId, isLoaded } = useAuth()
+  const type = searchParams.get("type")
+
+  useEffect(() => {
+    if (type !== "referral" && type !== "channel") {
+      router.replace("/register")
+      return
+    }
+
+    if (isLoaded && userId) {
+      router.replace("/dashboard")
+    }
+  }, [isLoaded, router, type, userId])
 
   if (type !== "referral" && type !== "channel") {
-    redirect("/register")
+    return null
   }
 
-  if (userId) redirect("/onboarding")
+  if (isLoaded && userId) {
+    return null
+  }
 
   const selectedTypeLabel = type === "channel" ? "Channel Partner" : "Referral Partner"
 
@@ -125,6 +139,15 @@ export default async function SignUpPage({
         className="flex-1 flex flex-col items-center justify-center px-6 py-14 lg:px-14"
         style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
       >
+        <div className="mb-8 flex w-full max-w-[400px] justify-end">
+          <Link
+            href="/sign-in"
+            className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+          >
+            Already have an account? Sign in
+          </Link>
+        </div>
+
         {/* Mobile logo */}
         <div className="lg:hidden mb-10 flex items-center gap-3">
           <div

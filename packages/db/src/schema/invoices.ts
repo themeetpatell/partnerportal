@@ -26,7 +26,7 @@ export const invoices = pgTable("invoices", {
   paidAt: timestamp("paid_at"),
   voidedAt: timestamp("voided_at"),
   voidReason: text("void_reason"),
-  createdBy: text("created_by"), // clerk_user_id of finance/admin
+  createdBy: text("created_by"), // auth user id of finance/admin
   deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

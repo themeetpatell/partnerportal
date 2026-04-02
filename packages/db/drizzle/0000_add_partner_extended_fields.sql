@@ -25,7 +25,7 @@ CREATE TABLE "commission_models" (
 CREATE TABLE "partners" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
-	"clerk_user_id" text NOT NULL,
+	"auth_user_id" text NOT NULL,
 	"type" text NOT NULL,
 	"company_name" text NOT NULL,
 	"contact_name" text NOT NULL,
@@ -57,13 +57,13 @@ CREATE TABLE "partners" (
 	"onboarded_at" timestamp,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "partners_clerk_user_id_unique" UNIQUE("clerk_user_id")
+	CONSTRAINT "partners_auth_user_id_unique" UNIQUE("auth_user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "team_members" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tenant_id" uuid NOT NULL,
-	"clerk_user_id" text NOT NULL,
+	"auth_user_id" text NOT NULL,
 	"role" text NOT NULL,
 	"name" text NOT NULL,
 	"email" text NOT NULL,

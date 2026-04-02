@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Building2, Mail, Phone, Send, UserRound } from "lucide-react"
 import { toast } from "sonner"
 
@@ -25,15 +25,15 @@ type Lead = {
 
 const statusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  in_review: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
   qualified: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-100",
   proposal_sent: "border border-zinc-600/20 bg-zinc-600/10 text-zinc-100",
-  converted: "border border-white/20 bg-white/10 text-white",
-  rejected: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
+  deal_won: "border border-white/20 bg-white/10 text-white",
+  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
 }
 
 export default function NewLeadPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
@@ -45,6 +45,16 @@ export default function NewLeadPage() {
     notes: "",
     serviceInterests: [] as string[],
   })
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      customerName: searchParams.get("contactName") ?? "",
+      customerEmail: searchParams.get("email") ?? "",
+      customerPhone: searchParams.get("phone") ?? "",
+      customerCompany: searchParams.get("company") ?? "",
+    }))
+  }, [searchParams])
 
   useEffect(() => {
     fetch("/api/leads")

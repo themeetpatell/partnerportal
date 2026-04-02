@@ -59,7 +59,7 @@ for (const source of envSources) {
   }
 }
 
-const databaseUrl = [process.env.DATABASE_URL_DIRECT, process.env.DATABASE_URL, ...envSources.map((source) => source.DATABASE_URL_DIRECT ?? source.DATABASE_URL)].find(
+const databaseUrl = [process.env.DATABASE_URL, process.env.DATABASE_URL_DIRECT, ...envSources.map((source) => source.DATABASE_URL ?? source.DATABASE_URL_DIRECT)].find(
   isUsableValue,
 )
 

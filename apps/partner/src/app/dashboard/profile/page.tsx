@@ -1,5 +1,4 @@
 import { auth, currentUser } from "@repo/auth/server"
-import Image from "next/image"
 import { redirect } from "next/navigation"
 import {
   db,
@@ -17,7 +16,6 @@ import {
   Briefcase,
   Building2,
   Calendar,
-  CheckCircle2,
   CreditCard,
   FileText,
   Globe,
@@ -34,6 +32,8 @@ import {
   Users,
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
+import { ContractSigningForm } from "@/components/contract-signing-form"
+import { getMissingAgreementFields } from "@/lib/signed-agreement"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -214,6 +214,33 @@ export default async function ProfilePage() {
         ? "amber"
         : "indigo"
 
+  const onboardingBannerMessage =
+    partnerRecord.onboardedAt
+      ? "Your agreement has been accepted and onboarding is complete. Revenue features are now unlocked."
+      : partnerRecord.contractStatus === "signed"
+        ? "Agreement signed. Finanshels will review the signed contract and unlock your workspace after final acceptance."
+      : partnerRecord.contractStatus === "sent"
+        ? "Your agreement is ready in the portal. Review it and complete the signature to move the application forward."
+        : partnerRecord.status === "approved"
+          ? "Your partner account is approved. Finanshels still needs to send the agreement here before revenue features can unlock."
+          : partnerRecord.status === "rejected"
+            ? `Your application was rejected${partnerRecord.rejectionReason ? `: ${partnerRecord.rejectionReason}` : "."}`
+            : partnerRecord.status === "suspended"
+              ? `Your account is currently suspended${partnerRecord.suspensionReason ? `: ${partnerRecord.suspensionReason}` : "."}`
+              : "Your application is under review. Finanshels will share the agreement here when the next onboarding step is ready."
+
+  const operationalLabel = operationalStatus
+    ? formatPartnerOperationalStatus(operationalStatus)
+    : null
+  const onboardingLabel = onboardingStage
+    ? formatPartnerOnboardingStage(onboardingStage)
+    : null
+  const showOnboardingPill = Boolean(
+    onboardingLabel &&
+      onboardingLabel !== operationalLabel &&
+      onboardingStage !== "activated"
+  )
+
   const editablePartnerData = partnerRecord
     ? {
         companyName: partnerRecord.companyName,
@@ -243,6 +270,22 @@ export default async function ProfilePage() {
       }
     : null
 
+  const agreementMissingFields = getMissingAgreementFields({
+    type: partnerRecord.type as "referral" | "channel",
+    companyName: partnerRecord.companyName,
+    contactName: partnerRecord.contactName,
+    email: partnerRecord.email,
+    partnerAddress: partnerRecord.partnerAddress,
+    emirateIdPassport: partnerRecord.emirateIdPassport,
+    tradeLicense: partnerRecord.tradeLicense,
+    beneficiaryName: partnerRecord.beneficiaryName,
+    bankName: partnerRecord.bankName,
+    bankCountry: partnerRecord.bankCountry,
+    accountNoIban: partnerRecord.accountNoIban,
+    swiftBicCode: partnerRecord.swiftBicCode,
+    contractSentAt: partnerRecord.contractSentAt,
+  })
+
   return (
     <div className="space-y-8">
       <div>
@@ -258,7 +301,7 @@ export default async function ProfilePage() {
             <div>
               <h2 className="font-heading text-3xl font-semibold text-white">{fullName}</h2>
               <p className="mt-1 text-sm text-slate-400">
-                {user?.emailAddresses[0]?.emailAddress || "No email available"}
+                {user?.email || "No email available"}
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="tag-pill">
@@ -268,13 +311,13 @@ export default async function ProfilePage() {
                 <StatusBadge status={partnerRecord.status} />
                 {operationalStatus && (
                   <LifecyclePill
-                    label={formatPartnerOperationalStatus(operationalStatus)}
+                    label={operationalLabel!}
                     tone={operationalTone}
                   />
                 )}
-                {onboardingStage && (
+                {showOnboardingPill && (
                   <LifecyclePill
-                    label={formatPartnerOnboardingStage(onboardingStage)}
+                    label={onboardingLabel!}
                     tone={onboardingTone}
                   />
                 )}
@@ -286,7 +329,7 @@ export default async function ProfilePage() {
             <FieldRow
               icon={Mail}
               label="Email"
-              value={user?.emailAddresses[0]?.emailAddress}
+              value={user?.email}
             />
             <FieldRow
               icon={Hash}
@@ -297,30 +340,15 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      {partnerRecord.status !== "approved" ? (
-        <section className="surface-card rounded-[1.75rem] border border-indigo-400/16 bg-indigo-500/8 px-5 py-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Onboarding status</p>
-          <p className="mt-2 text-sm leading-6 text-slate-200">
-            Your partner account is {partnerRecord.status}. Complete your CRM profile here and wait for admin approval before leads, clients, service requests, and commissions unlock.
-          </p>
-        </section>
-      ) : null}
-
       <>
         <>
-          <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <SectionHeader
-              icon={CheckCircle2}
-              title="Partner Onboarding"
-              description="Contract, onboarding, and activation are tracked here."
-            />
-
-            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
-                  Contract status
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+          <section className="surface-card rounded-[2rem] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+                    Onboarding
+                  </p>
                   <LifecyclePill
                     label={partnerRecord.contractStatus.replaceAll("_", " ")}
                     tone={
@@ -331,23 +359,19 @@ export default async function ProfilePage() {
                           : "amber"
                     }
                   />
+                  {onboardingStage && (
+                    <LifecyclePill
+                      label={formatPartnerOnboardingStage(onboardingStage)}
+                      tone={onboardingTone}
+                    />
+                  )}
                 </div>
-
-                <div className="mt-4 space-y-2 text-sm text-slate-300">
-                  <p>
-                    Contract delivery:
-                    {" "}
-                    {partnerRecord.contractSentAt ? (
-                      <span className="text-white">
-                        Sent on {formatDate(partnerRecord.contractSentAt)}
-                      </span>
-                    ) : (
-                      <span className="text-slate-500">Waiting for Finanshels to send it</span>
-                    )}
-                  </p>
-                  <p>
-                    Agreement:
-                    {" "}
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+                  {onboardingBannerMessage}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400">
+                  <span>
+                    Agreement:{" "}
                     {partnerRecord.agreementUrl ? (
                       <a
                         href={partnerRecord.agreementUrl}
@@ -355,132 +379,61 @@ export default async function ProfilePage() {
                         rel="noreferrer"
                         className="text-indigo-300 hover:text-indigo-200"
                       >
-                        Download agreement
+                        View prefilled agreement
                       </a>
                     ) : (
-                      <span className="text-slate-500">Not available yet</span>
+                      "Not shared yet"
                     )}
-                  </p>
-                  <p>
-                    Signed on:
-                    {" "}
-                    <span className="text-white">
-                      {formatDate(partnerRecord.contractSignedAt) ?? "Not signed yet"}
-                    </span>
-                  </p>
-                  <p>
-                    Signed by:
-                    {" "}
-                    <span className="text-white">
-                      {partnerRecord.contractSignedName ?? "Pending signature"}
-                    </span>
-                  </p>
-                  <p>
-                    Signature method:
-                    {" "}
-                    <span className="text-white capitalize">
-                      {partnerRecord.contractSignatureType ?? "Not captured"}
-                    </span>
-                  </p>
-                  {partnerRecord.contractSignedAt && (
-                    <p>
-                      Signed PDF:
-                      {" "}
-                      <a
-                        href="/api/profile/contract/download"
-                        className="text-indigo-300 hover:text-indigo-200"
-                      >
-                        Download signed PDF
-                      </a>
-                    </p>
-                  )}
-                </div>
-
-                {partnerRecord.contractStatus === "sent" && !partnerRecord.contractSignedAt && (
-                  <form
-                    action="/api/profile/contract"
-                    method="POST"
-                    encType="multipart/form-data"
-                    className="mt-5 space-y-3"
-                  >
-                    <input
-                      type="text"
-                      name="signedName"
-                      defaultValue={partnerRecord.contactName}
-                      placeholder="Full legal name"
-                      required
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                    />
-                    <input
-                      type="text"
-                      name="signedDesignation"
-                      defaultValue={partnerRecord.designation ?? ""}
-                      placeholder="Designation"
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-slate-500"
-                    />
-                    <select
-                      name="signatureType"
-                      defaultValue="typed"
-                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white"
+                  </span>
+                  <span>
+                    Sent: {partnerRecord.contractSentAt ? formatDate(partnerRecord.contractSentAt) : "Pending"}
+                  </span>
+                  <span>
+                    Signed: {partnerRecord.contractSignedAt ? formatDate(partnerRecord.contractSignedAt) : "Not signed"}
+                  </span>
+                  {partnerRecord.contractSignedAt ? (
+                    <a
+                      href="/api/profile/contract/download"
+                      className="text-indigo-300 hover:text-indigo-200"
                     >
-                      <option value="typed">Digital signature by typed name</option>
-                      <option value="upload">Upload signature image</option>
-                    </select>
-                    <input
-                      type="file"
-                      name="signatureFile"
-                      accept="image/png,image/jpeg,image/webp"
-                      className="block w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-500/15 file:px-3 file:py-2 file:text-indigo-200"
-                    />
-                    <label className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-                      <input
-                        type="checkbox"
-                        name="confirm"
-                        value="yes"
-                        required
-                        className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5"
-                      />
-                      <span>
-                        I confirm that I have reviewed the agreement and I am signing on behalf
-                        of this partner account.
-                      </span>
-                    </label>
-                    <button type="submit" className="primary-button w-full justify-center">
-                      Sign agreement
-                    </button>
-                  </form>
-                )}
-
-                {partnerRecord.contractSignatureType === "upload" &&
-                  partnerRecord.contractSignatureDataUrl && (
-                    <div className="mt-5 rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
-                        Uploaded signature
-                      </p>
-                      <Image
-                        src={partnerRecord.contractSignatureDataUrl}
-                        alt="Uploaded signature"
-                        width={160}
-                        height={80}
-                        unoptimized
-                        className="mt-3 max-h-24 rounded-lg bg-white p-2"
-                      />
-                    </div>
-                  )}
-              </div>
-
-              <div className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
-                  What happens next
-                </p>
-                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                  <p>1. Finanshels shares the agreement inside the partner portal.</p>
-                  <p>2. You download and review the agreement document.</p>
-                  <p>3. You complete the in-portal signature using typed consent or an uploaded signature image.</p>
-                  <p>4. The partnership team completes onboarding and your first qualified lead activates the account.</p>
+                      Download signed PDF
+                    </a>
+                  ) : null}
                 </div>
+                {partnerRecord.agreementUrl ? (
+                  <p className="mt-3 text-sm text-slate-400">
+                    The agreement link opens a prefilled PDF generated from your profile details.
+                    Update your profile first if any company or bank particulars are incorrect.
+                  </p>
+                ) : null}
               </div>
             </div>
+
+            {partnerRecord.contractStatus === "sent" &&
+              !partnerRecord.contractSignedAt &&
+              agreementMissingFields.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-4 text-sm text-amber-100">
+                  <p className="font-medium text-amber-200">
+                    Complete these profile details before you can sign the agreement:
+                  </p>
+                  <p className="mt-2 leading-6 text-amber-100/90">
+                    {agreementMissingFields.map((field) => field.label).join(", ")}.
+                  </p>
+                  <p className="mt-2 text-amber-100/80">
+                    Update the Secondary Information and Financial Information sections below,
+                    then reopen the agreement preview and sign it here.
+                  </p>
+                </div>
+              )}
+
+            {partnerRecord.contractStatus === "sent" &&
+              !partnerRecord.contractSignedAt &&
+              agreementMissingFields.length === 0 && (
+                <ContractSigningForm
+                  contactName={partnerRecord.contactName}
+                  designation={partnerRecord.designation}
+                />
+              )}
           </section>
 
           {/* Primary Information */}

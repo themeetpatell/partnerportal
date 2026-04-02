@@ -70,7 +70,7 @@ export const activityTimelines = pgTable("activity_timelines", {
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   entityType: text("entity_type").notNull(),
   entityId: uuid("entity_id").notNull(),
-  actorId: text("actor_id").notNull(), // clerk_user_id
+  actorId: text("actor_id").notNull(), // auth user id
   actorName: text("actor_name").notNull(),
   action: text("action").notNull(), // e.g. "status_changed", "created", "note_added"
   note: text("note"),
@@ -82,7 +82,7 @@ export const activityTimelines = pgTable("activity_timelines", {
 export const savedFilters = pgTable("saved_filters", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  userId: text("user_id").notNull(), // clerk_user_id
+  userId: text("user_id").notNull(), // auth user id
   name: text("name").notNull(),
   context: text("context").notNull(), // analytics | leads | partners | services | invoices
   filters: text("filters").notNull().default("{}"), // JSON serialised filter state

@@ -1,5 +1,13 @@
 import { currentUser } from "@repo/auth/server"
-import { db, commissions, leads, partners, serviceRequests, services } from "@repo/db"
+import {
+  db,
+  commissions,
+  leads,
+  partnerClients,
+  partners,
+  serviceRequests,
+  services,
+} from "@repo/db"
 import { and, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowRight, CircleDollarSign, ClipboardList, Plus, Users, Wallet } from "lucide-react"
@@ -9,11 +17,10 @@ import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/databas
 
 const leadStatusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  in_review: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
   qualified: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-100",
   proposal_sent: "border border-zinc-600/20 bg-zinc-600/10 text-zinc-100",
-  converted: "border border-white/20 bg-white/10 text-white",
-  rejected: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
+  deal_won: "border border-white/20 bg-white/10 text-white",
+  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
 }
 
 const requestStatusStyles: Record<string, string> = {
@@ -45,6 +52,7 @@ export default async function DashboardPage() {
   let partnerRecord: typeof partners.$inferSelect | null = null
 
   let totalClients = 0
+  let unlinkedClientActivity = 0
   let activeLeads = 0
   let activeRequests = 0
   let totalEarned = 0
@@ -69,7 +77,31 @@ export default async function DashboardPage() {
 
       if (partner) {
         partnerRecord = partner
-        const [leadRows, requestRows, paidResult, pendingResult] = await Promise.all([
+        const [savedClientRows, leadRows, requestRows, paidResult, pendingResult] =
+          await Promise.all([
+            db
+              .select({
+                id: partnerClients.id,
+                companyName: partnerClients.companyName,
+                contactName: partnerClients.contactName,
+                email: partnerClients.email,
+                phone: partnerClients.phone,
+                city: partnerClients.city,
+                country: partnerClients.country,
+                status: partnerClients.status,
+                renewalDate: partnerClients.renewalDate,
+                notes: partnerClients.notes,
+                createdAt: partnerClients.createdAt,
+                updatedAt: partnerClients.updatedAt,
+              })
+              .from(partnerClients)
+              .where(
+                and(
+                  eq(partnerClients.partnerId, partner.id),
+                  isNull(partnerClients.deletedAt)
+                )
+              )
+              .orderBy(desc(partnerClients.createdAt)),
           db
             .select({
               customerName: leads.customerName,
@@ -108,19 +140,28 @@ export default async function DashboardPage() {
                 notInArray(commissions.status, ["paid", "disputed"]),
               ),
             ),
-        ])
+          ])
 
         activeLeads = leadRows.filter(
-          (lead) => !["converted", "rejected"].includes(lead.status),
+          (lead) => !["deal_won", "deal_lost"].includes(lead.status),
         ).length
         activeRequests = requestRows.filter(
           (request) => !["completed", "cancelled"].includes(request.status),
         ).length
         totalEarned = Number(paidResult[0]?.total ?? 0)
         pendingPayout = Number(pendingResult[0]?.total ?? 0)
+        const clientRecords = buildClientRecords(
+          savedClientRows,
+          leadRows,
+          requestRows
+        )
+
         recentRequests = requestRows.slice(0, 5)
-        recentClients = buildClientRecords(leadRows, requestRows).slice(0, 5)
-        totalClients = buildClientRecords(leadRows, requestRows).length
+        recentClients = clientRecords.slice(0, 5)
+        totalClients = clientRecords.filter((client) => client.source === "saved").length
+        unlinkedClientActivity = clientRecords.filter(
+          (client) => client.source === "activity_only"
+        ).length
       }
     }
   } catch (error) {
@@ -145,8 +186,12 @@ export default async function DashboardPage() {
       icon: Users,
       detail:
         totalClients > 0
-          ? `${activeLeads} active lead ${activeLeads === 1 ? "opportunity" : "opportunities"}`
-          : "No client activity yet",
+          ? unlinkedClientActivity > 0
+            ? `${unlinkedClientActivity} unlinked ${unlinkedClientActivity === 1 ? "record" : "records"} still need saving`
+            : "Client book is fully linked"
+          : unlinkedClientActivity > 0
+            ? `${unlinkedClientActivity} activity-only ${unlinkedClientActivity === 1 ? "record" : "records"}`
+            : "No client activity yet",
       href: "/dashboard/clients",
     },
     {

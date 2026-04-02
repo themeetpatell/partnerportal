@@ -8,6 +8,7 @@ import {
   ClipboardList,
   DollarSign,
   LayoutDashboard,
+  Lock,
   LogOut,
   Menu,
   Plus,
@@ -36,6 +37,8 @@ interface SidebarNavProps {
   userInitials: string
   hasWorkspaceAccess: boolean
   partnerStatus: string
+  contractStatus: string
+  isOnboarded: boolean
 }
 
 function NavLink({
@@ -72,6 +75,22 @@ function NavLink({
   )
 }
 
+function DisabledNavLink({
+  item,
+}: {
+  item: { label: string; href: string; icon: React.ComponentType<{ className?: string }> }
+}) {
+  return (
+    <div className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-white/6 bg-white/[0.025] px-3 py-2.5 text-sm font-medium text-zinc-600">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-zinc-700">
+        <item.icon className="h-4 w-4" />
+      </div>
+      <span className="flex-1">{item.label}</span>
+      <Lock className="h-3.5 w-3.5 text-zinc-700" />
+    </div>
+  )
+}
+
 function SidebarContent({
   pathname,
   userName,
@@ -79,6 +98,8 @@ function SidebarContent({
   userInitials,
   hasWorkspaceAccess,
   partnerStatus,
+  contractStatus,
+  isOnboarded,
   onNavClick,
 }: {
   pathname: string
@@ -87,6 +108,8 @@ function SidebarContent({
   userInitials: string
   hasWorkspaceAccess: boolean
   partnerStatus: string
+  contractStatus: string
+  isOnboarded: boolean
   onNavClick?: () => void
 }) {
   const { signOut } = useAuthClient()
@@ -97,7 +120,28 @@ function SidebarContent({
         ? "Needs review"
         : partnerStatus === "suspended"
           ? "Suspended"
-          : "Active"
+          : isOnboarded
+            ? "Workspace unlocked"
+            : contractStatus === "signed"
+              ? "Awaiting final acceptance"
+              : contractStatus === "sent"
+                ? "Signature required"
+                : "Contract pending"
+
+  const lockedHint =
+    partnerStatus === "pending"
+      ? "Tabs unlock after review approval."
+      : partnerStatus === "rejected"
+        ? "Tabs stay locked until the application is cleared."
+        : partnerStatus === "suspended"
+          ? "Tabs stay locked while access is suspended."
+          : isOnboarded
+            ? "Workspace is unlocked."
+            : contractStatus === "signed"
+              ? "Waiting for Finanshels to accept the signed contract."
+              : contractStatus === "sent"
+                ? "Sign the contract to continue."
+                : "Waiting for Finanshels to send the contract."
 
   return (
     <div className="flex h-full flex-col">
@@ -116,13 +160,13 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-        {hasWorkspaceAccess ? (
-          <div>
-            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Revenue
-            </p>
-            <div className="mt-3 space-y-1.5">
-              {primaryItems.map((item) => (
+        <div>
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+            Revenue
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {primaryItems.map((item) =>
+              hasWorkspaceAccess ? (
                 <NavLink
                   key={item.href}
                   item={item}
@@ -133,20 +177,20 @@ function SidebarContent({
                   }
                   onClick={onNavClick}
                 />
-              ))}
+              ) : (
+                <DisabledNavLink key={item.href} item={item} />
+              )
+            )}
+          </div>
+          {!hasWorkspaceAccess ? (
+            <div className="mt-3 rounded-xl border border-indigo-400/12 bg-indigo-500/6 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200">
+                {statusLabel}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">{lockedHint}</p>
             </div>
-          </div>
-        ) : (
-          <div className="rounded-[1.35rem] border border-indigo-400/16 bg-indigo-500/8 px-4 py-4">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200">
-              Onboarding
-            </p>
-            <p className="mt-2 text-sm font-semibold text-white">{statusLabel}</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">
-              Complete your profile and wait for admin approval before leads, clients, requests, and commissions unlock.
-            </p>
-          </div>
-        )}
+          ) : null}
+        </div>
 
         <div>
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
@@ -196,6 +240,8 @@ export function SidebarNav({
   userInitials,
   hasWorkspaceAccess,
   partnerStatus,
+  contractStatus,
+  isOnboarded,
 }: SidebarNavProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -211,6 +257,8 @@ export function SidebarNav({
             userInitials={userInitials}
             hasWorkspaceAccess={hasWorkspaceAccess}
             partnerStatus={partnerStatus}
+            contractStatus={contractStatus}
+            isOnboarded={isOnboarded}
           />
         </div>
       </aside>
@@ -264,6 +312,8 @@ export function SidebarNav({
             userInitials={userInitials}
             hasWorkspaceAccess={hasWorkspaceAccess}
             partnerStatus={partnerStatus}
+            contractStatus={contractStatus}
+            isOnboarded={isOnboarded}
             onNavClick={() => setMobileOpen(false)}
           />
         </div>

@@ -180,8 +180,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "clerk_user_id": {
-          "name": "clerk_user_id",
+        "auth_user_id": {
+          "name": "auth_user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -461,11 +461,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "partners_clerk_user_id_unique": {
-          "name": "partners_clerk_user_id_unique",
+        "partners_auth_user_id_unique": {
+          "name": "partners_auth_user_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "clerk_user_id"
+            "auth_user_id"
           ]
         }
       },
@@ -490,8 +490,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "clerk_user_id": {
-          "name": "clerk_user_id",
+        "auth_user_id": {
+          "name": "auth_user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true

@@ -1,5 +1,6 @@
 export * from "./tenants"
 export * from "./partners"
+export * from "./partner-clients"
 export * from "./leads"
 export * from "./services"
 export * from "./commissions"

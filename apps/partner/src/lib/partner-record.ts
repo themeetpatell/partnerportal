@@ -12,7 +12,21 @@ export async function getPartnerRecordByAuthUserId(userId: string) {
 }
 
 export function hasApprovedWorkspaceAccess(
-  partner: { status: string } | null | undefined,
+  partner: { status: string; onboardedAt?: Date | string | null } | null | undefined,
 ) {
-  return partner?.status === "approved"
+  return partner?.status === "approved" && Boolean(partner.onboardedAt)
+}
+
+export async function getPartnerPostAuthRoute(userId: string) {
+  const partner = await getPartnerRecordByAuthUserId(userId)
+
+  if (!partner) {
+    return "/onboarding"
+  }
+
+  if (hasApprovedWorkspaceAccess(partner)) {
+    return "/dashboard"
+  }
+
+  return "/dashboard/profile"
 }

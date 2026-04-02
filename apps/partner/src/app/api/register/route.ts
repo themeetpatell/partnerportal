@@ -2,7 +2,7 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
-import { partners } from "@repo/db"
+import { partners, tenants } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { sendPartnerApplicationReceivedEmail } from "@repo/notifications"
 import { rateLimit, getClientIp } from "@repo/auth"
@@ -13,6 +13,34 @@ function getTenantId(): string {
     throw new Error("DEFAULT_TENANT_ID environment variable is required")
   }
   return id
+}
+
+async function ensureDefaultTenantExists(tenantId: string) {
+  const [existingTenant] = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.id, tenantId))
+    .limit(1)
+
+  if (existingTenant) {
+    return
+  }
+
+  const defaultTenantSlug =
+    process.env.DEFAULT_TENANT_SLUG?.trim() || "finanshels"
+  const defaultTenantName =
+    process.env.DEFAULT_TENANT_NAME?.trim() || "Finanshels"
+
+  await db
+    .insert(tenants)
+    .values({
+      id: tenantId,
+      name: defaultTenantName,
+      slug: defaultTenantSlug,
+      plan: "enterprise",
+      isActive: true,
+    })
+    .onConflictDoNothing()
 }
 
 const registerSchema = z.object({
@@ -79,12 +107,15 @@ export async function POST(request: NextRequest) {
     }
 
     const { companyName, contactName, email, phone, type } = parsed.data
+    const tenantId = getTenantId()
+
+    await ensureDefaultTenantExists(tenantId)
 
     // Insert partner record
     const [newPartner] = await db
       .insert(partners)
       .values({
-        tenantId: getTenantId(),
+        tenantId,
         authUserId: userId,
         type,
         companyName,
@@ -119,6 +150,22 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error("[POST /api/register] Error:", error)
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "23503"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Partner onboarding is blocked because the default tenant is not initialized correctly.",
+        },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json(
       { error: "An unexpected error occurred. Please try again." },
       { status: 500 }
