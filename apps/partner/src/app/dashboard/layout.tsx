@@ -1,6 +1,8 @@
+import { Suspense } from "react"
 import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
+import { PageSkeleton } from "@/components/page-skeleton"
 import {
   getPartnerRecordByAuthUserId,
   hasApprovedWorkspaceAccess,
@@ -25,10 +27,10 @@ export default async function DashboardLayout({
 
   const userName =
     [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-    user.emailAddresses[0]?.emailAddress ||
+    user.email ||
     "Partner"
 
-  const userEmail = user.emailAddresses[0]?.emailAddress || ""
+  const userEmail = user.email || ""
 
   const userInitials =
     [user.firstName?.[0], user.lastName?.[0]]
@@ -47,11 +49,15 @@ export default async function DashboardLayout({
           userInitials={userInitials}
           hasWorkspaceAccess={hasApprovedWorkspaceAccess(partnerRecord)}
           partnerStatus={partnerRecord.status}
+          contractStatus={partnerRecord.contractStatus}
+          isOnboarded={Boolean(partnerRecord.onboardedAt)}
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="surface-card-strong flex-1 rounded-[2rem] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-            {children}
+            <Suspense fallback={<PageSkeleton />}>
+              {children}
+            </Suspense>
           </div>
         </main>
       </div>
