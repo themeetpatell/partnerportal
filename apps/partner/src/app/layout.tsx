@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   },
   description:
     "The official partner portal for Finanshels — manage clients, commissions, and service requests.",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   robots: {
     index: false,
     follow: false,
