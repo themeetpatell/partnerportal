@@ -29,7 +29,14 @@ export async function GET() {
     .where(eq(teamMembers.tenantId, tenantId))
     .orderBy(teamMembers.createdAt)
 
-  return NextResponse.json(rows)
+  return NextResponse.json(
+    rows,
+    {
+      headers: {
+        "Cache-Control": "private, s-maxage=30, stale-while-revalidate=60",
+      },
+    }
+  )
 }
 
 export async function POST(req: NextRequest) {

@@ -50,7 +50,14 @@ export async function GET() {
       .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
       .orderBy(serviceRequests.createdAt)
 
-    return NextResponse.json({ serviceRequests: rows })
+    return NextResponse.json(
+      { serviceRequests: rows },
+      {
+        headers: {
+          "Cache-Control": "private, s-maxage=30, stale-while-revalidate=60",
+        },
+      }
+    )
   } catch (error) {
     console.error("[GET /api/service-requests] Error:", error)
     return NextResponse.json(

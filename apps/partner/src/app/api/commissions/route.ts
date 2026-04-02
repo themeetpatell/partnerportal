@@ -21,5 +21,12 @@ export async function GET() {
     .where(eq(commissions.partnerId, partner.id))
     .orderBy(commissions.createdAt)
 
-  return NextResponse.json({ commissions: rows })
+  return NextResponse.json(
+    { commissions: rows },
+    {
+      headers: {
+        "Cache-Control": "private, s-maxage=30, stale-while-revalidate=60",
+      },
+    }
+  )
 }
