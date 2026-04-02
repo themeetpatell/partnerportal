@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
+import { PartnerActionButton, PartnerRejectForm, PartnerSuspendForm } from "@/components/partner-action-buttons"
 import {
   db,
   derivePartnerOnboardingStage,
@@ -337,12 +338,7 @@ export default async function PartnerDetailPage({
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {partner.status === "pending" && (
           <>
-            <form
-              action={`/api/partners/${partner.id}/lifecycle`}
-              method="POST"
-              className="surface-card rounded-2xl p-5"
-            >
-              <input type="hidden" name="action" value="approve" />
+            <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Approve application</h2>
@@ -353,20 +349,18 @@ export default async function PartnerDetailPage({
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-green-400" />
               </div>
-              <button
-                type="submit"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500"
-              >
-                <CheckCircle className="h-4 w-4" />
-                Approve application
-              </button>
-            </form>
+              <PartnerActionButton
+                partnerId={partner.id}
+                action="approve"
+                endpoint={`/api/partners/${partner.id}/lifecycle`}
+                label="Approve application"
+                variant="green"
+                icon="approve"
+                extraBody={{ action: "approve" }}
+              />
+            </div>
 
-            <form
-              action={`/api/partners/${partner.id}/reject`}
-              method="POST"
-              className="surface-card rounded-2xl p-5"
-            >
+            <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Reject application</h2>
@@ -376,36 +370,14 @@ export default async function PartnerDetailPage({
                 </div>
                 <XCircle className="mt-0.5 h-5 w-5 text-red-400" />
               </div>
-              <label className="mt-4 block">
-                <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Optional rejection reason
-                </span>
-                <textarea
-                  name="reason"
-                  rows={3}
-                  placeholder="Explain why the application cannot be approved right now."
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
-                />
-              </label>
-              <button
-                type="submit"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
-              >
-                <XCircle className="h-4 w-4" />
-                Reject application
-              </button>
-            </form>
+              <PartnerRejectForm partnerId={partner.id} />
+            </div>
           </>
         )}
 
         {partner.status === "approved" && (
           <>
-            <form
-              action={`/api/partners/${partner.id}/lifecycle`}
-              method="POST"
-              className="surface-card rounded-2xl p-5"
-            >
-              <input type="hidden" name="action" value="send_contract" />
+            <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">
@@ -421,23 +393,19 @@ export default async function PartnerDetailPage({
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />
               </div>
-              <button
-                type="submit"
-                disabled={partner.contractStatus === "signed" || Boolean(partner.onboardedAt)}
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600"
-              >
-                <CheckCircle className="h-4 w-4" />
-                {partner.contractStatus === "sent" ? "Resend contract" : "Send contract"}
-              </button>
-            </form>
+              <PartnerActionButton
+                partnerId={partner.id}
+                action="send_contract"
+                endpoint={`/api/partners/${partner.id}/lifecycle`}
+                label={partner.contractStatus === "sent" ? "Resend contract" : "Send contract"}
+                variant="slate"
+                icon="approve"
+                extraBody={{ action: "send_contract" }}
+              />
+            </div>
 
             {partner.contractSignedAt && !partner.onboardedAt && (
-              <form
-                action={`/api/partners/${partner.id}/lifecycle`}
-                method="POST"
-                className="surface-card rounded-2xl p-5"
-              >
-                <input type="hidden" name="action" value="mark_onboarded" />
+              <div className="surface-card rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-white font-semibold">Accept signed contract</h2>
@@ -447,22 +415,19 @@ export default async function PartnerDetailPage({
                   </div>
                   <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-300" />
                 </div>
-                <button
-                  type="submit"
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Accept signed contract
-                </button>
-              </form>
+                <PartnerActionButton
+                  partnerId={partner.id}
+                  action="mark_onboarded"
+                  endpoint={`/api/partners/${partner.id}/lifecycle`}
+                  label="Accept signed contract"
+                  variant="green"
+                  icon="approve"
+                  extraBody={{ action: "mark_onboarded" }}
+                />
+              </div>
             )}
 
-            <form
-              action={`/api/partners/${partner.id}/lifecycle`}
-              method="POST"
-              className="surface-card rounded-2xl p-5"
-            >
-              <input type="hidden" name="action" value="suspend" />
+            <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Suspend workspace access</h2>
@@ -472,35 +437,13 @@ export default async function PartnerDetailPage({
                 </div>
                 <PauseCircle className="mt-0.5 h-5 w-5 text-slate-400" />
               </div>
-              <label className="mt-4 block max-w-2xl">
-                <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                  Optional suspension reason
-                </span>
-                <textarea
-                  name="reason"
-                  rows={3}
-                  placeholder="Capture why access is being paused."
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
-                />
-              </label>
-              <button
-                type="submit"
-                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
-              >
-                <PauseCircle className="h-4 w-4" />
-                Suspend access
-              </button>
-            </form>
+              <PartnerSuspendForm partnerId={partner.id} />
+            </div>
           </>
         )}
 
         {(partner.status === "rejected" || partner.status === "suspended") && (
-          <form
-            action={`/api/partners/${partner.id}/lifecycle`}
-            method="POST"
-            className="surface-card rounded-2xl p-5 xl:col-span-2"
-          >
-            <input type="hidden" name="action" value="reactivate" />
+          <div className="surface-card rounded-2xl p-5 xl:col-span-2">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-white font-semibold">Restore workspace access</h2>
@@ -511,14 +454,16 @@ export default async function PartnerDetailPage({
               </div>
               <RotateCcw className="mt-0.5 h-5 w-5 text-indigo-300" />
             </div>
-            <button
-              type="submit"
-              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reactivate access
-            </button>
-          </form>
+            <PartnerActionButton
+              partnerId={partner.id}
+              action="reactivate"
+              endpoint={`/api/partners/${partner.id}/lifecycle`}
+              label="Reactivate access"
+              variant="slate"
+              icon="reactivate"
+              extraBody={{ action: "reactivate" }}
+            />
+          </div>
         )}
       </div>
 
