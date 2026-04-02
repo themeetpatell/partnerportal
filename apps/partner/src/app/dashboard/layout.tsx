@@ -1,6 +1,10 @@
 import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
+import {
+  getPartnerRecordByAuthUserId,
+  hasApprovedWorkspaceAccess,
+} from "@/lib/partner-record"
 
 export default async function DashboardLayout({
   children,
@@ -11,6 +15,12 @@ export default async function DashboardLayout({
 
   if (!user) {
     redirect("/sign-in")
+  }
+
+  const partnerRecord = await getPartnerRecordByAuthUserId(user.id)
+
+  if (!partnerRecord) {
+    redirect("/onboarding")
   }
 
   const userName =
@@ -35,6 +45,8 @@ export default async function DashboardLayout({
           userName={userName}
           userEmail={userEmail}
           userInitials={userInitials}
+          hasWorkspaceAccess={hasApprovedWorkspaceAccess(partnerRecord)}
+          partnerStatus={partnerRecord.status}
         />
 
         <main className="flex min-w-0 flex-1 flex-col">

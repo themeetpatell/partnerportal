@@ -34,6 +34,8 @@ interface SidebarNavProps {
   userName: string
   userEmail: string
   userInitials: string
+  hasWorkspaceAccess: boolean
+  partnerStatus: string
 }
 
 function NavLink({
@@ -75,15 +77,27 @@ function SidebarContent({
   userName,
   userEmail,
   userInitials,
+  hasWorkspaceAccess,
+  partnerStatus,
   onNavClick,
 }: {
   pathname: string
   userName: string
   userEmail: string
   userInitials: string
+  hasWorkspaceAccess: boolean
+  partnerStatus: string
   onNavClick?: () => void
 }) {
   const { signOut } = useAuthClient()
+  const statusLabel =
+    partnerStatus === "pending"
+      ? "Pending approval"
+      : partnerStatus === "rejected"
+        ? "Needs review"
+        : partnerStatus === "suspended"
+          ? "Suspended"
+          : "Active"
 
   return (
     <div className="flex h-full flex-col">
@@ -102,25 +116,37 @@ function SidebarContent({
       </div>
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-        <div>
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-            Revenue
-          </p>
-          <div className="mt-3 space-y-1.5">
-            {primaryItems.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                active={
-                  item.href === "/dashboard"
-                    ? pathname === "/dashboard"
-                    : pathname.startsWith(item.href)
-                }
-                onClick={onNavClick}
-              />
-            ))}
+        {hasWorkspaceAccess ? (
+          <div>
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Revenue
+            </p>
+            <div className="mt-3 space-y-1.5">
+              {primaryItems.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  active={
+                    item.href === "/dashboard"
+                      ? pathname === "/dashboard"
+                      : pathname.startsWith(item.href)
+                  }
+                  onClick={onNavClick}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-[1.35rem] border border-indigo-400/16 bg-indigo-500/8 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200">
+              Onboarding
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{statusLabel}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Complete your profile and wait for admin approval before leads, clients, requests, and commissions unlock.
+            </p>
+          </div>
+        )}
 
         <div>
           <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
@@ -168,6 +194,8 @@ export function SidebarNav({
   userName,
   userEmail,
   userInitials,
+  hasWorkspaceAccess,
+  partnerStatus,
 }: SidebarNavProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -181,6 +209,8 @@ export function SidebarNav({
             userName={userName}
             userEmail={userEmail}
             userInitials={userInitials}
+            hasWorkspaceAccess={hasWorkspaceAccess}
+            partnerStatus={partnerStatus}
           />
         </div>
       </aside>
@@ -232,6 +262,8 @@ export function SidebarNav({
             userName={userName}
             userEmail={userEmail}
             userInitials={userInitials}
+            hasWorkspaceAccess={hasWorkspaceAccess}
+            partnerStatus={partnerStatus}
             onNavClick={() => setMobileOpen(false)}
           />
         </div>

@@ -74,6 +74,42 @@ function LifecycleBadge({
   )
 }
 
+function getWorkspaceAccessState(status: string) {
+  switch (status) {
+    case "approved":
+      return {
+        label: "active access",
+        tone: "emerald" as const,
+        description: "The partner can use the revenue workspace and operate normally.",
+      }
+    case "pending":
+      return {
+        label: "locked pending review",
+        tone: "amber" as const,
+        description:
+          "The account can sign in and finish onboarding, but revenue features stay locked.",
+      }
+    case "rejected":
+      return {
+        label: "access denied",
+        tone: "slate" as const,
+        description: "The application was declined and workspace access remains disabled.",
+      }
+    case "suspended":
+      return {
+        label: "access paused",
+        tone: "slate" as const,
+        description: "The partner record remains in the system, but workspace access is paused.",
+      }
+    default:
+      return {
+        label: "access unknown",
+        tone: "slate" as const,
+        description: "The workspace access state is not recognized.",
+      }
+  }
+}
+
 export default async function PartnerDetailPage({
   params,
 }: {
@@ -202,6 +238,7 @@ export default async function PartnerDetailPage({
       : onboardingStage === "yet_to_onboard"
         ? "amber"
         : "indigo"
+  const workspaceAccess = getWorkspaceAccessState(partner.status)
 
   return (
     <div className="space-y-6">
@@ -237,52 +274,131 @@ export default async function PartnerDetailPage({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 flex-wrap">
+      {/* Application / Access Actions */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {partner.status === "pending" && (
           <>
-            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+            <form
+              action={`/api/partners/${partner.id}/lifecycle`}
+              method="POST"
+              className="surface-card rounded-2xl p-5"
+            >
               <input type="hidden" name="action" value="approve" />
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-white font-semibold">Approve and activate workspace</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Marks the application as approved, unlocks partner access, and sends the
+                    activation email immediately.
+                  </p>
+                </div>
+                <CheckCircle className="mt-0.5 h-5 w-5 text-green-400" />
+              </div>
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-500"
               >
-                <CheckCircle className="w-4 h-4" />
-                Approve Partner
+                <CheckCircle className="h-4 w-4" />
+                Approve and activate
               </button>
             </form>
-            <form action={`/api/partners/${partner.id}/reject`} method="POST">
+
+            <form
+              action={`/api/partners/${partner.id}/reject`}
+              method="POST"
+              className="surface-card rounded-2xl p-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 className="text-white font-semibold">Reject application</h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Keeps the workspace locked and emails the applicant with the review outcome.
+                  </p>
+                </div>
+                <XCircle className="mt-0.5 h-5 w-5 text-red-400" />
+              </div>
+              <label className="mt-4 block">
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                  Optional rejection reason
+                </span>
+                <textarea
+                  name="reason"
+                  rows={3}
+                  placeholder="Explain why the application cannot be approved right now."
+                  className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
+                />
+              </label>
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500"
               >
-                <XCircle className="w-4 h-4" />
-                Reject Partner
+                <XCircle className="h-4 w-4" />
+                Reject application
               </button>
             </form>
           </>
         )}
+
         {partner.status === "approved" && (
-          <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+          <form
+            action={`/api/partners/${partner.id}/lifecycle`}
+            method="POST"
+            className="surface-card rounded-2xl p-5 xl:col-span-2"
+          >
             <input type="hidden" name="action" value="suspend" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-white font-semibold">Suspend workspace access</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Pauses partner access without deleting the record and sends a suspension email.
+                </p>
+              </div>
+              <PauseCircle className="mt-0.5 h-5 w-5 text-slate-400" />
+            </div>
+            <label className="mt-4 block max-w-2xl">
+              <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+                Optional suspension reason
+              </span>
+              <textarea
+                name="reason"
+                rows={3}
+                placeholder="Capture why access is being paused."
+                className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
+              />
+            </label>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600"
             >
-              <PauseCircle className="w-4 h-4" />
-              Suspend Partner
+              <PauseCircle className="h-4 w-4" />
+              Suspend access
             </button>
           </form>
         )}
+
         {(partner.status === "rejected" || partner.status === "suspended") && (
-          <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+          <form
+            action={`/api/partners/${partner.id}/lifecycle`}
+            method="POST"
+            className="surface-card rounded-2xl p-5 xl:col-span-2"
+          >
             <input type="hidden" name="action" value="reactivate" />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-white font-semibold">Restore workspace access</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Moves the partner back to approved, clears any pause state, and sends a
+                  reactivation email.
+                </p>
+              </div>
+              <RotateCcw className="mt-0.5 h-5 w-5 text-indigo-300" />
+            </div>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 bg-indigo-400 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              className="mt-4 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-400"
             >
-              <RotateCcw className="w-4 h-4" />
-              Reactivate Partner
+              <RotateCcw className="h-4 w-4" />
+              Reactivate access
             </button>
           </form>
         )}
@@ -291,11 +407,32 @@ export default async function PartnerDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="surface-card rounded-2xl p-6">
           <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            Approval status
+            Application decision
           </p>
           <div className="mt-2">
             <StatusBadge status={partner.status} />
           </div>
+          <p className="mt-3 text-sm text-slate-400">
+            {partner.status === "pending"
+              ? "Awaiting admin review before partner access can be activated."
+              : partner.status === "approved"
+                ? "Approved by the partnerships team."
+                : partner.status === "rejected"
+                  ? "Application was declined."
+                  : "Application remains on file, but access is currently paused."}
+          </p>
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+            Workspace access
+          </p>
+          <div className="mt-2">
+            <LifecycleBadge
+              label={workspaceAccess.label}
+              tone={workspaceAccess.tone}
+            />
+          </div>
+          <p className="mt-3 text-sm text-slate-400">{workspaceAccess.description}</p>
         </div>
         <div className="surface-card rounded-2xl p-6">
           <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -307,17 +444,9 @@ export default async function PartnerDetailPage({
               tone={onboardingTone}
             />
           </div>
-        </div>
-        <div className="surface-card rounded-2xl p-6">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            Automated partner status
+          <p className="mt-3 text-sm text-slate-400">
+            Tracks contract, onboarding, and operational readiness inside the workspace.
           </p>
-          <div className="mt-2">
-            <LifecycleBadge
-              label={formatPartnerOperationalStatus(operationalStatus)}
-              tone={operationalTone}
-            />
-          </div>
         </div>
       </div>
 
@@ -628,6 +757,14 @@ export default async function PartnerDetailPage({
                   <dd className="text-red-400 text-sm">
                     {partner.rejectionReason}
                   </dd>
+                </div>
+              )}
+              {partner.suspensionReason && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                    Suspension Reason
+                  </dt>
+                  <dd className="text-slate-300 text-sm">{partner.suspensionReason}</dd>
                 </div>
               )}
             </dl>

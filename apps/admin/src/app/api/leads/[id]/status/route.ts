@@ -5,25 +5,24 @@ import { eq, and } from "drizzle-orm"
 import { calculateCommission } from "@repo/commission-engine"
 import { sendLeadStatusEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
+import { updateZohoDealStage } from "@repo/zoho"
 
 const VALID_STATUSES = [
-  "submitted",
-  "in_review",
-  "qualified",
-  "proposal_sent",
-  "converted",
-  "rejected",
+  "submitted",           // Lead created by partner
+  "qualified",           // Lead qualified, deal created in Zoho CRM
+  "proposal_sent",       // Proposal sent to customer
+  "deal_won",            // Deal won in Zoho CRM
+  "deal_lost",           // Deal lost in Zoho CRM
 ] as const
 
 type LeadStatus = (typeof VALID_STATUSES)[number]
 
 const VALID_TRANSITIONS: Record<LeadStatus, LeadStatus[]> = {
-  submitted: ["in_review"],
-  in_review: ["qualified", "rejected"],
-  qualified: ["proposal_sent", "rejected"],
-  proposal_sent: ["converted", "rejected"],
-  converted: [],
-  rejected: [],
+  submitted: ["qualified"],
+  qualified: ["proposal_sent", "deal_lost"],
+  proposal_sent: ["deal_won", "deal_lost"],
+  deal_won: [],
+  deal_lost: [],
 }
 
 export async function POST(
@@ -105,11 +104,13 @@ export async function POST(
     updatedAt: new Date(),
   }
 
-  if (newStatus === "rejected" && body.reason) {
-    updatePayload.rejectionReason = body.reason
+  // Handle deal_lost status
+  if (newStatus === "deal_lost") {
+    updatePayload.rejectionReason = body.reason || "Deal lost"
   }
 
-  if (newStatus === "converted") {
+  // Handle deal_won status - mark conversion time
+  if (newStatus === "deal_won") {
     updatePayload.convertedAt = new Date()
   }
 
@@ -118,6 +119,24 @@ export async function POST(
     .set(updatePayload)
     .where(eq(leads.id, id))
     .returning()
+
+  // Sync with Zoho CRM if there's a deal ID
+  if (updatedLead?.zohoDealId) {
+    try {
+      let zohoStage = newStatus
+      if (newStatus === "deal_won") zohoStage = "Closed Won"
+      else if (newStatus === "deal_lost") zohoStage = "Closed Lost"
+      else if (newStatus === "proposal_sent") zohoStage = "Proposal/Quotation"
+      else if (newStatus === "qualified") zohoStage = "Qualification"
+
+      const syncSuccess = await updateZohoDealStage(updatedLead.zohoDealId, zohoStage)
+      if (!syncSuccess) {
+        console.warn(`Failed to sync lead status to Zoho deal ${updatedLead.zohoDealId}`)
+      }
+    } catch (err) {
+      console.error("Zoho sync error:", err)
+    }
+  }
 
   if (updatedLead) {
     try {
@@ -139,8 +158,8 @@ export async function POST(
     }
   }
 
-  // If converted: calculate and create a commission record
-  if (newStatus === "converted" && updatedLead) {
+  // If deal_won: calculate and create a commission record
+  if (newStatus === "deal_won" && updatedLead) {
     try {
       const [partner] = await db
         .select()
@@ -149,14 +168,14 @@ export async function POST(
         .limit(1)
 
       if (partner?.commissionModelId) {
-        // Count this partner's prior conversions for tiered models
+        // Count this partner's prior deal_won conversions for tiered models
         const priorConversions = await db
           .select()
           .from(leads)
           .where(eq(leads.partnerId, partner.id))
 
-        const priorConverted = priorConversions.filter(
-          (l) => l.status === "converted" && l.id !== updatedLead.id
+        const priorWon = priorConversions.filter(
+          (l) => l.status === "deal_won" && l.id !== updatedLead.id
         ).length
 
         // Default service fee for commission calculation (AED 5000 placeholder)
@@ -174,8 +193,8 @@ export async function POST(
             createdAt: new Date(),
           },
           serviceFee: defaultServiceFee,
-          partnerConversionsThisPeriod: priorConverted + 1,
-          partnerLifetimeConversions: priorConverted + 1,
+          partnerConversionsThisPeriod: priorWon + 1,
+          partnerLifetimeConversions: priorWon + 1,
         })
 
         if (commissionResult.amount > 0) {

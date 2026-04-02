@@ -2,7 +2,11 @@ import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { sendWelcomeEmail } from "@repo/notifications"
+import {
+  sendPartnerApprovedEmail,
+  sendPartnerReactivatedEmail,
+  sendPartnerSuspendedEmail,
+} from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 
@@ -57,6 +61,11 @@ export async function POST(
   const { id } = await params
   const form = await request.formData()
   const action = form.get("action")
+  const reasonField = form.get("reason")
+  const reason =
+    typeof reasonField === "string" && reasonField.trim().length > 0
+      ? reasonField.trim()
+      : null
 
   if (typeof action !== "string") {
     return NextResponse.json({ error: "Missing lifecycle action" }, { status: 400 })
@@ -77,23 +86,36 @@ export async function POST(
     updatedAt: now,
   }
   let note = ""
-  let shouldSendWelcome = false
+  let emailAction: "approved" | "reactivated" | "suspended" | null = null
+  let logAction = "partner.lifecycle.updated"
+  let logMetadata: Record<string, string> | undefined
 
   switch (action as LifecycleAction) {
     case "approve":
       updates.status = "approved"
       updates.rejectionReason = null
-      note = "Partner approved."
-      shouldSendWelcome = true
+      updates.suspensionReason = null
+      updates.activationDate = partner.activationDate ?? now
+      note = "Partner approved and workspace activated."
+      emailAction = "approved"
+      logAction = "partner.approved"
       break
     case "suspend":
       updates.status = "suspended"
-      note = "Partner suspended."
+      updates.suspensionReason = reason
+      note = "Partner suspended and workspace access paused."
+      emailAction = "suspended"
+      logAction = "partner.suspended"
+      logMetadata = reason ? { reason } : undefined
       break
     case "reactivate":
       updates.status = "approved"
       updates.rejectionReason = null
-      note = "Partner reactivated."
+      updates.suspensionReason = null
+      updates.activationDate = partner.activationDate ?? now
+      note = "Partner reactivated and workspace access restored."
+      emailAction = "reactivated"
+      logAction = "partner.reactivated"
       break
     case "send_contract": {
       if (partner.contractStatus === "signed") {
@@ -106,12 +128,14 @@ export async function POST(
       updates.contractSentAt = now
       updates.contractStatus = "sent"
       note = "Contract shared for in-portal signing."
+      logAction = "partner.contract.sent"
       break
     }
     case "mark_meeting_done":
       updates.meetingCompletedAt = now
       updates.lastMetOn = now
       note = "Partner kickoff or onboarding meeting completed."
+      logAction = "partner.meeting.completed"
       break
     case "mark_onboarded":
       if (!partner.contractSignedAt) {
@@ -122,10 +146,12 @@ export async function POST(
       }
       updates.onboardedAt = now
       note = "Partner marked as onboarded."
+      logAction = "partner.onboarded"
       break
     case "start_nurturing":
       updates.nurturingStartedAt = now
       note = "Partner moved into nurturing."
+      logAction = "partner.nurturing.started"
       break
     default:
       return NextResponse.json({ error: "Unsupported lifecycle action." }, { status: 400 })
@@ -143,12 +169,33 @@ export async function POST(
     entityId: partner.id,
     actorId: userId,
     actorName,
-    action: "updated",
+    action: logAction,
     note,
+    metadata: logMetadata,
   })
 
-  if (shouldSendWelcome) {
-    await sendWelcomeEmail(updated.email, updated.contactName)
+  if (emailAction === "approved") {
+    await sendPartnerApprovedEmail(
+      updated.email,
+      updated.contactName,
+      updated.companyName,
+    )
+  }
+
+  if (emailAction === "reactivated") {
+    await sendPartnerReactivatedEmail(
+      updated.email,
+      updated.contactName,
+      updated.companyName,
+    )
+  }
+
+  if (emailAction === "suspended") {
+    await sendPartnerSuspendedEmail(
+      updated.email,
+      updated.contactName,
+      updated.suspensionReason,
+    )
   }
 
   return redirectToPartner(request, id)

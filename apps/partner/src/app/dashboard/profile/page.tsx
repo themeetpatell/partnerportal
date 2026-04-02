@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@repo/auth/server"
 import Image from "next/image"
+import { redirect } from "next/navigation"
 import {
   db,
   derivePartnerOnboardingStage,
@@ -17,7 +18,6 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
-  Clock,
   CreditCard,
   FileText,
   Globe,
@@ -152,6 +152,10 @@ export default async function ProfilePage() {
         .then((rows) => rows[0] ?? null)
     : null
 
+  if (!partnerRecord) {
+    redirect("/onboarding")
+  }
+
   const partnerLeads = partnerRecord
     ? await db
         .select({
@@ -259,9 +263,9 @@ export default async function ProfilePage() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <span className="tag-pill">
                   <BadgeCheck className="h-4 w-4 text-white" />
-                  Verified partner identity
+                  Authenticated account
                 </span>
-                {partnerRecord && <StatusBadge status={partnerRecord.status} />}
+                <StatusBadge status={partnerRecord.status} />
                 {operationalStatus && (
                   <LifecyclePill
                     label={formatPartnerOperationalStatus(operationalStatus)}
@@ -293,7 +297,16 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      {partnerRecord ? (
+      {partnerRecord.status !== "approved" ? (
+        <section className="surface-card rounded-[1.75rem] border border-indigo-400/16 bg-indigo-500/8 px-5 py-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Onboarding status</p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">
+            Your partner account is {partnerRecord.status}. Complete your CRM profile here and wait for admin approval before leads, clients, service requests, and commissions unlock.
+          </p>
+        </section>
+      ) : null}
+
+      <>
         <>
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
             <SectionHeader
@@ -796,18 +809,7 @@ export default async function ProfilePage() {
             </section>
           )}
         </>
-      ) : (
-        /* No partner record yet */
-        <section className="empty-state">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/8 text-slate-400">
-            <Clock className="h-6 w-6" />
-          </div>
-          <p className="text-sm font-medium text-slate-300">No partner record found</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Complete the registration flow to create your partner record.
-          </p>
-        </section>
-      )}
+      </>
     </div>
   )
 }

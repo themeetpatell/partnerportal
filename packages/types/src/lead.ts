@@ -1,12 +1,11 @@
 import { z } from "zod"
 
 export const LeadStatusSchema = z.enum([
-  "submitted",
-  "in_review",
-  "qualified",
-  "proposal_sent",
-  "converted",
-  "rejected",
+  "submitted",           // Lead created by partner
+  "qualified",           // Lead qualified, deal created in Zoho CRM
+  "proposal_sent",       // Proposal sent to customer
+  "deal_won",            // Deal won in Zoho CRM
+  "deal_lost",           // Deal lost in Zoho CRM
 ])
 export type LeadStatus = z.infer<typeof LeadStatusSchema>
 

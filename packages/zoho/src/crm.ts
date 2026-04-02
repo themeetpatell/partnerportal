@@ -153,6 +153,36 @@ export async function createZohoDeal(deal: ZohoDeal): Promise<string | null> {
   }
 }
 
+export async function fetchZohoDeal(dealId: string): Promise<ZohoDeal | null> {
+  try {
+    const token = await getZohoAccessToken()
+
+    const res = await fetch(`${ZOHO_BASE_URL}/Deals/${dealId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.error("[zoho/crm] fetchZohoDeal failed", {
+        dealId,
+        status: res.status,
+        body: text,
+      })
+      return null
+    }
+
+    const data = (await res.json()) as { data: ZohoDeal }
+    return data.data || null
+  } catch (error) {
+    console.error("[zoho/crm] fetchZohoDeal error", { dealId, error: String(error) })
+    return null
+  }
+}
+
 export async function updateZohoDealStage(
   dealId: string,
   stage: string
@@ -189,4 +219,22 @@ export async function updateZohoDealStage(
     })
     return false
   }
+}
+
+/**
+ * Map Zoho deal stage to our lead status
+ * Common Zoho CRM deal stages: Qualification, Proposal/Quotation, Negotiation, Closed Won, Closed Lost
+ */
+export function mapZohoDealStageToLeadStatus(
+  zohoStage: string
+): "submitted" | "qualified" | "proposal_sent" | "deal_won" | "deal_lost" {
+  const stage = zohoStage.toLowerCase().trim()
+
+  if (stage.includes("won")) return "deal_won"
+  if (stage.includes("lost")) return "deal_lost"
+  if (stage.includes("proposal") || stage.includes("quotation")) return "proposal_sent"
+  if (stage.includes("qualification") || stage.includes("qualified")) return "qualified"
+
+  // Default to proposal_sent for any other stage
+  return "proposal_sent"
 }

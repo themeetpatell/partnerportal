@@ -9,6 +9,7 @@ export const PUBLIC_PARTNER_ROUTES = [
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/register(.*)",
 ]
 
 export const PUBLIC_ADMIN_ROUTES = [

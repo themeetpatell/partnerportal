@@ -1,122 +1,178 @@
 import { auth } from "@repo/auth/server"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Check,
-  Sparkles,
-} from "lucide-react"
+import { ClipboardList, FileCheck2, Handshake } from "lucide-react"
 import { PartnerSignUpForm } from "@/components/auth/partner-sign-up-form"
 
-const perks = [
-  "Free to join — no upfront costs",
-  "Referral partners approved instantly",
-  "Real-time lead and commission tracking",
-  "Dedicated partner workspace",
-  "6+ service lines to refer clients for",
-  "Tiered growth from Bronze to Platinum",
+const highlights = [
+  { icon: ClipboardList, label: "Structured onboarding", sub: "Create an account, then complete the registration flow" },
+  { icon: FileCheck2, label: "Document-ready setup", sub: "Provide business details and required paperwork in one place" },
+  { icon: Handshake, label: "Built for partner operations", sub: "Use the portal to manage the relationship after approval" },
 ]
 
-export default async function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>
+}) {
   const { userId } = await auth()
+  const { type } = await searchParams
 
-  if (userId) {
+  if (type !== "referral" && type !== "channel") {
     redirect("/register")
   }
 
+  if (userId) redirect("/onboarding")
+
+  const selectedTypeLabel = type === "channel" ? "Channel Partner" : "Referral Partner"
+
   return (
-    <div className="page-wrap min-h-screen flex flex-col">
-      {/* Top bar */}
-      <div className="mx-auto w-full max-w-7xl px-5 py-5 sm:px-8">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to home
-          </Link>
-          <span className="tag-pill">Partner portal</span>
-        </div>
-      </div>
+    <div className="min-h-screen flex bg-[#080810]">
+      {/* ── Left brand panel ── */}
+      <div className="hidden lg:flex w-[54%] relative overflow-hidden flex-col p-14 xl:p-16">
+        {/* Background */}
+        <div className="absolute inset-0 bg-[#080810]" />
+        <div
+          className="absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
+        />
+        <div
+          className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(ellipse, rgba(99,102,241,0.14) 0%, transparent 70%)" }}
+        />
+        <div
+          className="absolute -bottom-20 -right-20 w-[400px] h-[400px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 70%)" }}
+        />
+        <div
+          className="absolute top-0 left-0 right-0 h-px"
+          style={{ background: "linear-gradient(90deg, transparent 0%, rgba(129,140,248,0.4) 50%, transparent 100%)" }}
+        />
 
-      {/* Split layout */}
-      <div className="flex flex-1 items-center justify-center px-5 pb-12 sm:px-8">
-        <div className="mx-auto grid w-full max-w-5xl gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16 items-center">
-          {/* Left — branding & value props */}
-          <div className="hidden lg:block">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 via-indigo-500 to-violet-500 text-base font-black text-white shadow-[0_12px_32px_rgba(99,102,241,0.25)]">
-                F
-              </div>
-              <div>
-                <p className="font-heading text-lg font-semibold text-white">
-                  Finanshels
-                </p>
-                <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
-                  Partner Portal
-                </p>
-              </div>
+        <div className="relative z-10 flex flex-col h-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div
+              className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
+              style={{
+                background: "linear-gradient(135deg,#818cf8 0%,#4f46e5 100%)",
+                boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
+              }}
+            >
+              F
             </div>
-
-            <div className="eyebrow mb-6 w-fit">
-              <Sparkles className="h-3.5 w-3.5" />
-              Join 150+ active partners
-            </div>
-
-            <h1 className="font-heading text-3xl font-bold text-white" style={{ letterSpacing: "-0.03em" }}>
-              Create your account and start earning.
-            </h1>
-            <p className="mt-3 text-base leading-7 text-slate-400">
-              Sign up to access the Finanshels partner network. After account creation,
-              you will complete a short registration flow to go live.
-            </p>
-
-            <div className="mt-8 space-y-3.5">
-              {perks.map((perk) => (
-                <div key={perk} className="flex items-center gap-3">
-                  <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/15">
-                    <Check className="h-3.5 w-3.5 text-indigo-400" />
-                  </div>
-                  <span className="text-sm text-slate-300">{perk}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-10 flex items-center gap-2 text-xs text-slate-600">
-              <BadgeCheck className="h-3.5 w-3.5 text-indigo-400/60" />
-              Trusted by consultants, agencies, and advisors across the GCC
+            <div>
+              <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
+              <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
             </div>
           </div>
 
-          {/* Right — sign-up form */}
-          <div className="flex flex-col items-center">
-            <div className="mb-8 text-center lg:hidden">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)]">
-                <span className="text-xl font-bold tracking-tight">F</span>
-              </div>
-              <h1 className="font-heading text-2xl font-semibold text-white">
-                Create your account
-              </h1>
-              <p className="mt-2 text-sm text-slate-400">
-                Join the Finanshels Partner network
-              </p>
+          {/* Hero copy */}
+          <div className="flex-1 flex flex-col justify-center max-w-[420px]">
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full w-fit mb-8"
+              style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-[0.2em]">
+                Partner account setup
+              </span>
             </div>
 
-            <div className="w-full max-w-[400px]">
-              <PartnerSignUpForm />
-            </div>
+            <h1
+              className="text-white font-extrabold leading-[1.06] tracking-[-0.04em]"
+              style={{ fontSize: "clamp(2rem, 3vw, 2.7rem)" }}
+            >
+              Start your
+              <br />
+              partner
+              <br />
+              account.
+              <br />
+              <span style={{ color: "#818cf8" }}>Finish inside.</span>
+            </h1>
 
-            <p className="mt-6 text-sm text-slate-500">
+            <p className="mt-5 text-zinc-400 text-[15px] leading-[1.7]">
+              This step creates your login. After that, you will complete the actual partner registration and submit the details needed for review.
+            </p>
+
+            {/* Feature highlights */}
+            <div className="mt-10 space-y-3">
+              {highlights.map(({ icon: Icon, label, sub }) => (
+                <div key={label} className="flex items-center gap-4">
+                  <div
+                    className="h-9 w-9 rounded-xl flex-shrink-0 flex items-center justify-center"
+                    style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.18)" }}
+                  >
+                    <Icon className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-semibold">{label}</p>
+                    <p className="text-zinc-600 text-xs">{sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right form panel ── */}
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6 py-14 lg:px-14"
+        style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
+      >
+        {/* Mobile logo */}
+        <div className="lg:hidden mb-10 flex items-center gap-3">
+          <div
+            className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
+            style={{ background: "linear-gradient(135deg,#818cf8,#4f46e5)", boxShadow: "0 4px 16px rgba(99,102,241,0.3)" }}
+          >F</div>
+          <div>
+            <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
+            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+          </div>
+        </div>
+
+        <div className="w-full max-w-[400px]">
+          <h2
+            className="text-white font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
+            style={{ fontSize: "1.875rem" }}
+          >
+            Create your account
+          </h2>
+          <p className="text-zinc-500 text-sm mb-8">
+            {selectedTypeLabel} selected. After signup, you&apos;ll complete onboarding and wait for admin approval.
+          </p>
+
+          <div className="mb-5 rounded-2xl border border-indigo-400/18 bg-indigo-500/8 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-300">
+              Selected partner model
+            </p>
+            <p className="mt-1 text-sm font-semibold text-white">{selectedTypeLabel}</p>
+          </div>
+
+          <PartnerSignUpForm selectedType={type} />
+
+          <div
+            className="mt-8 pt-8 text-center space-y-3"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          >
+            <p className="text-sm text-zinc-600">
               Already have an account?{" "}
-              <Link
-                href="/sign-in"
-                className="font-medium text-indigo-400 transition-colors hover:text-indigo-300"
-              >
+              <Link href="/sign-in" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
                 Sign in
               </Link>
             </p>
+            <Link href="/register" className="block text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              Change partner model
+            </Link>
+            <Link href="/" className="block text-xs text-zinc-700 hover:text-zinc-500 transition-colors">
+              ← Back to home
+            </Link>
           </div>
         </div>
       </div>

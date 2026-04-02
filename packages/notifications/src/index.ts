@@ -41,26 +41,156 @@ async function sendEmail(message: {
   })
 }
 
-export async function sendWelcomeEmail(to: string, partnerName: string): Promise<void> {
+function getPartnerPortalUrl() {
+  return process.env.NEXT_PUBLIC_PARTNER_APP_URL?.trim() || "http://localhost:3000"
+}
+
+function buildPartnerEmailShell({
+  eyebrow,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+}: {
+  eyebrow: string
+  title: string
+  body: string
+  ctaLabel?: string
+  ctaHref?: string
+}) {
+  const ctaMarkup =
+    ctaLabel && ctaHref
+      ? `
+        <div style="margin-top: 28px;">
+          <a
+            href="${ctaHref}"
+            style="display:inline-block;padding:12px 20px;border-radius:9999px;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;"
+          >
+            ${ctaLabel}
+          </a>
+        </div>
+      `
+      : ""
+
+  return `
+    <div style="margin:0;padding:32px 16px;background:#0b0b12;">
+      <div style="max-width:600px;margin:0 auto;border:1px solid rgba(255,255,255,0.08);border-radius:28px;background:#141419;padding:40px 32px;font-family:Inter,Arial,sans-serif;color:#e5e7eb;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+          <div style="width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#818cf8 0%,#4f46e5 100%);color:#ffffff;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;">F</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:#ffffff;">Finanshels</div>
+            <div style="font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#7c83a1;">Partner Portal</div>
+          </div>
+        </div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#9ca3ff;">${eyebrow}</div>
+        <h1 style="margin:16px 0 0;font-size:32px;line-height:1.1;font-weight:800;color:#ffffff;">${title}</h1>
+        <div style="margin-top:18px;font-size:15px;line-height:1.8;color:#cbd5e1;">${body}</div>
+        ${ctaMarkup}
+      </div>
+    </div>
+  `
+}
+
+export async function sendPartnerApprovedEmail(
+  to: string,
+  partnerName: string,
+  companyName: string
+): Promise<void> {
   try {
     const safePartnerName = escapeHtml(partnerName)
+    const safeCompanyName = escapeHtml(companyName)
+    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
 
     await sendEmail({
       to,
-      subject: "Welcome to the Finanshels Partner Program!",
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Welcome, ${safePartnerName}!</h1>
-          <p>Your partner application has been approved. You can now log in to the Finanshels Partner Portal to start referring clients and tracking your commissions.</p>
-          <p>If you have any questions, please don't hesitate to reach out to our partner support team.</p>
-          <p>Best regards,<br/>The Finanshels Team</p>
-        </div>
-      `,
+      subject: "Your Finanshels partner account is now active",
+      html: buildPartnerEmailShell({
+        eyebrow: "Partner approved",
+        title: "Your workspace is now active.",
+        body: `
+          <p>Hi ${safePartnerName},</p>
+          <p>Your partner application for <strong>${safeCompanyName}</strong> has been approved by the Finanshels team.</p>
+          <p>You can now sign in to access the full partner workspace, submit leads, create service requests, and track commissions.</p>
+        `,
+        ctaLabel: "Open partner portal",
+        ctaHref: portalUrl,
+      }),
     })
   } catch (error) {
-    console.error("[notifications] sendWelcomeEmail failed", {
+    console.error("[notifications] sendPartnerApprovedEmail failed", {
       to,
       partnerName,
+      companyName,
+      error: String(error),
+    })
+  }
+}
+
+export async function sendPartnerReactivatedEmail(
+  to: string,
+  partnerName: string,
+  companyName: string
+): Promise<void> {
+  try {
+    const safePartnerName = escapeHtml(partnerName)
+    const safeCompanyName = escapeHtml(companyName)
+    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
+
+    await sendEmail({
+      to,
+      subject: "Your Finanshels partner access has been restored",
+      html: buildPartnerEmailShell({
+        eyebrow: "Access restored",
+        title: "Your partner access has been reactivated.",
+        body: `
+          <p>Hi ${safePartnerName},</p>
+          <p>Your partner access for <strong>${safeCompanyName}</strong> has been restored.</p>
+          <p>You can sign back in and continue using the Finanshels Partner Portal.</p>
+        `,
+        ctaLabel: "Sign in to portal",
+        ctaHref: portalUrl,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendPartnerReactivatedEmail failed", {
+      to,
+      partnerName,
+      companyName,
+      error: String(error),
+    })
+  }
+}
+
+export async function sendPartnerSuspendedEmail(
+  to: string,
+  partnerName: string,
+  reason?: string | null
+): Promise<void> {
+  try {
+    const safePartnerName = escapeHtml(partnerName)
+    const safeReason = reason ? escapeHtml(reason) : null
+    const reasonMarkup = safeReason
+      ? `<p><strong>Reason:</strong> ${safeReason}</p>`
+      : `<p>If you need clarification, reply to this email and our team will help.</p>`
+
+    await sendEmail({
+      to,
+      subject: "Your Finanshels partner access has been paused",
+      html: buildPartnerEmailShell({
+        eyebrow: "Access paused",
+        title: "Your partner workspace has been suspended.",
+        body: `
+          <p>Hi ${safePartnerName},</p>
+          <p>Your access to the Finanshels Partner Portal has been temporarily paused.</p>
+          ${reasonMarkup}
+        `,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendPartnerSuspendedEmail failed", {
+      to,
+      partnerName,
+      reason,
       error: String(error),
     })
   }
@@ -80,15 +210,15 @@ export async function sendPartnerApplicationReceivedEmail(
     await sendEmail({
       to,
       subject: "We received your partner application",
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Application received</h1>
+      html: buildPartnerEmailShell({
+        eyebrow: "Application received",
+        title: "Your partner application is in review.",
+        body: `
           <p>Hi ${safePartnerName},</p>
           <p>We received your ${partnerTypeLabel} application for <strong>${safeCompanyName}</strong>.</p>
-          <p>Our team will review it and follow up by email once the review is complete.</p>
-          <p>Best regards,<br/>The Finanshels Team</p>
-        </div>
-      `,
+          <p>Our team will review it and email you as soon as the approval decision is made.</p>
+        `,
+      }),
     })
   } catch (error) {
     console.error("[notifications] sendPartnerApplicationReceivedEmail failed", {
@@ -116,16 +246,16 @@ export async function sendPartnerRejectedEmail(
     await sendEmail({
       to,
       subject: "Update on your Finanshels partner application",
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Application update</h1>
+      html: buildPartnerEmailShell({
+        eyebrow: "Application update",
+        title: "We’re unable to approve the application right now.",
+        body: `
           <p>Hi ${safePartnerName},</p>
-          <p>We reviewed your partner application and we are unable to approve it at this time.</p>
+          <p>We reviewed your partner application and we’re unable to approve it at this time.</p>
           ${reasonMarkup}
-          <p>If you believe this needs clarification, reply to this email and our team will help.</p>
-          <p>Best regards,<br/>The Finanshels Team</p>
-        </div>
-      `,
+          <p>If this needs clarification, reply to this email and our team will help.</p>
+        `,
+      }),
     })
   } catch (error) {
     console.error("[notifications] sendPartnerRejectedEmail failed", {

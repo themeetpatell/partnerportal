@@ -6,6 +6,7 @@ export interface AppAuthUser {
   firstName: string | null
   lastName: string | null
   fullName: string | null
+  partnerType: "referral" | "channel" | null
   emailAddresses: { emailAddress: string }[]
   primaryEmailAddress: { emailAddress: string } | null
 }
@@ -30,6 +31,10 @@ export function mapSupabaseUser(user: User | null): AppAuthUser | null {
       : firstName || lastName
         ? [firstName, lastName].filter(Boolean).join(" ")
         : null
+  const partnerType =
+    metadata.partner_type === "referral" || metadata.partner_type === "channel"
+      ? metadata.partner_type
+      : null
 
   return {
     id: user.id,
@@ -37,6 +42,7 @@ export function mapSupabaseUser(user: User | null): AppAuthUser | null {
     firstName,
     lastName,
     fullName,
+    partnerType,
     emailAddresses: [{ emailAddress: user.email }],
     primaryEmailAddress: { emailAddress: user.email },
   }

@@ -51,6 +51,7 @@ export async function POST(
     .set({
       status: "rejected",
       rejectionReason: reason ?? null,
+      suspensionReason: null,
       updatedAt: new Date(),
     })
     .where(eq(partners.id, id))

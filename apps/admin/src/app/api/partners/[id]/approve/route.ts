@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { db, partners, teamMembers, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
-import { sendWelcomeEmail } from "@repo/notifications"
+import { sendPartnerApprovedEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 
 export async function POST(
@@ -30,13 +30,16 @@ export async function POST(
   }
 
   const { id } = await params
+  const now = new Date()
 
   const [updated] = await db
     .update(partners)
     .set({
       status: "approved",
       rejectionReason: null,
-      updatedAt: new Date(),
+      suspensionReason: null,
+      activationDate: now,
+      updatedAt: now,
     })
     .where(eq(partners.id, id))
     .returning()
@@ -45,7 +48,11 @@ export async function POST(
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
   }
 
-  await sendWelcomeEmail(updated.email, updated.contactName)
+  await sendPartnerApprovedEmail(
+    updated.email,
+    updated.contactName,
+    updated.companyName,
+  )
 
   await logActivity({
     tenantId: updated.tenantId,
@@ -54,6 +61,7 @@ export async function POST(
     action: "partner.approved",
     entityType: "partner",
     entityId: id,
+    note: "Partner approved and workspace activated.",
   })
 
   return NextResponse.redirect(new URL(`/partners/${id}`, _req.url))

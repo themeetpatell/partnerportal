@@ -17,11 +17,10 @@ import {
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    in_review: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
-    converted: "bg-green-950/60 border-green-800/40 text-green-400",
-    rejected: "bg-red-950/60 border-red-800/40 text-red-400",
+    deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
+    deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
   }
   return (
     <span
@@ -73,11 +72,7 @@ const statusTransitions: Record<
   { nextStatus: string; label: string; variant: "primary" | "danger" | "secondary" }[]
 > = {
   submitted: [
-    { nextStatus: "in_review", label: "Mark In Review", variant: "primary" },
-  ],
-  in_review: [
     { nextStatus: "qualified", label: "Mark Qualified", variant: "primary" },
-    { nextStatus: "rejected", label: "Reject", variant: "danger" },
   ],
   qualified: [
     {
@@ -85,20 +80,19 @@ const statusTransitions: Record<
       label: "Mark Proposal Sent",
       variant: "primary",
     },
-    { nextStatus: "rejected", label: "Reject", variant: "danger" },
+    { nextStatus: "deal_lost", label: "Mark Deal Lost", variant: "danger" },
   ],
   proposal_sent: [
-    { nextStatus: "converted", label: "Mark Converted", variant: "primary" },
-    { nextStatus: "rejected", label: "Reject", variant: "danger" },
+    { nextStatus: "deal_won", label: "Mark Deal Won", variant: "primary" },
+    { nextStatus: "deal_lost", label: "Mark Deal Lost", variant: "danger" },
   ],
 }
 
 const statusTimeline = [
   "submitted",
-  "in_review",
   "qualified",
   "proposal_sent",
-  "converted",
+  "deal_won",
 ]
 
 export default async function LeadDetailPage({
@@ -184,21 +178,21 @@ export default async function LeadDetailPage({
         <div className="flex items-center gap-0">
           {statusTimeline.map((step, index) => {
             const isCompleted =
-              lead.status === "converted"
+              lead.status === "deal_won"
                 ? true
-                : lead.status === "rejected"
+                : lead.status === "deal_lost"
                   ? index < currentStep
                   : index < currentStep
             const isCurrent =
-              lead.status !== "rejected" && index === currentStep
-            const isRejected = lead.status === "rejected"
+              lead.status !== "deal_lost" && index === currentStep
+            const isTerminal = lead.status === "deal_lost" || lead.status === "deal_won"
 
             return (
               <div key={step} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center">
                   <div
                     className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
-                      isRejected && index >= currentStep
+                      isTerminal && index >= currentStep
                         ? "border-zinc-700 bg-white/6 text-slate-600"
                         : isCurrent
                           ? "border-indigo-400 bg-indigo-950 text-indigo-300"
@@ -224,7 +218,7 @@ export default async function LeadDetailPage({
                 {index < statusTimeline.length - 1 && (
                   <div
                     className={`flex-1 h-0.5 mx-1 mb-5 ${
-                      index < currentStep && lead.status !== "rejected"
+                      index < currentStep && lead.status !== "deal_lost"
                         ? "bg-green-800"
                         : "bg-white/6"
                     }`}
@@ -233,13 +227,13 @@ export default async function LeadDetailPage({
               </div>
             )
           })}
-          {lead.status === "rejected" && (
+          {lead.status === "deal_lost" && (
             <div className="flex flex-col items-center ml-2">
               <div className="w-8 h-8 rounded-full border-2 border-red-700 bg-red-950 flex items-center justify-center">
                 <span className="text-red-400 text-xs font-bold">✕</span>
               </div>
               <p className="text-xs mt-1.5 text-red-500 font-medium">
-                Rejected
+                Deal Lost
               </p>
             </div>
           )}
