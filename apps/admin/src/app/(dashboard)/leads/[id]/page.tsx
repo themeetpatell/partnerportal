@@ -63,24 +63,23 @@ export default async function LeadDetailPage({
   const { id } = await params
   const query = await searchParams
 
-  const [lead] = await db
-    .select()
-    .from(leads)
-    .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
-    .limit(1)
+  const [[leadRow], leadDocs] = await Promise.all([
+    db
+      .select({ lead: leads, partner: partners })
+      .from(leads)
+      .leftJoin(partners, eq(partners.id, leads.partnerId))
+      .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
+      .limit(1),
+    db
+      .select()
+      .from(documents)
+      .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id))),
+  ])
 
-  if (!lead) notFound()
+  if (!leadRow) notFound()
 
-  const [partner] = await db
-    .select()
-    .from(partners)
-    .where(eq(partners.id, lead.partnerId))
-    .limit(1)
-
-  const leadDocs = await db
-    .select()
-    .from(documents)
-    .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id)))
+  const lead = leadRow.lead
+  const partner = leadRow.partner ?? null
 
   const services = (() => {
     try {
