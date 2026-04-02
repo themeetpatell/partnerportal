@@ -26,6 +26,10 @@
     "@types/node": "^22.0.0",
     "prettier": "^3.5.0"
   },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "lightningcss-linux-x64-gnu": "1.32.0"
+  },
   "packageManager": "npm@10.9.2",
   "engines": {
     "node": ">=20"
