@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
-import { PartnerActionButton, PartnerRejectForm, PartnerSuspendForm } from "@/components/partner-action-buttons"
+import { PartnerActionButton, PartnerRejectForm } from "@/components/partner-action-buttons"
 import {
   db,
   derivePartnerOnboardingStage,
@@ -437,7 +437,11 @@ export default async function PartnerDetailPage({
                 </div>
                 <PauseCircle className="mt-0.5 h-5 w-5 text-slate-400" />
               </div>
-              <PartnerSuspendForm partnerId={partner.id} />
+              <PartnerRejectForm
+                partnerId={partner.id}
+                endpoint={`/api/partners/${partner.id}/lifecycle`}
+                buttonLabel="Suspend partner"
+              />
             </div>
           </>
         )}

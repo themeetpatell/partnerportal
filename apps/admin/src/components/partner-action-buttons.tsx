@@ -73,18 +73,25 @@ export function PartnerActionButton({
 
 type RejectFormProps = {
   partnerId: string
+  endpoint?: string
+  buttonLabel?: string
 }
 
-export function PartnerRejectForm({ partnerId }: RejectFormProps) {
+export function PartnerRejectForm({
+  partnerId,
+  endpoint,
+  buttonLabel = "Reject application",
+}: RejectFormProps) {
   const [loading, setLoading] = useState(false)
   const [reason, setReason] = useState("")
   const router = useRouter()
+  const resolvedEndpoint = endpoint ?? `/api/partners/${partnerId}/reject`
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch(`/api/partners/${partnerId}/reject`, {
+      await fetch(resolvedEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),
@@ -99,7 +106,7 @@ export function PartnerRejectForm({ partnerId }: RejectFormProps) {
     <form onSubmit={handleSubmit}>
       <label className="mt-4 block">
         <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-          Optional rejection reason
+          Optional reason
         </span>
         <textarea
           value={reason}
@@ -115,57 +122,7 @@ export function PartnerRejectForm({ partnerId }: RejectFormProps) {
         className="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-900 disabled:text-red-700"
       >
         <XCircle className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        {loading ? "Processing…" : "Reject application"}
-      </button>
-    </form>
-  )
-}
-
-type SuspendFormProps = {
-  partnerId: string
-}
-
-export function PartnerSuspendForm({ partnerId }: SuspendFormProps) {
-  const [loading, setLoading] = useState(false)
-  const [reason, setReason] = useState("")
-  const router = useRouter()
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      await fetch(`/api/partners/${partnerId}/lifecycle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "suspend", reason }),
-      })
-      router.refresh()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <label className="mt-4 block max-w-2xl">
-        <span className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-          Optional suspension reason
-        </span>
-        <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          rows={3}
-          placeholder="Capture why access is being paused."
-          className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400/40 focus:outline-none"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={loading}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg bg-zinc-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-600 disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-600"
-      >
-        <PauseCircle className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        {loading ? "Processing…" : "Suspend access"}
+        {loading ? "Processing…" : buttonLabel}
       </button>
     </form>
   )
