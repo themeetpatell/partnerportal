@@ -1,6 +1,8 @@
+import { Suspense } from "react"
 import { auth, currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
+import { PageSkeleton } from "@/components/page-skeleton"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 
 function formatRoleLabel(role: string | null | undefined) {
@@ -58,7 +60,9 @@ export default async function DashboardLayout({
       />
       <main className="flex-1 min-w-0 overflow-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {children}
+          <Suspense fallback={<PageSkeleton />}>
+            {children}
+          </Suspense>
         </div>
       </main>
     </div>
