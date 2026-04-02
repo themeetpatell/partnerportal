@@ -1,6 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
+import { PartnerClerkProvider } from "@/components/partner-clerk-provider"
 
 export default async function DashboardLayout({
   children,
@@ -29,20 +30,22 @@ export default async function DashboardLayout({
     "P"
 
   return (
-    <div className="page-wrap min-h-screen px-4 py-4 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] gap-4 lg:gap-5">
-        <SidebarNav
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-        />
+    <PartnerClerkProvider>
+      <div className="page-wrap min-h-screen px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] gap-4 lg:gap-5">
+          <SidebarNav
+            userName={userName}
+            userEmail={userEmail}
+            userInitials={userInitials}
+          />
 
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div className="surface-card-strong flex-1 rounded-[2rem] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
-            {children}
-          </div>
-        </main>
+          <main className="flex min-w-0 flex-1 flex-col">
+            <div className="surface-card-strong flex-1 rounded-[2rem] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </PartnerClerkProvider>
   )
 }
