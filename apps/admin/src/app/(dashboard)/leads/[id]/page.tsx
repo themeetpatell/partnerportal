@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { db, leads, partners, documents } from "@repo/db"
-import { eq, and } from "drizzle-orm"
+import { eq, and, isNull } from "drizzle-orm"
 import {
   ArrowLeft,
   Mail,
@@ -111,7 +111,7 @@ export default async function LeadDetailPage({
   const [lead] = await db
     .select()
     .from(leads)
-    .where(eq(leads.id, id))
+    .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
     .limit(1)
 
   if (!lead) notFound()

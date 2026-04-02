@@ -20,8 +20,15 @@ export interface MilestoneBonus {
 export function calculateCommission(params: CalculateCommissionParams): CommissionResult {
   const { model, serviceFee, partnerConversionsThisPeriod } = params
 
+  if (!Number.isFinite(serviceFee) || serviceFee < 0) {
+    return { amount: 0, breakdown: "Invalid service fee" }
+  }
+
   if (model.type === "flat_pct") {
     const config = model.config as { pct: number }
+    if (!Number.isFinite(config.pct) || config.pct < 0 || config.pct > 100) {
+      return { amount: 0, breakdown: "Invalid commission percentage" }
+    }
     const amount = (serviceFee * config.pct) / 100
     return {
       amount: Math.round(amount * 100) / 100,
@@ -34,12 +41,19 @@ export function calculateCommission(params: CalculateCommissionParams): Commissi
       tiers: { min: number; max: number | null; pct: number }[]
       period: string
     }
+    if (!Array.isArray(config.tiers) || config.tiers.length === 0) {
+      return { amount: 0, breakdown: "No tiers configured" }
+    }
     const conversions = partnerConversionsThisPeriod
-    const matchedTier = config.tiers.find(
+    const sortedTiers = [...config.tiers].sort((a, b) => a.min - b.min)
+    const matchedTier = sortedTiers.find(
       (t) => conversions >= t.min && (t.max === null || conversions <= t.max)
     )
     if (!matchedTier) {
       return { amount: 0, breakdown: "No matching tier found" }
+    }
+    if (!Number.isFinite(matchedTier.pct) || matchedTier.pct < 0 || matchedTier.pct > 100) {
+      return { amount: 0, breakdown: "Invalid tier percentage" }
     }
     const amount = (serviceFee * matchedTier.pct) / 100
     return {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { db, leads, partners, serviceRequests, invoices } from "@repo/db"
+import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
 
 function getDateRange(preset: string | undefined) {
@@ -33,10 +33,26 @@ export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // Verify role — only admin, partnership, finance can export analytics
+  const [member] = await db
+    .select()
+    .from(teamMembers)
+    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .limit(1)
+
+  if (!member || !["admin", "partnership", "finance"].includes(member.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  }
+
   const url = new URL(req.url)
   const sp = url.searchParams
   const dateRange = getDateRange(sp.get("dateRange") ?? undefined)
   const partnerId = sp.get("partnerId")
+  const partnerType = sp.get("partnerType")
+  const leadStatus = sp.get("leadStatus")
+  const leadSource = sp.get("leadSource")
+  const serviceStatus = sp.get("serviceStatus")
+  const teamMemberId = sp.get("teamMemberId")
 
   const dateFilter = (col: Parameters<typeof gte>[0]) => {
     const conditions = []
@@ -52,17 +68,20 @@ export async function GET(req: NextRequest) {
         customerName: leads.customerName,
         customerEmail: leads.customerEmail,
         customerCompany: leads.customerCompany,
+        partnerType: partners.type,
         status: leads.status,
-        source: leads.source,
-        channel: leads.channel,
-        region: leads.region,
         createdAt: leads.createdAt,
       })
       .from(leads)
+      .innerJoin(partners, eq(leads.partnerId, partners.id))
       .where(
         and(
           isNull(leads.deletedAt),
           ...(partnerId ? [eq(leads.partnerId, partnerId)] : []),
+          ...(partnerType ? [eq(partners.type, partnerType)] : []),
+          ...(leadStatus ? [eq(leads.status, leadStatus)] : []),
+          ...(leadSource ? [eq(leads.source, leadSource)] : []),
+          ...(teamMemberId ? [eq(leads.assignedTo, teamMemberId)] : []),
           ...dateFilter(leads.createdAt)
         )
       ),
@@ -70,33 +89,40 @@ export async function GET(req: NextRequest) {
       .select({
         id: serviceRequests.id,
         customerCompany: serviceRequests.customerCompany,
+        partnerType: partners.type,
         status: serviceRequests.status,
         slaStatus: serviceRequests.slaStatus,
         pricing: serviceRequests.pricing,
         createdAt: serviceRequests.createdAt,
       })
       .from(serviceRequests)
+      .innerJoin(partners, eq(serviceRequests.partnerId, partners.id))
       .where(
         and(
           isNull(serviceRequests.deletedAt),
           ...(partnerId ? [eq(serviceRequests.partnerId, partnerId)] : []),
+          ...(partnerType ? [eq(partners.type, partnerType)] : []),
+          ...(serviceStatus ? [eq(serviceRequests.status, serviceStatus)] : []),
+          ...(teamMemberId ? [eq(serviceRequests.assignedTo, teamMemberId)] : []),
           ...dateFilter(serviceRequests.createdAt)
         )
       ),
     db
       .select({
         invoiceNumber: invoices.invoiceNumber,
+        partnerType: partners.type,
         status: invoices.status,
         total: invoices.total,
-        currency: invoices.currency,
         dueDate: invoices.dueDate,
         paidAt: invoices.paidAt,
       })
       .from(invoices)
+      .innerJoin(partners, eq(invoices.partnerId, partners.id))
       .where(
         and(
           isNull(invoices.deletedAt),
           ...(partnerId ? [eq(invoices.partnerId, partnerId)] : []),
+          ...(partnerType ? [eq(partners.type, partnerType)] : []),
           ...dateFilter(invoices.createdAt)
         )
       ),

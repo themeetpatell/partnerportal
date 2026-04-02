@@ -8,6 +8,48 @@
       "when": 1774906224651,
       "tag": "0000_add_partner_extended_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774910183669,
+      "tag": "0001_add_analytics_rbac_governance",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774913066929,
+      "tag": "0002_clumsy_hex",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774913611604,
+      "tag": "0003_silly_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774915575130,
+      "tag": "0004_huge_molten_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774916355068,
+      "tag": "0005_ordinary_millenium_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774916731445,
+      "tag": "0006_chemical_champions",
+      "breakpoints": true
     }
   ]
 }

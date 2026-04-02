@@ -68,11 +68,11 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { clerkUserId, name, email, role, rowScope = "all", permissions } = body
+  const { name, email, phone, designation, role, rowScope = "all", permissions } = body
 
-  if (!clerkUserId || !name || !email || !role) {
+  if (!name || !email || !role) {
     return NextResponse.json(
-      { error: "clerkUserId, name, email, role are required" },
+      { error: "name, email, role are required" },
       { status: 400 }
     )
   }
@@ -84,14 +84,17 @@ export async function POST(req: NextRequest) {
 
   // Use provided permissions or default to role matrix
   const resolvedPermissions = permissions ?? ROLE_PERMISSIONS[role] ?? {}
+  const placeholderClerkId = `manual_${crypto.randomUUID()}`
 
   const [created] = await db
     .insert(teamMembers)
     .values({
       tenantId: TENANT_ID,
-      clerkUserId,
+      clerkUserId: placeholderClerkId,
       name,
       email,
+      phone: phone || null,
+      designation: designation || null,
       role,
       rowScope,
       permissions: JSON.stringify(resolvedPermissions),
@@ -107,6 +110,11 @@ export async function POST(req: NextRequest) {
     actorName,
     action: "created",
     note: `User ${name} (${role}) created by ${actorName}`,
+    metadata: {
+      designation: designation || null,
+      phone: phone || null,
+      identitySource: "manual",
+    },
   })
 
   return NextResponse.json(created, { status: 201 })

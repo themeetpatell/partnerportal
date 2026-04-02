@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { db, leads, partners, commissions } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { db, leads, partners, commissions, teamMembers } from "@repo/db"
+import { eq, and } from "drizzle-orm"
 import { calculateCommission } from "@repo/commission-engine"
 import { sendLeadStatusEmail } from "@repo/notifications"
+import { rateLimit } from "@repo/auth"
 
 const VALID_STATUSES = [
   "submitted",
@@ -32,6 +33,21 @@ export async function POST(
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Rate limit: 30 status changes per user per minute
+  const limited = rateLimit(`lead-status:${userId}`, 30, 60_000)
+  if (limited) return limited
+
+  // Verify role — admin, partnership, sales can transition lead status
+  const [member] = await db
+    .select()
+    .from(teamMembers)
+    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .limit(1)
+
+  if (!member || !["admin", "partnership", "sales"].includes(member.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { id } = await params

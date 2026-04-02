@@ -10,6 +10,9 @@ export const documents = pgTable("documents", {
   fileName: text("file_name").notNull(),
   zohoWorkdriveId: text("zoho_workdrive_id").notNull(),
   zohoWorkdriveUrl: text("zoho_workdrive_url").notNull(),
+  storageProvider: text("storage_provider").notNull().default("workdrive"), // workdrive | database
+  mimeType: text("mime_type"),
+  fileDataBase64: text("file_data_base64"),
   uploadedBy: text("uploaded_by").notNull(),
   uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
 })

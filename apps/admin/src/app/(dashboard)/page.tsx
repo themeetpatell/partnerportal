@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, partners, leads, commissions } from "@repo/db"
-import { eq, count, sum, and } from "drizzle-orm"
+import { eq, count, sum } from "drizzle-orm"
 import {
   UserCheck,
   Clock,
@@ -10,6 +10,8 @@ import {
   ArrowRight,
   Building2,
 } from "lucide-react"
+import { DatabaseFallbackCard } from "@/components/database-fallback-card"
+import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -31,6 +33,64 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default async function AdminOverviewPage() {
+  let dashboardData
+
+  try {
+    dashboardData = await Promise.all([
+      db.select({ count: count() }).from(partners),
+      db
+        .select({ count: count() })
+        .from(partners)
+        .where(eq(partners.status, "pending")),
+      db.select({ count: count() }).from(leads),
+      db
+        .select({ count: count() })
+        .from(leads)
+        .where(eq(leads.status, "submitted")),
+      db
+        .select({ total: sum(commissions.amount) })
+        .from(commissions)
+        .where(eq(commissions.status, "pending")),
+      db
+        .select({
+          id: partners.id,
+          companyName: partners.companyName,
+          contactName: partners.contactName,
+          type: partners.type,
+          createdAt: partners.createdAt,
+        })
+        .from(partners)
+        .where(eq(partners.status, "pending"))
+        .orderBy(partners.createdAt)
+        .limit(5),
+      db
+        .select({
+          id: leads.id,
+          customerName: leads.customerName,
+          customerCompany: leads.customerCompany,
+          serviceInterest: leads.serviceInterest,
+          status: leads.status,
+          createdAt: leads.createdAt,
+        })
+        .from(leads)
+        .orderBy(leads.createdAt)
+        .limit(5),
+    ])
+  } catch (error) {
+    if (isDatabaseConnectivityError(error)) {
+      console.error("Admin overview database query failed", error)
+      return (
+        <DatabaseFallbackCard
+          title="Admin overview is unavailable"
+          message="The page loaded, but the overview queries could not reach Postgres. Fix the database host in `DATABASE_URL`, make sure the target is reachable from this machine, then refresh."
+          host={getDatabaseErrorHost(error)}
+        />
+      )
+    }
+
+    throw error
+  }
+
   const [
     totalPartnersResult,
     pendingPartnersResult,
@@ -39,46 +99,7 @@ export default async function AdminOverviewPage() {
     pendingCommissionsResult,
     pendingPartnersList,
     recentLeadsList,
-  ] = await Promise.all([
-    db.select({ count: count() }).from(partners),
-    db
-      .select({ count: count() })
-      .from(partners)
-      .where(eq(partners.status, "pending")),
-    db.select({ count: count() }).from(leads),
-    db
-      .select({ count: count() })
-      .from(leads)
-      .where(eq(leads.status, "submitted")),
-    db
-      .select({ total: sum(commissions.amount) })
-      .from(commissions)
-      .where(eq(commissions.status, "pending")),
-    db
-      .select({
-        id: partners.id,
-        companyName: partners.companyName,
-        contactName: partners.contactName,
-        type: partners.type,
-        createdAt: partners.createdAt,
-      })
-      .from(partners)
-      .where(eq(partners.status, "pending"))
-      .orderBy(partners.createdAt)
-      .limit(5),
-    db
-      .select({
-        id: leads.id,
-        customerName: leads.customerName,
-        customerCompany: leads.customerCompany,
-        serviceInterest: leads.serviceInterest,
-        status: leads.status,
-        createdAt: leads.createdAt,
-      })
-      .from(leads)
-      .orderBy(leads.createdAt)
-      .limit(5),
-  ])
+  ] = dashboardData
 
   const totalPartners = totalPartnersResult[0]?.count ?? 0
   const pendingPartners = pendingPartnersResult[0]?.count ?? 0

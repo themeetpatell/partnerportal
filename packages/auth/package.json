@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.0",
-    "@repo/db": "workspace:*"
+    "@repo/db": "*"
   },
   "devDependencies": {
     "typescript": "*",

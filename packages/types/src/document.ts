@@ -11,7 +11,10 @@ export const DocumentSchema = z.object({
   documentType: z.string(),
   fileName: z.string(),
   zohoWorkdriveId: z.string(),
-  zohoWorkdriveUrl: z.string().url(),
+  zohoWorkdriveUrl: z.string(),
+  storageProvider: z.string().default("workdrive"),
+  mimeType: z.string().nullable().optional(),
+  fileDataBase64: z.string().nullable().optional(),
   uploadedBy: z.string(),
   uploadedAt: z.date(),
 })

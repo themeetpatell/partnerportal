@@ -1,9 +1,21 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { db, partners, documents, leads, commissions } from "@repo/db"
-import { eq, and, sum } from "drizzle-orm"
+import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
+import {
+  db,
+  derivePartnerOnboardingStage,
+  derivePartnerOperationalStatus,
+  documents,
+  formatPartnerOnboardingStage,
+  formatPartnerOperationalStatus,
+  leads,
+  commissions,
+  partners,
+} from "@repo/db"
+import { eq, and, isNull, sum } from "drizzle-orm"
 import {
   Building2,
+  FileSignature,
   Mail,
   Phone,
   Calendar,
@@ -16,6 +28,16 @@ import {
   PauseCircle,
   RotateCcw,
   ExternalLink,
+  Briefcase,
+  Globe,
+  Hash,
+  Landmark,
+  Link2,
+  MapPin,
+  Shield,
+  CreditCard,
+  GraduationCap,
+  Banknote,
 } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -33,6 +55,29 @@ function StatusBadge({ status }: { status: string }) {
       className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border capitalize ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
     >
       {status.replace("_", " ")}
+    </span>
+  )
+}
+
+function LifecycleBadge({
+  label,
+  tone,
+}: {
+  label: string
+  tone: "indigo" | "emerald" | "amber" | "slate"
+}) {
+  const tones = {
+    indigo: "bg-indigo-950/60 border-indigo-800/40 text-indigo-300",
+    emerald: "bg-emerald-950/60 border-emerald-800/40 text-emerald-300",
+    amber: "bg-amber-950/60 border-amber-800/40 text-amber-300",
+    slate: "bg-white/6 border-white/10 text-slate-300",
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border capitalize ${tones[tone]}`}
+    >
+      {label}
     </span>
   )
 }
@@ -60,7 +105,7 @@ export default async function PartnerDetailPage({
     db
       .select()
       .from(leads)
-      .where(eq(leads.partnerId, id))
+      .where(and(eq(leads.partnerId, id), isNull(leads.deletedAt)))
       .orderBy(leads.createdAt)
       .limit(5),
     db
@@ -73,6 +118,98 @@ export default async function PartnerDetailPage({
     "en-AE",
     { minimumFractionDigits: 2, maximumFractionDigits: 2 }
   )
+  const signedAgreementDoc = partnerDocs.find(
+    (doc) => doc.documentType === "signed_agreement_pdf"
+  )
+
+  const formatDate = (d: Date | null | undefined) =>
+    d
+      ? new Date(d).toLocaleDateString("en-AE", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : null
+
+  const fmtInput = (d: Date | null | undefined) =>
+    d ? new Date(d).toISOString().slice(0, 10) : null
+
+  const editablePartner = {
+    id: partner.id,
+    type: partner.type,
+    companyName: partner.companyName,
+    contactName: partner.contactName,
+    email: partner.email,
+    phone: partner.phone,
+    designation: partner.designation,
+    partnershipManager: partner.partnershipManager,
+    appointmentsSetter: partner.appointmentsSetter,
+    partnersId: partner.partnersId,
+    strategicFunnelStage: partner.strategicFunnelStage,
+    activationDate: fmtInput(partner.activationDate),
+    lastMetOn: fmtInput(partner.lastMetOn),
+    meetingScheduledDateAS: fmtInput(partner.meetingScheduledDateAS),
+    meetingDatePM: fmtInput(partner.meetingDatePM),
+    partnershipLevel: partner.partnershipLevel,
+    tier: partner.tier,
+    agreementStartDate: fmtInput(partner.agreementStartDate),
+    agreementEndDate: fmtInput(partner.agreementEndDate),
+    salesTrainingDone: partner.salesTrainingDone,
+    linkedinId: partner.linkedinId,
+    website: partner.website,
+    nationality: partner.nationality,
+    businessSize: partner.businessSize,
+    partnerIndustry: partner.partnerIndustry,
+    overview: partner.overview,
+    partnerAddress: partner.partnerAddress,
+    dateOfBirth: partner.dateOfBirth,
+    secondaryEmail: partner.secondaryEmail,
+    emailOptOut: partner.emailOptOut,
+    commissionType: partner.commissionType,
+    commissionRate: partner.commissionRate,
+    vatRegistered: partner.vatRegistered,
+    vatNumber: partner.vatNumber,
+    tradeLicense: partner.tradeLicense,
+    emirateIdPassport: partner.emirateIdPassport,
+    beneficiaryName: partner.beneficiaryName,
+    bankName: partner.bankName,
+    bankCountry: partner.bankCountry,
+    accountNoIban: partner.accountNoIban,
+    swiftBicCode: partner.swiftBicCode,
+    paymentFrequency: partner.paymentFrequency,
+  }
+
+  const operationalStatus = derivePartnerOperationalStatus(
+    {
+      contractStatus: partner.contractStatus,
+      contractSignedAt: partner.contractSignedAt,
+      onboardedAt: partner.onboardedAt,
+    },
+    partnerLeads.map((lead) => ({ status: lead.status, createdAt: lead.createdAt }))
+  )
+
+  const onboardingStage = derivePartnerOnboardingStage(
+    {
+      meetingCompletedAt: partner.meetingCompletedAt,
+      onboardedAt: partner.onboardedAt,
+      nurturingStartedAt: partner.nurturingStartedAt,
+    },
+    partnerLeads.map((lead) => ({ createdAt: lead.createdAt }))
+  )
+
+  const operationalTone =
+    operationalStatus === "active_partner"
+      ? "emerald"
+      : operationalStatus === "inactive_partner"
+        ? "slate"
+        : "amber"
+
+  const onboardingTone =
+    onboardingStage === "activated"
+      ? "emerald"
+      : onboardingStage === "yet_to_onboard"
+        ? "amber"
+        : "indigo"
 
   return (
     <div className="space-y-6">
@@ -93,6 +230,16 @@ export default async function PartnerDetailPage({
             <p className="text-slate-400 text-sm mt-1">
               Partner ID: {partner.id}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <LifecycleBadge
+                label={formatPartnerOperationalStatus(operationalStatus)}
+                tone={operationalTone}
+              />
+              <LifecycleBadge
+                label={formatPartnerOnboardingStage(onboardingStage)}
+                tone={onboardingTone}
+              />
+            </div>
           </div>
           <StatusBadge status={partner.status} />
         </div>
@@ -102,7 +249,8 @@ export default async function PartnerDetailPage({
       <div className="flex gap-3 flex-wrap">
         {partner.status === "pending" && (
           <>
-            <form action={`/api/partners/${partner.id}/approve`} method="POST">
+            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+              <input type="hidden" name="action" value="approve" />
               <button
                 type="submit"
                 className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -123,7 +271,8 @@ export default async function PartnerDetailPage({
           </>
         )}
         {partner.status === "approved" && (
-          <form action={`/api/partners/${partner.id}/reject`} method="POST">
+          <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+            <input type="hidden" name="action" value="suspend" />
             <button
               type="submit"
               className="inline-flex items-center gap-2 bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -134,7 +283,8 @@ export default async function PartnerDetailPage({
           </form>
         )}
         {(partner.status === "rejected" || partner.status === "suspended") && (
-          <form action={`/api/partners/${partner.id}/approve`} method="POST">
+          <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+            <input type="hidden" name="action" value="reactivate" />
             <button
               type="submit"
               className="inline-flex items-center gap-2 bg-indigo-400 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -147,13 +297,222 @@ export default async function PartnerDetailPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="surface-card rounded-2xl p-6">
+          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+            Approval status
+          </p>
+          <div className="mt-2">
+            <StatusBadge status={partner.status} />
+          </div>
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+            Onboarding stage
+          </p>
+          <div className="mt-2">
+            <LifecycleBadge
+              label={formatPartnerOnboardingStage(onboardingStage)}
+              tone={onboardingTone}
+            />
+          </div>
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+            Automated partner status
+          </p>
+          <div className="mt-2">
+            <LifecycleBadge
+              label={formatPartnerOperationalStatus(operationalStatus)}
+              tone={operationalTone}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="surface-card rounded-2xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <FileSignature className="w-4 h-4 text-slate-400" />
+            <h2 className="text-white font-semibold">Contract And Onboarding</h2>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+            <p className="text-slate-500 text-xs uppercase tracking-wider">Contract delivery</p>
+            <p className="mt-2">
+              Contracts are hosted inside the partner portal and signed there.
+            </p>
+            {partner.contractSentAt && (
+              <p className="mt-2">
+                Sent on:{" "}
+                <span className="text-white">
+                  {new Date(partner.contractSentAt).toLocaleDateString("en-AE")}
+                </span>
+              </p>
+            )}
+            {partner.agreementUrl && (
+              <p className="mt-2 break-all">
+                Agreement:{" "}
+                <a
+                  href={partner.agreementUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-indigo-300 hover:text-indigo-200"
+                >
+                  Open agreement file
+                </a>
+              </p>
+            )}
+            {signedAgreementDoc && (
+              <p className="mt-2">
+                Signed PDF:{" "}
+                <a
+                  href={`/api/documents/${signedAgreementDoc.id}/download`}
+                  className="text-indigo-300 hover:text-indigo-200"
+                >
+                  Download signed PDF
+                </a>
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-1">
+            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+              <input type="hidden" name="action" value="send_contract" />
+              <button
+                type="submit"
+                disabled={partner.contractStatus === "signed"}
+                className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600"
+              >
+                Send contract
+              </button>
+            </form>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+              <input type="hidden" name="action" value="mark_meeting_done" />
+              <button
+                type="submit"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+              >
+                Mark meeting done
+              </button>
+            </form>
+
+            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST">
+              <input type="hidden" name="action" value="start_nurturing" />
+              <button
+                type="submit"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 transition-colors"
+              >
+                Start nurturing
+              </button>
+            </form>
+
+            <form action={`/api/partners/${partner.id}/lifecycle`} method="POST" className="sm:col-span-2">
+              <input type="hidden" name="action" value="mark_onboarded" />
+              <button
+                type="submit"
+                disabled={!partner.contractSignedAt}
+                className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600"
+              >
+                Mark onboarded
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div className="surface-card rounded-2xl p-6">
+          <h2 className="text-white font-semibold mb-4">Lifecycle Timeline</h2>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract status</p>
+              <p className="mt-1 text-white capitalize">{partner.contractStatus.replaceAll("_", " ")}</p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract signed</p>
+              <p className="mt-1 text-white">
+                {partner.contractSignedAt
+                  ? new Date(partner.contractSignedAt).toLocaleDateString("en-AE")
+                  : "Pending partner signature"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Contract sent</p>
+              <p className="mt-1 text-white">
+                {partner.contractSentAt
+                  ? new Date(partner.contractSentAt).toLocaleDateString("en-AE")
+                  : "Not sent"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Signed by</p>
+              <p className="mt-1 text-white">
+                {partner.contractSignedName || "Pending signature"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Signature method</p>
+              <p className="mt-1 text-white capitalize">
+                {partner.contractSignatureType || "Not captured"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Signed designation</p>
+              <p className="mt-1 text-white">
+                {partner.contractSignedDesignation || "Not provided"}
+              </p>
+            </div>
+            {partner.contractSignatureType === "upload" &&
+              partner.contractSignatureDataUrl && (
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                  <p className="text-slate-500 text-xs uppercase tracking-wider">
+                    Uploaded signature
+                  </p>
+                  <img
+                    src={partner.contractSignatureDataUrl}
+                    alt="Partner signature"
+                    className="mt-3 max-h-24 rounded-lg bg-white p-2"
+                  />
+                </div>
+              )}
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Meeting completed</p>
+              <p className="mt-1 text-white">
+                {partner.meetingCompletedAt
+                  ? new Date(partner.meetingCompletedAt).toLocaleDateString("en-AE")
+                  : "Not recorded"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Onboarded</p>
+              <p className="mt-1 text-white">
+                {partner.onboardedAt
+                  ? new Date(partner.onboardedAt).toLocaleDateString("en-AE")
+                  : "Pending"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-slate-500 text-xs uppercase tracking-wider">Nurturing</p>
+              <p className="mt-1 text-white">
+                {partner.nurturingStartedAt
+                  ? new Date(partner.nurturingStartedAt).toLocaleDateString("en-AE")
+                  : "Not started"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Company Info */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Primary Information */}
           <div className="surface-card rounded-2xl p-6">
             <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
               <Building2 className="w-4 h-4 text-slate-400" />
-              Company Information
+              Primary Information
             </h2>
+            <AdminPartnerEditForm section="primary" partner={editablePartner}>
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -199,31 +558,73 @@ export default async function PartnerDetailPage({
               )}
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Designation
+                </dt>
+                <dd className="text-white text-sm">{partner.designation || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partnership Manager
+                </dt>
+                <dd className="text-white text-sm">{partner.partnershipManager || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Appointments Setter
+                </dt>
+                <dd className="text-white text-sm">{partner.appointmentsSetter || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partners ID
+                </dt>
+                <dd className="text-white text-sm">{partner.partnersId || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Strategic Funnel Stage
+                </dt>
+                <dd className="text-white text-sm">{partner.strategicFunnelStage || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Registered
                 </dt>
                 <dd className="text-white text-sm flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  {new Date(partner.createdAt).toLocaleDateString("en-AE", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
+                  {formatDate(partner.createdAt)}
                 </dd>
               </div>
-              {partner.onboardedAt && (
-                <div>
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Onboarded
-                  </dt>
-                  <dd className="text-white text-sm">
-                    {new Date(partner.onboardedAt).toLocaleDateString("en-AE", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </dd>
-                </div>
-              )}
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Onboarding Date
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.onboardedAt) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Activation Date
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.activationDate) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Last Met On
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.lastMetOn) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Meeting Scheduled (AS)
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.meetingScheduledDateAS) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Meeting Date (PM)
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.meetingDatePM) || "—"}</dd>
+              </div>
               {partner.rejectionReason && (
                 <div className="sm:col-span-2">
                   <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -235,6 +636,201 @@ export default async function PartnerDetailPage({
                 </div>
               )}
             </dl>
+            </AdminPartnerEditForm>
+          </div>
+
+          {/* Secondary Information */}
+          <div className="surface-card rounded-2xl p-6">
+            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" />
+              Secondary Information
+            </h2>
+            <AdminPartnerEditForm section="secondary" partner={editablePartner}>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Agreement Sent?
+                </dt>
+                <dd className="text-white text-sm">{partner.contractStatus !== "not_sent" ? "Yes" : "No"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Agreement Signed
+                </dt>
+                <dd className="text-white text-sm">{partner.contractSignedAt ? "Yes" : "No"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partnership Level
+                </dt>
+                <dd className="text-white text-sm capitalize">{partner.partnershipLevel || partner.tier || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  LinkedIn ID
+                </dt>
+                <dd className="text-white text-sm">{partner.linkedinId || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Agreement Start Date
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.agreementStartDate) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Agreement End Date
+                </dt>
+                <dd className="text-white text-sm">{formatDate(partner.agreementEndDate) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Sales Training Done
+                </dt>
+                <dd className="text-white text-sm">{partner.salesTrainingDone ? "Yes" : "No"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partner Industry
+                </dt>
+                <dd className="text-white text-sm">{partner.partnerIndustry || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Date of Birth
+                </dt>
+                <dd className="text-white text-sm">{partner.dateOfBirth || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Nationality
+                </dt>
+                <dd className="text-white text-sm">{partner.nationality || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Business Size
+                </dt>
+                <dd className="text-white text-sm capitalize">{partner.businessSize || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Secondary Email
+                </dt>
+                <dd className="text-white text-sm">{partner.secondaryEmail || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partner Website
+                </dt>
+                <dd className="text-white text-sm">{partner.website || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Email Opt Out
+                </dt>
+                <dd className="text-white text-sm">{partner.emailOptOut ? "Yes" : "No"}</dd>
+              </div>
+              {partner.overview && (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                    Overview
+                  </dt>
+                  <dd className="text-white text-sm">{partner.overview}</dd>
+                </div>
+              )}
+            </dl>
+            </AdminPartnerEditForm>
+          </div>
+
+          {/* Financial Information */}
+          <div className="surface-card rounded-2xl p-6">
+            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-slate-400" />
+              Financial Information
+            </h2>
+            <AdminPartnerEditForm section="financial" partner={editablePartner}>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Commission Type
+                </dt>
+                <dd className="text-white text-sm capitalize">{partner.commissionType || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Commission Rate
+                </dt>
+                <dd className="text-white text-sm">{partner.commissionRate ? `${partner.commissionRate}%` : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  VAT Registered
+                </dt>
+                <dd className="text-white text-sm">{partner.vatRegistered ? "Yes" : "No"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  VAT Number
+                </dt>
+                <dd className="text-white text-sm">{partner.vatNumber || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Partner Address
+                </dt>
+                <dd className="text-white text-sm">{partner.partnerAddress || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Trade License
+                </dt>
+                <dd className="text-white text-sm">{partner.tradeLicense || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Beneficiary Name
+                </dt>
+                <dd className="text-white text-sm">{partner.beneficiaryName || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Bank Name
+                </dt>
+                <dd className="text-white text-sm">{partner.bankName || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Bank Country
+                </dt>
+                <dd className="text-white text-sm">{partner.bankCountry || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Account No / IBAN
+                </dt>
+                <dd className="text-white text-sm">{partner.accountNoIban || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  SWIFT / BIC Code
+                </dt>
+                <dd className="text-white text-sm">{partner.swiftBicCode || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Payment Frequency
+                </dt>
+                <dd className="text-white text-sm capitalize">{partner.paymentFrequency || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Emirate ID / Passport
+                </dt>
+                <dd className="text-white text-sm">{partner.emirateIdPassport || "—"}</dd>
+              </div>
+            </dl>
+            </AdminPartnerEditForm>
           </div>
 
           {/* Leads */}
@@ -339,7 +935,11 @@ export default async function PartnerDetailPage({
                 {partnerDocs.map((doc) => (
                   <a
                     key={doc.id}
-                    href={doc.zohoWorkdriveUrl}
+                    href={
+                      doc.storageProvider === "database"
+                        ? `/api/documents/${doc.id}/download`
+                        : doc.zohoWorkdriveUrl
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-3 p-3 bg-white/6 hover:bg-zinc-750 border border-white/8 rounded-lg transition-colors group"

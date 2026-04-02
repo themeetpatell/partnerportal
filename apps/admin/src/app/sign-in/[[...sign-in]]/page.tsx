@@ -1,4 +1,5 @@
-import { SignIn } from "@clerk/nextjs"
+import { ClerkFailed, ClerkLoaded, ClerkLoading, SignIn } from "@clerk/nextjs"
+import { ClerkFallbackCard } from "@/components/clerk-fallback-card"
 
 export default function SignInPage() {
   return (
@@ -16,12 +17,22 @@ export default function SignInPage() {
           </p>
         </div>
 
-        <SignIn
-          routing="path"
-          path="/sign-in"
-          forceRedirectUrl="/dashboard"
-          fallbackRedirectUrl="/dashboard"
-        />
+        <ClerkLoading>
+          <div className="h-[540px] w-full max-w-[420px] rounded-[1.75rem] border border-white/10 bg-white/[0.03]" />
+        </ClerkLoading>
+
+        <ClerkLoaded>
+          <SignIn
+            routing="path"
+            path="/sign-in"
+            forceRedirectUrl="/dashboard"
+            fallbackRedirectUrl="/dashboard"
+          />
+        </ClerkLoaded>
+
+        <ClerkFailed>
+          <ClerkFallbackCard />
+        </ClerkFailed>
       </div>
     </div>
   )

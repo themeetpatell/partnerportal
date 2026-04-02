@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, invoices, partners } from "@repo/db"
-import { eq, sum } from "drizzle-orm"
+import { and, eq, isNull, sum } from "drizzle-orm"
 import { FileText, ArrowRight, Clock, CheckCircle2, AlertCircle } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -52,11 +52,11 @@ export default async function InvoicesPage({
       })
       .from(invoices)
       .leftJoin(partners, eq(invoices.partnerId, partners.id))
-      .where(status ? eq(invoices.status, status) : undefined)
+      .where(and(isNull(invoices.deletedAt), status ? eq(invoices.status, status) : undefined))
       .orderBy(invoices.createdAt),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(eq(invoices.status, "sent")),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(eq(invoices.status, "paid")),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(eq(invoices.status, "overdue")),
+    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "sent"))),
+    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "paid"))),
+    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "overdue"))),
   ])
 
   function fmt(val: string | null | undefined) {

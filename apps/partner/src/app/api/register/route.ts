@@ -4,9 +4,16 @@ import { z } from "zod"
 import { db } from "@repo/db"
 import { partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { sendPartnerApplicationReceivedEmail, sendWelcomeEmail } from "@repo/notifications"
+import { sendPartnerApplicationReceivedEmail } from "@repo/notifications"
+import { rateLimit, getClientIp } from "@repo/auth"
 
-const PLACEHOLDER_TENANT_ID = "00000000-0000-0000-0000-000000000001"
+function getTenantId(): string {
+  const id = process.env.DEFAULT_TENANT_ID
+  if (!id) {
+    throw new Error("DEFAULT_TENANT_ID environment variable is required")
+  }
+  return id
+}
 
 const registerSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255),
@@ -21,6 +28,10 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 registrations per IP per minute
+    const limited = rateLimit(`register:${getClientIp(request.headers)}`, 5, 60_000)
+    if (limited) return limited
+
     // Auth check
     const { userId } = await auth()
     if (!userId) {
@@ -69,35 +80,28 @@ export async function POST(request: NextRequest) {
 
     const { companyName, contactName, email, phone, type } = parsed.data
 
-    // Determine status based on type
-    const status = type === "referral" ? "approved" : "pending"
-
     // Insert partner record
     const [newPartner] = await db
       .insert(partners)
       .values({
-        tenantId: PLACEHOLDER_TENANT_ID,
+        tenantId: getTenantId(),
         clerkUserId: userId,
         type,
         companyName,
         contactName,
         email,
         phone: phone || null,
-        status,
-        onboardedAt: type === "referral" ? new Date() : null,
+        status: "pending",
+        contractStatus: "not_sent",
       })
       .returning()
 
-    if (status === "approved") {
-      await sendWelcomeEmail(newPartner.email, newPartner.contactName)
-    } else {
-      await sendPartnerApplicationReceivedEmail(
-        newPartner.email,
-        newPartner.contactName,
-        newPartner.companyName,
-        newPartner.type as "referral" | "channel"
-      )
-    }
+    await sendPartnerApplicationReceivedEmail(
+      newPartner.email,
+      newPartner.contactName,
+      newPartner.companyName,
+      newPartner.type as "referral" | "channel"
+    )
 
     return NextResponse.json(
       {

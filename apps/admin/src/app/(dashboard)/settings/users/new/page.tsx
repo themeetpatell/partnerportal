@@ -25,9 +25,10 @@ export default function NewUserPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    clerkUserId: "",
     name: "",
     email: "",
+    phone: "",
+    designation: "",
     role: "sales" as (typeof ROLES)[number]["value"],
     rowScope: "all" as (typeof SCOPES)[number]["value"],
   })
@@ -71,7 +72,7 @@ export default function NewUserPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Add Team Member</h1>
           <p className="text-zinc-400 text-sm mt-0.5">
-            The Clerk User ID can be found in the Clerk dashboard.
+            Create the team member record first. Internal identity is generated automatically.
           </p>
         </div>
       </div>
@@ -80,15 +81,20 @@ export default function NewUserPage() {
         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
           <h2 className="text-zinc-100 font-semibold text-sm">Identity</h2>
           <div className="space-y-4">
-            <Field label="Clerk User ID *">
-              <input required value={form.clerkUserId} onChange={set("clerkUserId")} placeholder="user_2abc…" className={inputCls} />
-            </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Name *">
                 <input required value={form.name} onChange={set("name")} placeholder="Jane Smith" className={inputCls} />
               </Field>
               <Field label="Email *">
                 <input required type="email" value={form.email} onChange={set("email")} placeholder="jane@company.com" className={inputCls} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Phone Number">
+                <input value={form.phone} onChange={set("phone")} placeholder="+971 50 000 0000" className={inputCls} />
+              </Field>
+              <Field label="Designation">
+                <input value={form.designation} onChange={set("designation")} placeholder="Business Development Manager" className={inputCls} />
               </Field>
             </div>
           </div>

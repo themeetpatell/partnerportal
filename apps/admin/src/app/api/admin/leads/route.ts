@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth, currentUser } from "@clerk/nextjs/server"
 import { db, leads, teamMembers, logActivity } from "@repo/db"
-import { eq, and, or } from "drizzle-orm"
+import { eq, and, or, isNull } from "drizzle-orm"
 
 const TENANT_ID = process.env.DEFAULT_TENANT_ID!
 
@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
       and(
         eq(leads.partnerId, partnerId),
         eq(leads.tenantId, TENANT_ID),
+        isNull(leads.deletedAt),
         or(
           eq(leads.customerEmail, customerEmail),
           customerPhone ? eq(leads.customerPhone, customerPhone) : undefined

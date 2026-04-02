@@ -1,6 +1,5 @@
 # dependencies
 node_modules
-.pnpm-store
 
 # turbo
 .turbo
@@ -20,4 +19,3 @@ dist
 *.pem
 .vercel
 *.tsbuildinfo
-.claude/

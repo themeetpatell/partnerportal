@@ -1,9 +1,11 @@
 import { currentUser } from "@clerk/nextjs/server"
 import { db, commissions, leads, partners, serviceRequests, services } from "@repo/db"
-import { and, desc, eq, notInArray, sum } from "drizzle-orm"
+import { and, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowRight, CircleDollarSign, ClipboardList, Plus, Users, Wallet } from "lucide-react"
 import { buildClientRecords } from "@/lib/client-records"
+import { DatabaseFallbackCard } from "@/components/database-fallback-card"
+import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
 
 const leadStatusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
@@ -57,68 +59,83 @@ export default async function DashboardPage() {
   }> = []
   let recentClients: ReturnType<typeof buildClientRecords> = []
 
-  if (user) {
-    const [partner] = await db
-      .select()
-      .from(partners)
-      .where(eq(partners.clerkUserId, user.id))
-      .limit(1)
+  try {
+    if (user) {
+      const [partner] = await db
+        .select()
+        .from(partners)
+        .where(eq(partners.clerkUserId, user.id))
+        .limit(1)
 
-    if (partner) {
-      partnerRecord = partner
-      const [leadRows, requestRows, paidResult, pendingResult] = await Promise.all([
-        db
-          .select({
-            customerName: leads.customerName,
-            customerEmail: leads.customerEmail,
-            customerCompany: leads.customerCompany,
-            status: leads.status,
-            createdAt: leads.createdAt,
-          })
-          .from(leads)
-          .where(eq(leads.partnerId, partner.id))
-          .orderBy(desc(leads.createdAt)),
-        db
-          .select({
-            id: serviceRequests.id,
-            customerCompany: serviceRequests.customerCompany,
-            customerContact: serviceRequests.customerContact,
-            customerEmail: serviceRequests.customerEmail,
-            serviceName: services.name,
-            status: serviceRequests.status,
-            createdAt: serviceRequests.createdAt,
-          })
-          .from(serviceRequests)
-          .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-          .where(eq(serviceRequests.partnerId, partner.id))
-          .orderBy(desc(serviceRequests.createdAt)),
-        db
-          .select({ total: sum(commissions.amount) })
-          .from(commissions)
-          .where(and(eq(commissions.partnerId, partner.id), eq(commissions.status, "paid"))),
-        db
-          .select({ total: sum(commissions.amount) })
-          .from(commissions)
-          .where(
-            and(
-              eq(commissions.partnerId, partner.id),
-              notInArray(commissions.status, ["paid", "disputed"]),
+      if (partner) {
+        partnerRecord = partner
+        const [leadRows, requestRows, paidResult, pendingResult] = await Promise.all([
+          db
+            .select({
+              customerName: leads.customerName,
+              customerEmail: leads.customerEmail,
+              customerCompany: leads.customerCompany,
+              status: leads.status,
+              createdAt: leads.createdAt,
+            })
+            .from(leads)
+            .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
+            .orderBy(desc(leads.createdAt)),
+          db
+            .select({
+              id: serviceRequests.id,
+              customerCompany: serviceRequests.customerCompany,
+              customerContact: serviceRequests.customerContact,
+              customerEmail: serviceRequests.customerEmail,
+              serviceName: services.name,
+              status: serviceRequests.status,
+              createdAt: serviceRequests.createdAt,
+            })
+            .from(serviceRequests)
+            .innerJoin(services, eq(serviceRequests.serviceId, services.id))
+            .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
+            .orderBy(desc(serviceRequests.createdAt)),
+          db
+            .select({ total: sum(commissions.amount) })
+            .from(commissions)
+            .where(and(eq(commissions.partnerId, partner.id), eq(commissions.status, "paid"))),
+          db
+            .select({ total: sum(commissions.amount) })
+            .from(commissions)
+            .where(
+              and(
+                eq(commissions.partnerId, partner.id),
+                notInArray(commissions.status, ["paid", "disputed"]),
+              ),
             ),
-          ),
-      ])
+        ])
 
-      activeLeads = leadRows.filter(
-        (lead) => !["converted", "rejected"].includes(lead.status),
-      ).length
-      activeRequests = requestRows.filter(
-        (request) => !["completed", "cancelled"].includes(request.status),
-      ).length
-      totalEarned = Number(paidResult[0]?.total ?? 0)
-      pendingPayout = Number(pendingResult[0]?.total ?? 0)
-      recentRequests = requestRows.slice(0, 5)
-      recentClients = buildClientRecords(leadRows, requestRows).slice(0, 5)
-      totalClients = buildClientRecords(leadRows, requestRows).length
+        activeLeads = leadRows.filter(
+          (lead) => !["converted", "rejected"].includes(lead.status),
+        ).length
+        activeRequests = requestRows.filter(
+          (request) => !["completed", "cancelled"].includes(request.status),
+        ).length
+        totalEarned = Number(paidResult[0]?.total ?? 0)
+        pendingPayout = Number(pendingResult[0]?.total ?? 0)
+        recentRequests = requestRows.slice(0, 5)
+        recentClients = buildClientRecords(leadRows, requestRows).slice(0, 5)
+        totalClients = buildClientRecords(leadRows, requestRows).length
+      }
     }
+  } catch (error) {
+    if (isDatabaseConnectivityError(error)) {
+      console.error("Partner dashboard database query failed", error)
+      return (
+        <DatabaseFallbackCard
+          title="Partner dashboard is unavailable"
+          message="The page loaded, but the dashboard queries could not reach Postgres. Fix the database host in `DATABASE_URL`, make sure the target is reachable from this machine, then refresh."
+          host={getDatabaseErrorHost(error)}
+        />
+      )
+    }
+
+    throw error
   }
 
   const kpiCards = [

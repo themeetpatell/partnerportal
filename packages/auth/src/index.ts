@@ -1,6 +1,7 @@
 export { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
 export { currentUser, auth } from "@clerk/nextjs/server"
 export { ClerkProvider, useUser, useAuth } from "@clerk/nextjs"
+export { rateLimit, getClientIp } from "./rate-limit"
 
 export type TeamRole = "admin" | "sales" | "ops" | "finance"
 export type PortalType = "partner" | "admin"

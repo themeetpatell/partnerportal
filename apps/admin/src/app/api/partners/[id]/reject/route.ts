@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { db, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { db, partners, teamMembers, logActivity } from "@repo/db"
+import { eq, and } from "drizzle-orm"
 import { sendPartnerRejectedEmail } from "@repo/notifications"
+import { rateLimit } from "@repo/auth"
 
 export async function POST(
   req: NextRequest,
@@ -11,6 +12,21 @@ export async function POST(
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  // Rate limit: 20 rejections per user per minute
+  const limited = rateLimit(`reject:${userId}`, 20, 60_000)
+  if (limited) return limited
+
+  // Verify admin/partnership role
+  const [member] = await db
+    .select()
+    .from(teamMembers)
+    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
+    .limit(1)
+
+  if (!member || !["admin", "partnership"].includes(member.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const { id } = await params
@@ -49,6 +65,16 @@ export async function POST(
     updated.contactName,
     updated.rejectionReason
   )
+
+  await logActivity({
+    tenantId: updated.tenantId,
+    actorId: userId,
+    actorName: member.name,
+    action: "partner.rejected",
+    entityType: "partner",
+    entityId: id,
+    metadata: reason ? { reason } : undefined,
+  })
 
   return NextResponse.redirect(new URL(`/partners/${id}`, req.url))
 }

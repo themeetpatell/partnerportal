@@ -2,7 +2,9 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useState, useTransition } from "react"
-import { Calendar, ChevronDown, X, Bookmark, Share2 } from "lucide-react"
+import { ChevronDown, X, Bookmark, Share2, Download } from "lucide-react"
+
+/* ── Date presets ─────────────────────────────────────── */
 
 const DATE_PRESETS = [
   { label: "Today", value: "today" },
@@ -17,23 +19,7 @@ const DATE_PRESETS = [
   { label: "All Time", value: "all" },
 ] as const
 
-interface FilterBarProps {
-  partners: { id: string; companyName: string }[]
-  teamMembers: { id: string; name: string; clerkUserId: string }[]
-  currentFilters: {
-    dateRange?: string
-    partnerId?: string
-    teamMemberId?: string
-    leadStatus?: string
-    leadSource?: string
-    serviceStatus?: string
-    invoiceStatus?: string
-    region?: string
-    channel?: string
-    currency?: string
-  }
-  savedFilters?: { id: string; name: string; filters: string }[]
-}
+/* ── Shared primitives ───────────────────────────────── */
 
 function Select({
   label,
@@ -65,18 +51,30 @@ function Select({
   )
 }
 
-export function AnalyticsFilterBar({
-  partners,
-  teamMembers,
-  currentFilters,
-  savedFilters = [],
-}: FilterBarProps) {
+function FilterChip({
+  label,
+  onRemove,
+}: {
+  label: string
+  onRemove: () => void
+}) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-800/40 text-indigo-300 text-xs">
+      {label}
+      <button onClick={onRemove} className="hover:text-white transition-colors">
+        <X className="w-2.5 h-2.5" />
+      </button>
+    </span>
+  )
+}
+
+/* ── Hook: central URL param updater ─────────────────── */
+
+function useFilterUpdater() {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [, startTransition] = useTransition()
-  const [showSaveModal, setShowSaveModal] = useState(false)
-  const [saveName, setSaveName] = useState("")
 
   const update = useCallback(
     (key: string, value: string) => {
@@ -90,7 +88,18 @@ export function AnalyticsFilterBar({
         router.replace(`${pathname}?${params.toString()}`)
       })
     },
-    [router, pathname, searchParams]
+    [router, pathname, searchParams],
+  )
+
+  const clearKeys = useCallback(
+    (keys: string[]) => {
+      const params = new URLSearchParams(searchParams.toString())
+      for (const k of keys) params.delete(k)
+      startTransition(() => {
+        router.replace(`${pathname}?${params.toString()}`)
+      })
+    },
+    [router, pathname, searchParams],
   )
 
   const clearAll = useCallback(() => {
@@ -99,21 +108,44 @@ export function AnalyticsFilterBar({
     })
   }, [router, pathname])
 
-  const shareLink = useCallback(() => {
-    navigator.clipboard.writeText(window.location.href)
-  }, [])
+  return { update, clearKeys, clearAll, searchParams, router, pathname, startTransition }
+}
+
+/* ── Global date bar + actions ────────────────────────── */
+
+interface GlobalBarProps {
+  currentFilters: Record<string, string | undefined>
+  savedFilters?: { id: string; name: string; filters: string }[]
+}
+
+export function AnalyticsGlobalBar({
+  currentFilters,
+  savedFilters = [],
+}: GlobalBarProps) {
+  const { update, clearAll, searchParams, router, pathname, startTransition } =
+    useFilterUpdater()
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [saveName, setSaveName] = useState("")
 
   const activeCount = Object.values(currentFilters).filter(
-    (v) => v && v !== "all"
+    (v) => v && v !== "all",
   ).length
 
   const activeDateLabel =
     DATE_PRESETS.find((p) => p.value === (currentFilters.dateRange ?? "all"))
       ?.label ?? "All Time"
 
+  const shareLink = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href)
+  }, [])
+
+  const exportHref = `/api/admin/analytics/export?${new URLSearchParams(
+    Object.entries(currentFilters).filter(([, v]) => Boolean(v)) as [string, string][],
+  )}`
+
   return (
     <div className="space-y-3">
-      {/* Saved filter views */}
+      {/* Saved views */}
       {savedFilters.length > 0 && (
         <div className="flex gap-2 flex-wrap">
           {savedFilters.map((sf) => (
@@ -124,7 +156,9 @@ export function AnalyticsFilterBar({
                   const f = JSON.parse(sf.filters) as Record<string, string>
                   const params = new URLSearchParams(f)
                   startTransition(() => router.replace(`${pathname}?${params}`))
-                } catch {}
+                } catch {
+                  /* ignore malformed filter */
+                }
               }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-zinc-800 border border-zinc-700 text-xs text-zinc-300 hover:border-indigo-600 hover:text-indigo-300 transition-colors"
             >
@@ -135,9 +169,8 @@ export function AnalyticsFilterBar({
         </div>
       )}
 
-      {/* Filter row */}
+      {/* Date presets + global actions */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Date range presets */}
         <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1">
           {DATE_PRESETS.slice(0, 6).map((p) => {
             const active =
@@ -146,7 +179,9 @@ export function AnalyticsFilterBar({
             return (
               <button
                 key={p.value}
-                onClick={() => update("dateRange", p.value === "all" ? "" : p.value)}
+                onClick={() =>
+                  update("dateRange", p.value === "all" ? "" : p.value)
+                }
                 className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap ${
                   active
                     ? "bg-zinc-800 text-zinc-100"
@@ -157,12 +192,11 @@ export function AnalyticsFilterBar({
               </button>
             )
           })}
-          {/* More dates */}
           <Select
             label="More…"
             value={
               DATE_PRESETS.slice(6).some(
-                (p) => p.value === currentFilters.dateRange
+                (p) => p.value === currentFilters.dateRange,
               )
                 ? currentFilters.dateRange ?? ""
                 : ""
@@ -175,111 +209,6 @@ export function AnalyticsFilterBar({
           />
         </div>
 
-        {/* Separator */}
-        <div className="h-6 w-px bg-zinc-800" />
-
-        {/* Partner filter */}
-        <Select
-          label="All Partners"
-          value={currentFilters.partnerId ?? ""}
-          onChange={(v) => update("partnerId", v)}
-          options={partners.map((p) => ({
-            label: p.companyName,
-            value: p.id,
-          }))}
-        />
-
-        {/* Team member filter */}
-        <Select
-          label="All Team"
-          value={currentFilters.teamMemberId ?? ""}
-          onChange={(v) => update("teamMemberId", v)}
-          options={teamMembers.map((m) => ({
-            label: m.name,
-            value: m.clerkUserId,
-          }))}
-        />
-
-        {/* Lead status */}
-        <Select
-          label="Lead Status"
-          value={currentFilters.leadStatus ?? ""}
-          onChange={(v) => update("leadStatus", v)}
-          options={[
-            { label: "Submitted", value: "submitted" },
-            { label: "In Review", value: "in_review" },
-            { label: "Qualified", value: "qualified" },
-            { label: "Proposal Sent", value: "proposal_sent" },
-            { label: "Converted", value: "converted" },
-            { label: "Rejected", value: "rejected" },
-          ]}
-        />
-
-        {/* Lead source / channel */}
-        <Select
-          label="Channel"
-          value={currentFilters.channel ?? ""}
-          onChange={(v) => update("channel", v)}
-          options={[
-            { label: "Manual", value: "manual" },
-            { label: "Website", value: "website" },
-            { label: "Referral", value: "referral" },
-            { label: "Campaign", value: "campaign" },
-          ]}
-        />
-
-        {/* Service status */}
-        <Select
-          label="Service Status"
-          value={currentFilters.serviceStatus ?? ""}
-          onChange={(v) => update("serviceStatus", v)}
-          options={[
-            { label: "Pending", value: "pending" },
-            { label: "In Progress", value: "in_progress" },
-            { label: "Completed", value: "completed" },
-            { label: "Cancelled", value: "cancelled" },
-          ]}
-        />
-
-        {/* Invoice status */}
-        <Select
-          label="Invoice Status"
-          value={currentFilters.invoiceStatus ?? ""}
-          onChange={(v) => update("invoiceStatus", v)}
-          options={[
-            { label: "Draft", value: "draft" },
-            { label: "Sent", value: "sent" },
-            { label: "Paid", value: "paid" },
-            { label: "Overdue", value: "overdue" },
-            { label: "Cancelled", value: "cancelled" },
-          ]}
-        />
-
-        {/* Region */}
-        <Select
-          label="Region"
-          value={currentFilters.region ?? ""}
-          onChange={(v) => update("region", v)}
-          options={[
-            { label: "UAE", value: "UAE" },
-            { label: "KSA", value: "KSA" },
-            { label: "GCC Other", value: "GCC" },
-            { label: "International", value: "International" },
-          ]}
-        />
-
-        {/* Currency */}
-        <Select
-          label="Currency"
-          value={currentFilters.currency ?? ""}
-          onChange={(v) => update("currency", v)}
-          options={[
-            { label: "AED", value: "AED" },
-            { label: "USD", value: "USD" },
-            { label: "EUR", value: "EUR" },
-          ]}
-        />
-
         {/* Actions */}
         <div className="flex items-center gap-1.5 ml-auto">
           {activeCount > 0 && (
@@ -288,9 +217,16 @@ export function AnalyticsFilterBar({
               className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded-md hover:bg-zinc-800 transition-colors"
             >
               <X className="w-3 h-3" />
-              Clear ({activeCount})
+              Clear all ({activeCount})
             </button>
           )}
+          <a
+            href={exportHref}
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-100 px-2 py-1 rounded-md hover:bg-zinc-800 transition-colors"
+          >
+            <Download className="w-3 h-3" />
+            Export CSV
+          </a>
           <button
             onClick={shareLink}
             title="Copy shareable link"
@@ -309,71 +245,23 @@ export function AnalyticsFilterBar({
         </div>
       </div>
 
-      {/* Active filter chips */}
-      {activeCount > 0 && (
+      {/* Active date chip */}
+      {currentFilters.dateRange && currentFilters.dateRange !== "all" && (
         <div className="flex flex-wrap gap-1.5">
-          {currentFilters.dateRange && currentFilters.dateRange !== "all" && (
-            <FilterChip
-              label={`Date: ${activeDateLabel}`}
-              onRemove={() => update("dateRange", "")}
-            />
-          )}
-          {currentFilters.partnerId && (
-            <FilterChip
-              label={`Partner: ${partners.find((p) => p.id === currentFilters.partnerId)?.companyName ?? currentFilters.partnerId}`}
-              onRemove={() => update("partnerId", "")}
-            />
-          )}
-          {currentFilters.teamMemberId && (
-            <FilterChip
-              label={`Team: ${teamMembers.find((m) => m.clerkUserId === currentFilters.teamMemberId)?.name ?? currentFilters.teamMemberId}`}
-              onRemove={() => update("teamMemberId", "")}
-            />
-          )}
-          {currentFilters.leadStatus && (
-            <FilterChip
-              label={`Lead: ${currentFilters.leadStatus.replace("_", " ")}`}
-              onRemove={() => update("leadStatus", "")}
-            />
-          )}
-          {currentFilters.channel && (
-            <FilterChip
-              label={`Channel: ${currentFilters.channel}`}
-              onRemove={() => update("channel", "")}
-            />
-          )}
-          {currentFilters.serviceStatus && (
-            <FilterChip
-              label={`Service: ${currentFilters.serviceStatus.replace("_", " ")}`}
-              onRemove={() => update("serviceStatus", "")}
-            />
-          )}
-          {currentFilters.invoiceStatus && (
-            <FilterChip
-              label={`Invoice: ${currentFilters.invoiceStatus}`}
-              onRemove={() => update("invoiceStatus", "")}
-            />
-          )}
-          {currentFilters.region && (
-            <FilterChip
-              label={`Region: ${currentFilters.region}`}
-              onRemove={() => update("region", "")}
-            />
-          )}
-          {currentFilters.currency && (
-            <FilterChip
-              label={`Currency: ${currentFilters.currency}`}
-              onRemove={() => update("currency", "")}
-            />
-          )}
+          <FilterChip
+            label={`Date: ${activeDateLabel}`}
+            onRemove={() => update("dateRange", "")}
+          />
         </div>
       )}
 
-      {/* Save view modal */}
+      {/* Save modal */}
       {showSaveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/70 backdrop-blur-sm">
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-6 w-80 space-y-4">
-            <h3 className="text-zinc-100 font-semibold text-sm">Save filter view</h3>
+            <h3 className="text-zinc-100 font-semibold text-sm">
+              Save filter view
+            </h3>
             <input
               autoFocus
               type="text"
@@ -419,19 +307,364 @@ export function AnalyticsFilterBar({
   )
 }
 
-function FilterChip({
-  label,
-  onRemove,
-}: {
-  label: string
-  onRemove: () => void
-}) {
+/* ── Section-level filter rows ────────────────────────── */
+
+/* Pipeline filters: Partner, Partner Type, Team, Lead Status, Lead Source */
+interface PipelineFilterProps {
+  partners: { id: string; companyName: string }[]
+  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  currentFilters: Record<string, string | undefined>
+}
+
+export function PipelineFilters({
+  partners,
+  teamMembers,
+  currentFilters,
+}: PipelineFilterProps) {
+  const { update, clearKeys } = useFilterUpdater()
+  const keys = ["partnerId", "partnerType", "teamMemberId", "leadStatus", "leadSource"]
+  const active = keys.filter((k) => currentFilters[k])
+
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-800/40 text-indigo-300 text-xs">
-      {label}
-      <button onClick={onRemove} className="hover:text-white transition-colors">
-        <X className="w-2.5 h-2.5" />
-      </button>
-    </span>
+    <SectionFilterRow>
+      <Select
+        label="All Partners"
+        value={currentFilters.partnerId ?? ""}
+        onChange={(v) => update("partnerId", v)}
+        options={partners.map((p) => ({ label: p.companyName, value: p.id }))}
+      />
+      <Select
+        label="Partner Type"
+        value={currentFilters.partnerType ?? ""}
+        onChange={(v) => update("partnerType", v)}
+        options={[
+          { label: "Referral", value: "referral" },
+          { label: "Channel", value: "channel" },
+        ]}
+      />
+      <Select
+        label="All Team"
+        value={currentFilters.teamMemberId ?? ""}
+        onChange={(v) => update("teamMemberId", v)}
+        options={teamMembers.map((m) => ({
+          label: m.name,
+          value: m.clerkUserId,
+        }))}
+      />
+      <Select
+        label="Lead Status"
+        value={currentFilters.leadStatus ?? ""}
+        onChange={(v) => update("leadStatus", v)}
+        options={[
+          { label: "Submitted", value: "submitted" },
+          { label: "In Review", value: "in_review" },
+          { label: "Qualified", value: "qualified" },
+          { label: "Proposal Sent", value: "proposal_sent" },
+          { label: "Converted", value: "converted" },
+          { label: "Rejected", value: "rejected" },
+        ]}
+      />
+      <Select
+        label="Lead Source"
+        value={currentFilters.leadSource ?? ""}
+        onChange={(v) => update("leadSource", v)}
+        options={[
+          { label: "Manual", value: "manual" },
+          { label: "Website", value: "website" },
+          { label: "Referral", value: "referral" },
+          { label: "Campaign", value: "campaign" },
+        ]}
+      />
+      {active.length > 0 && (
+        <button
+          onClick={() => clearKeys(keys)}
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-3 h-3" />
+          Clear
+        </button>
+      )}
+    </SectionFilterRow>
+  )
+}
+
+/* Delivery filters: Partner, Partner Type, Team, Service Status */
+interface DeliveryFilterProps {
+  partners: { id: string; companyName: string }[]
+  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  currentFilters: Record<string, string | undefined>
+}
+
+export function DeliveryFilters({
+  partners,
+  teamMembers,
+  currentFilters,
+}: DeliveryFilterProps) {
+  const { update, clearKeys } = useFilterUpdater()
+  const keys = ["partnerId", "partnerType", "teamMemberId", "serviceStatus"]
+  const active = keys.filter((k) => currentFilters[k])
+
+  return (
+    <SectionFilterRow>
+      <Select
+        label="All Partners"
+        value={currentFilters.partnerId ?? ""}
+        onChange={(v) => update("partnerId", v)}
+        options={partners.map((p) => ({ label: p.companyName, value: p.id }))}
+      />
+      <Select
+        label="Partner Type"
+        value={currentFilters.partnerType ?? ""}
+        onChange={(v) => update("partnerType", v)}
+        options={[
+          { label: "Referral", value: "referral" },
+          { label: "Channel", value: "channel" },
+        ]}
+      />
+      <Select
+        label="All Team"
+        value={currentFilters.teamMemberId ?? ""}
+        onChange={(v) => update("teamMemberId", v)}
+        options={teamMembers.map((m) => ({
+          label: m.name,
+          value: m.clerkUserId,
+        }))}
+      />
+      <Select
+        label="Service Status"
+        value={currentFilters.serviceStatus ?? ""}
+        onChange={(v) => update("serviceStatus", v)}
+        options={[
+          { label: "Pending", value: "pending" },
+          { label: "In Progress", value: "in_progress" },
+          { label: "Completed", value: "completed" },
+          { label: "Cancelled", value: "cancelled" },
+        ]}
+      />
+      {active.length > 0 && (
+        <button
+          onClick={() => clearKeys(keys)}
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-3 h-3" />
+          Clear
+        </button>
+      )}
+    </SectionFilterRow>
+  )
+}
+
+/* Partner report filters: Partner Type, Tier */
+interface PartnerReportFilterProps {
+  currentFilters: Record<string, string | undefined>
+}
+
+export function PartnerReportFilters({
+  currentFilters,
+}: PartnerReportFilterProps) {
+  const { update, clearKeys } = useFilterUpdater()
+  const keys = ["partnerType", "partnerTier"]
+  const active = keys.filter((k) => currentFilters[k])
+
+  return (
+    <SectionFilterRow>
+      <Select
+        label="Partner Type"
+        value={currentFilters.partnerType ?? ""}
+        onChange={(v) => update("partnerType", v)}
+        options={[
+          { label: "Referral", value: "referral" },
+          { label: "Channel", value: "channel" },
+        ]}
+      />
+      <Select
+        label="Tier"
+        value={currentFilters.partnerTier ?? ""}
+        onChange={(v) => update("partnerTier", v)}
+        options={[
+          { label: "Bronze", value: "bronze" },
+          { label: "Silver", value: "silver" },
+          { label: "Gold", value: "gold" },
+          { label: "Platinum", value: "platinum" },
+        ]}
+      />
+      {active.length > 0 && (
+        <button
+          onClick={() => clearKeys(keys)}
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-3 h-3" />
+          Clear
+        </button>
+      )}
+    </SectionFilterRow>
+  )
+}
+
+/* Finance filters: Partner, Partner Type */
+interface FinanceFilterProps {
+  partners: { id: string; companyName: string }[]
+  currentFilters: Record<string, string | undefined>
+}
+
+export function FinanceFilters({
+  partners,
+  currentFilters,
+}: FinanceFilterProps) {
+  const { update, clearKeys } = useFilterUpdater()
+  const keys = ["partnerId", "partnerType"]
+  const active = keys.filter((k) => currentFilters[k])
+
+  return (
+    <SectionFilterRow>
+      <Select
+        label="All Partners"
+        value={currentFilters.partnerId ?? ""}
+        onChange={(v) => update("partnerId", v)}
+        options={partners.map((p) => ({ label: p.companyName, value: p.id }))}
+      />
+      <Select
+        label="Partner Type"
+        value={currentFilters.partnerType ?? ""}
+        onChange={(v) => update("partnerType", v)}
+        options={[
+          { label: "Referral", value: "referral" },
+          { label: "Channel", value: "channel" },
+        ]}
+      />
+      {active.length > 0 && (
+        <button
+          onClick={() => clearKeys(keys)}
+          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
+        >
+          <X className="w-3 h-3" />
+          Clear
+        </button>
+      )}
+    </SectionFilterRow>
+  )
+}
+
+/* ── Helpers ──────────────────────────────────────────── */
+
+function SectionFilterRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-5">{children}</div>
+  )
+}
+
+interface AnalyticsFilterBarProps {
+  partners: { id: string; companyName: string }[]
+  teamMembers: { id: string; name: string; clerkUserId: string }[]
+  currentFilters: {
+    dateRange?: string
+    partnerId?: string
+    partnerType?: string
+    teamMemberId?: string
+    leadStatus?: string
+    serviceStatus?: string
+  }
+  savedFilters?: { id: string; name: string; filters: string }[]
+}
+
+export function AnalyticsFilterBar({
+  partners,
+  teamMembers,
+  currentFilters,
+  savedFilters = [],
+}: AnalyticsFilterBarProps) {
+  const { update } = useFilterUpdater()
+
+  return (
+    <div className="space-y-3">
+      <AnalyticsGlobalBar currentFilters={currentFilters} savedFilters={savedFilters} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Select
+          label="All Partners"
+          value={currentFilters.partnerId ?? ""}
+          onChange={(v) => update("partnerId", v)}
+          options={partners.map((partner) => ({
+            label: partner.companyName,
+            value: partner.id,
+          }))}
+        />
+        <Select
+          label="Partner Type"
+          value={currentFilters.partnerType ?? ""}
+          onChange={(v) => update("partnerType", v)}
+          options={[
+            { label: "Referral", value: "referral" },
+            { label: "Channel", value: "channel" },
+          ]}
+        />
+        <Select
+          label="All Team"
+          value={currentFilters.teamMemberId ?? ""}
+          onChange={(v) => update("teamMemberId", v)}
+          options={teamMembers.map((member) => ({
+            label: member.name,
+            value: member.clerkUserId,
+          }))}
+        />
+        <Select
+          label="Lead Status"
+          value={currentFilters.leadStatus ?? ""}
+          onChange={(v) => update("leadStatus", v)}
+          options={[
+            { label: "Submitted", value: "submitted" },
+            { label: "In Review", value: "in_review" },
+            { label: "Qualified", value: "qualified" },
+            { label: "Proposal Sent", value: "proposal_sent" },
+            { label: "Converted", value: "converted" },
+            { label: "Rejected", value: "rejected" },
+          ]}
+        />
+        <Select
+          label="Service Status"
+          value={currentFilters.serviceStatus ?? ""}
+          onChange={(v) => update("serviceStatus", v)}
+          options={[
+            { label: "Pending", value: "pending" },
+            { label: "In Progress", value: "in_progress" },
+            { label: "Completed", value: "completed" },
+            { label: "Cancelled", value: "cancelled" },
+          ]}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {currentFilters.partnerId && (
+          <FilterChip
+            label={`Partner: ${partners.find((partner) => partner.id === currentFilters.partnerId)?.companyName ?? currentFilters.partnerId}`}
+            onRemove={() => update("partnerId", "")}
+          />
+        )}
+        {currentFilters.partnerType && (
+          <FilterChip
+            label={`Type: ${currentFilters.partnerType}`}
+            onRemove={() => update("partnerType", "")}
+          />
+        )}
+        {currentFilters.teamMemberId && (
+          <FilterChip
+            label={`Team: ${teamMembers.find((member) => member.clerkUserId === currentFilters.teamMemberId)?.name ?? currentFilters.teamMemberId}`}
+            onRemove={() => update("teamMemberId", "")}
+          />
+        )}
+        {currentFilters.leadStatus && (
+          <FilterChip
+            label={`Lead: ${currentFilters.leadStatus.replaceAll("_", " ")}`}
+            onRemove={() => update("leadStatus", "")}
+          />
+        )}
+        {currentFilters.serviceStatus && (
+          <FilterChip
+            label={`Service: ${currentFilters.serviceStatus.replaceAll("_", " ")}`}
+            onRemove={() => update("serviceStatus", "")}
+          />
+        )}
+      </div>
+    </div>
   )
 }

@@ -7,7 +7,6 @@ import {
   ChevronRight,
   ClipboardList,
   DollarSign,
-  FileText,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -28,7 +27,6 @@ const primaryItems = [
 ]
 
 const secondaryItems = [
-  { label: "Invoices", href: "/dashboard/invoices", icon: FileText },
   { label: "Profile", href: "/dashboard/profile", icon: User },
 ]
 

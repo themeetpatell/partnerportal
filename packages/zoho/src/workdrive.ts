@@ -57,19 +57,40 @@ export async function getWorkdriveUploadUrl(
   }
 }
 
+const ALLOWED_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "image/png",
+  "image/jpeg",
+])
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+
 export async function uploadToWorkdrive(
   folderId: string,
   fileName: string,
   fileBuffer: Buffer,
   mimeType: string
 ): Promise<{ fileId: string; fileUrl: string } | null> {
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    console.error("[zoho/workdrive] Rejected upload: disallowed MIME type", { mimeType, fileName })
+    return null
+  }
+
+  if (fileBuffer.length > MAX_FILE_SIZE) {
+    console.error("[zoho/workdrive] Rejected upload: file exceeds 10 MB", { size: fileBuffer.length, fileName })
+    return null
+  }
+
   try {
     const token = getWorkdriveToken()
+    const blobBytes = Uint8Array.from(fileBuffer)
 
     const formData = new FormData()
     formData.append(
       "content",
-      new Blob([fileBuffer], { type: mimeType }),
+      new Blob([blobBytes], { type: mimeType }),
       fileName
     )
     formData.append("filename", fileName)

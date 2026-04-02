@@ -9,7 +9,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@repo/types": "workspace:*"
+    "@repo/types": "*"
   },
   "devDependencies": {
     "typescript": "*",

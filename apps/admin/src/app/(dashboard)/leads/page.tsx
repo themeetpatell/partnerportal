@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, leads, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import { Users, ArrowRight, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -52,7 +52,7 @@ export default async function LeadsPage({
     })
     .from(leads)
     .leftJoin(partners, eq(leads.partnerId, partners.id))
-    .where(status ? eq(leads.status, status) : undefined)
+    .where(and(isNull(leads.deletedAt), status ? eq(leads.status, status) : undefined))
     .orderBy(leads.createdAt)
 
   return (

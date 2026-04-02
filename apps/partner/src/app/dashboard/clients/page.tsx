@@ -1,6 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server"
 import { db, leads, partners, serviceRequests, services } from "@repo/db"
-import { desc, eq } from "drizzle-orm"
+import { and, desc, eq, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { ClipboardList, Plus, Users } from "lucide-react"
 import { buildClientRecords } from "@/lib/client-records"
@@ -59,7 +59,7 @@ export default async function ClientsPage() {
             createdAt: leads.createdAt,
           })
           .from(leads)
-          .where(eq(leads.partnerId, partner.id))
+          .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
           .orderBy(desc(leads.createdAt)),
         db
           .select({
@@ -72,7 +72,7 @@ export default async function ClientsPage() {
           })
           .from(serviceRequests)
           .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-          .where(eq(serviceRequests.partnerId, partner.id))
+          .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
           .orderBy(desc(serviceRequests.createdAt)),
       ])
 

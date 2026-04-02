@@ -31,6 +31,36 @@ export const partners = pgTable("partners", {
   channel: text("channel"), // manual | website | referral | campaign
   ownerId: uuid("owner_id"), // assigned team member
   agreementUrl: text("agreement_url"),
+  zohoSignRequestId: text("zoho_sign_request_id"),
+  contractSentAt: timestamp("contract_sent_at"),
+  contractStatus: text("contract_status").notNull().default("not_sent"), // not_sent | sent | signed
+  contractSignedAt: timestamp("contract_signed_at"),
+  contractSignedName: text("contract_signed_name"),
+  contractSignedDesignation: text("contract_signed_designation"),
+  contractSignatureType: text("contract_signature_type"), // typed | upload
+  contractSignatureDataUrl: text("contract_signature_data_url"),
+  meetingCompletedAt: timestamp("meeting_completed_at"),
+  nurturingStartedAt: timestamp("nurturing_started_at"),
+
+  // Zoho CRM – Primary Information extras
+  designation: text("designation"),
+  partnershipManager: text("partnership_manager"),
+  appointmentsSetter: text("appointments_setter"),
+  strategicFunnelStage: text("strategic_funnel_stage"),
+  activationDate: timestamp("activation_date"),
+  lastMetOn: timestamp("last_met_on"),
+  meetingScheduledDateAS: timestamp("meeting_scheduled_date_as"),
+  meetingDatePM: timestamp("meeting_date_pm"),
+  partnersId: text("partners_id"), // custom Zoho ID
+
+  // Zoho CRM – Secondary Information extras
+  partnershipLevel: text("partnership_level"),
+  agreementStartDate: timestamp("agreement_start_date"),
+  agreementEndDate: timestamp("agreement_end_date"),
+  salesTrainingDone: boolean("sales_training_done").default(false),
+  dateOfBirth: text("date_of_birth"),
+  secondaryEmail: text("secondary_email"),
+  emailOptOut: boolean("email_opt_out").default(false),
 
   // Commercial
   commissionModelId: uuid("commission_model_id").references(() => commissionModels.id),
@@ -78,6 +108,8 @@ export const teamMembers = pgTable("team_members", {
   role: text("role").notNull(),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  phone: text("phone"),
+  designation: text("designation"),
   permissions: text("permissions").notNull().default("{}"), // JSON: { partners: 'rw', leads: 'r', ... }
   rowScope: text("row_scope").notNull().default("all"), // own | team | all
   isActive: boolean("is_active").notNull().default(true),

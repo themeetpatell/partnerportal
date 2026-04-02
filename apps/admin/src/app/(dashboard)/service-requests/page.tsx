@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, serviceRequests, partners, services } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import { ClipboardList, ArrowRight } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -52,7 +52,7 @@ export default async function ServiceRequestsPage({
     .from(serviceRequests)
     .leftJoin(partners, eq(serviceRequests.partnerId, partners.id))
     .leftJoin(services, eq(serviceRequests.serviceId, services.id))
-    .where(status ? eq(serviceRequests.status, status) : undefined)
+    .where(and(isNull(serviceRequests.deletedAt), status ? eq(serviceRequests.status, status) : undefined))
     .orderBy(serviceRequests.createdAt)
 
   return (

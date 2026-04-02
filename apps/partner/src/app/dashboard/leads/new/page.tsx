@@ -73,7 +73,10 @@ export default function NewLeadPage() {
       const response = await fetch("/api/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          serviceInterest: form.serviceInterests,
+        }),
       })
       const data = await response.json()
 

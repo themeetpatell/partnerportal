@@ -5,6 +5,7 @@ import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const localDefaultTenantId = "00000000-0000-0000-0000-000000000001"
 
 const apps = [
   { name: "@repo/partner", cwd: path.join(rootDir, "apps/partner"), port: "3000" },
@@ -13,6 +14,12 @@ const apps = [
 
 const children = new Set()
 let shuttingDown = false
+const importantEnvKeys = [
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+  "CLERK_SECRET_KEY",
+  "NEXT_PUBLIC_CLERK_SIGN_IN_URL",
+  "NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+]
 
 function sleep(ms) {
   return new Promise((resolve) => {
@@ -135,6 +142,35 @@ function parseEnvFile(filePath) {
 
 const rootEnv = parseEnvFile(path.join(rootDir, ".env.local"))
 
+function warnOnEnvOverrides(appName, appEnv) {
+  const overriddenKeys = importantEnvKeys.filter((key) => {
+    return rootEnv[key] && appEnv[key] && rootEnv[key] !== appEnv[key]
+  })
+
+  if (overriddenKeys.length === 0) {
+    return
+  }
+
+  console.warn(
+    `[dev] ${appName} overrides root .env.local for: ${overriddenKeys.join(", ")}. ` +
+      "Keep Clerk values aligned across env files to avoid auth confusion.",
+  )
+}
+
+function resolveDefaultTenantId(appName, appEnv) {
+  const tenantId = appEnv.DEFAULT_TENANT_ID || rootEnv.DEFAULT_TENANT_ID || process.env.DEFAULT_TENANT_ID
+
+  if (tenantId) {
+    return tenantId
+  }
+
+  console.warn(
+    `[dev] ${appName} is missing DEFAULT_TENANT_ID. Falling back to seeded local tenant ${localDefaultTenantId}.`,
+  )
+
+  return localDefaultTenantId
+}
+
 function stopChildren(signal = "SIGTERM") {
   for (const child of children) {
     if (!child.killed) {
@@ -163,13 +199,16 @@ async function main() {
     const appRequire = createRequire(path.join(app.cwd, "package.json"))
     const nextBin = appRequire.resolve("next/dist/bin/next")
     const appEnv = parseEnvFile(path.join(app.cwd, ".env.local"))
+    warnOnEnvOverrides(app.name, appEnv)
+    const defaultTenantId = resolveDefaultTenantId(app.name, appEnv)
 
-    const child = spawn(process.execPath, [nextBin, "dev", "--port", app.port], {
+    const child = spawn(process.execPath, [nextBin, "dev", "--turbopack", "--port", app.port], {
       cwd: app.cwd,
       env: {
         ...rootEnv,
         ...appEnv,
         ...process.env,
+        DEFAULT_TENANT_ID: defaultTenantId,
       },
       stdio: "inherit",
     })

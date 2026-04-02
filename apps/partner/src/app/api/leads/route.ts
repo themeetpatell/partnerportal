@@ -3,18 +3,29 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
 import { leads, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
 
-const createLeadSchema = z.object({
-  customerName: z.string().min(1, "Customer name is required").max(255),
-  customerEmail: z.string().email("Invalid email address"),
-  customerPhone: z.string().optional().default(""),
-  customerCompany: z.string().optional().default(""),
-  serviceInterest: z
-    .array(z.string())
-    .min(1, "Select at least one service of interest."),
-  notes: z.string().optional().default(""),
-})
+const createLeadSchema = z
+  .object({
+    customerName: z.string().min(1, "Customer name is required").max(255),
+    customerEmail: z.string().email("Invalid email address"),
+    customerPhone: z.string().optional().default(""),
+    customerCompany: z.string().optional().default(""),
+    serviceInterest: z
+      .array(z.string())
+      .min(1, "Select at least one service of interest.")
+      .optional(),
+    serviceInterests: z
+      .array(z.string())
+      .min(1, "Select at least one service of interest.")
+      .optional(),
+    notes: z.string().optional().default(""),
+  })
+  .transform((data) => ({
+    ...data,
+    serviceInterest: data.serviceInterest ?? data.serviceInterests ?? [],
+  }))
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +37,10 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       )
     }
+
+    // Rate limit: 30 leads per user per minute
+    const limited = rateLimit(`leads:${userId}`, 30, 60_000)
+    if (limited) return limited
 
     // Look up partner record for this Clerk user
     const [partner] = await db
@@ -147,7 +162,7 @@ export async function GET() {
     const partnerLeads = await db
       .select()
       .from(leads)
-      .where(eq(leads.partnerId, partner.id))
+      .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
       .orderBy(leads.createdAt)
 
     return NextResponse.json({

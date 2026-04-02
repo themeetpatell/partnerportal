@@ -55,6 +55,12 @@ const PARTNER_MODELS = {
       "Best for consultants, accountants, and advisors who introduce clients to Finanshels.",
     badge: "Instant approval",
     badgeClass: "border border-white/20 bg-white/10 text-white",
+    commission: {
+      annual: "30% of first-year package",
+      renewal: "20% of annual renewals",
+      addon: "15% on add-on services",
+      altRate: "30% of first payment only",
+    },
   },
   channel: {
     icon: Handshake,
@@ -63,6 +69,12 @@ const PARTNER_MODELS = {
       "Best for agencies and operators who want a deeper commercial relationship and service resale motion.",
     badge: "Manual review",
     badgeClass: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
+    commission: {
+      annual: "30% of first-year package",
+      renewal: "20% of annual renewals",
+      addon: "15% on add-on services",
+      altRate: "50% of first payment only",
+    },
   },
 }
 
@@ -113,7 +125,7 @@ function Step1TypeSelection({
         Pick the commercial relationship that matches how you introduce or sell Finanshels services.
       </p>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-2">
+      <div className="mt-8 grid gap-5 lg:grid-cols-2">
         {(Object.entries(PARTNER_MODELS) as [PartnerType, (typeof PARTNER_MODELS)[PartnerType]][]).map(
           ([type, config]) => (
             <button
@@ -144,12 +156,30 @@ function Step1TypeSelection({
                 {config.description}
               </p>
 
-              <div className="mt-5 flex items-center justify-between">
+              {/* Commission highlights */}
+              <div className="mt-4 space-y-1.5 rounded-xl border border-white/6 bg-white/[0.02] px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Commission structure</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Initial commission</span>
+                  <span className="font-semibold text-white">{config.commission.annual}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Annual renewals</span>
+                  <span className="font-semibold text-white">{config.commission.renewal}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-slate-400">Add-on services</span>
+                  <span className="font-semibold text-white">{config.commission.addon}</span>
+                </div>
+                <div className="mt-1.5 border-t border-white/6 pt-1.5 flex items-center justify-between text-xs">
+                  <span className="text-slate-500">Monthly/Quarterly alt.</span>
+                  <span className="font-medium text-indigo-300">{config.commission.altRate}</span>
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
                 <span className={`rounded-full px-3 py-1 text-xs font-semibold ${config.badgeClass}`}>
                   {config.badge}
-                </span>
-                <span className="text-xs uppercase tracking-[0.22em] text-slate-500">
-                  Stage 01
                 </span>
               </div>
             </button>
@@ -263,6 +293,9 @@ function Step3Terms({
   onToggle: () => void
   partnerType: PartnerType | null
 }) {
+  const isChannel = partnerType === "channel"
+  const modelConfig = partnerType ? PARTNER_MODELS[partnerType] : null
+
   return (
     <div>
       <h2 className="section-title">Review the partner terms</h2>
@@ -270,21 +303,82 @@ function Step3Terms({
         This keeps expectations clear around conduct, commission handling, and client confidentiality.
       </p>
 
-      <div className="surface-card mt-8 h-72 overflow-y-auto rounded-[1.75rem] p-6">
+      <div className="surface-card mt-8 max-h-[28rem] overflow-y-auto rounded-[1.75rem] p-6">
         <h3 className="font-heading text-xl font-semibold text-white">
-          Finanshels Partner Agreement
+          Finanshels {isChannel ? "Channel" : "Referral"} Partner Agreement
         </h3>
+
         <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
           <p>
             <strong className="text-white">1. Partnership terms.</strong> You agree to operate in
             accordance with applicable UAE laws and any jurisdiction where you conduct business.
           </p>
+
           <p>
             <strong className="text-white">2. Commissions.</strong>{" "}
-            {partnerType === "channel"
-              ? "Channel commissions follow the commercial terms defined during approval and onboarding."
-              : "Referral commissions are earned when referred clients convert to paying Finanshels customers."}
+            {isChannel
+              ? "Channel partner commissions are structured as outlined in the commission schedule below. Subsequent renewal commissions are payable only to Channel Partners who maintain active status and have not entered a Commercial Reset (Churn)."
+              : "Referral partner commissions are earned when referred clients convert to paying Finanshels customers. Subsequent renewal commissions are payable only to Referral Partners who maintain active status and have not entered a Commercial Reset (Churn)."}
           </p>
+
+          {/* Commission structure card */}
+          {modelConfig && (
+            <div className="rounded-xl border border-indigo-400/15 bg-indigo-500/5 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                Annexure II — {isChannel ? "Channel" : "Referral"} Partner Commission Structure
+              </p>
+
+              <div>
+                <p className="text-xs font-semibold text-white mb-1">Annual Packages</p>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
+                    Initial Commission: <strong className="text-white">{modelConfig.commission.annual}</strong>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
+                    Subsequent Annual Renewal: <strong className="text-white">{modelConfig.commission.renewal}</strong>
+                  </li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold text-white mb-1">Add-on Services (Annual)</p>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
+                    <strong className="text-white">{modelConfig.commission.addon}</strong> on all pre-approved add-on services
+                  </li>
+                </ul>
+              </div>
+
+              <div className="border-t border-white/8 pt-3">
+                <p className="text-xs font-semibold text-white mb-1">Alternative Payment Plan</p>
+                <p className="text-[10px] italic text-slate-500 mb-1.5">
+                  Applies to Monthly/Quarterly Packages &amp; Recurring Add-On Services
+                </p>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
+                    {isChannel ? "Channel" : "Referral"} Partner receives <strong className="text-white">{modelConfig.commission.altRate}</strong>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-500 flex-shrink-0" />
+                    No commission on subsequent payments
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-500 flex-shrink-0" />
+                    No commission on any recurring add-on services
+                  </li>
+                </ul>
+              </div>
+
+              <p className="text-[10px] italic text-slate-500 pt-1">
+                Actual package pricing and add-on service fees will be shared separately.
+              </p>
+            </div>
+          )}
+
           <p>
             <strong className="text-white">3. Confidentiality.</strong> Client information, pricing,
             and internal Finanshels processes must be treated as confidential at all times.
@@ -323,7 +417,7 @@ function Step3Terms({
           <Check className="h-3 w-3" />
         </div>
         <span className="text-sm leading-6 text-slate-200">
-          I have read and agree to the Finanshels Partner Agreement and Privacy Policy.
+          I have read and agree to the Finanshels Partner Agreement, commission structure, and Privacy Policy.
         </span>
       </button>
     </div>
@@ -551,6 +645,25 @@ export default function RegisterPage() {
                 <p className="mt-4 text-sm leading-6 text-slate-300">
                   {selectedModel.description}
                 </p>
+                <div className="mt-4 space-y-2 border-t border-white/8 pt-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-300 mb-2">Your commission rates</p>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">Initial</span>
+                    <span className="font-semibold text-white">{selectedModel.commission.annual}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">Renewals</span>
+                    <span className="font-semibold text-white">{selectedModel.commission.renewal}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">Add-ons</span>
+                    <span className="font-semibold text-white">{selectedModel.commission.addon}</span>
+                  </div>
+                  <div className="flex justify-between text-xs border-t border-white/6 pt-2 mt-2">
+                    <span className="text-slate-500">Monthly/Quarterly</span>
+                    <span className="font-medium text-indigo-300">{selectedModel.commission.altRate}</span>
+                  </div>
+                </div>
               </div>
             ) : null}
           </aside>

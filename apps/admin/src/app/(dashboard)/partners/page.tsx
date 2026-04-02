@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { db, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { db, derivePartnerOperationalStatus, formatPartnerOperationalStatus, leads, partners } from "@repo/db"
+import { eq, inArray, isNull } from "drizzle-orm"
 import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -21,18 +21,18 @@ function StatusBadge({ status }: { status: string }) {
 
 const tabs = [
   { label: "All", value: undefined },
-  { label: "Pending", value: "pending" },
-  { label: "Approved", value: "approved" },
-  { label: "Rejected", value: "rejected" },
-  { label: "Suspended", value: "suspended" },
+  { label: "Active", value: "active_partner" },
+  { label: "Inactive", value: "inactive_partner" },
+  { label: "Yet To Activate", value: "yet_to_activate" },
+  { label: "Yet To Onboard", value: "yet_to_onboard" },
 ] as const
 
 export default async function PartnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ operational?: string }>
 }) {
-  const { status } = await searchParams
+  const { operational } = await searchParams
 
   const rows = await db
     .select({
@@ -43,11 +43,55 @@ export default async function PartnersPage({
       phone: partners.phone,
       type: partners.type,
       status: partners.status,
+      agreementUrl: partners.agreementUrl,
+      contractStatus: partners.contractStatus,
+      contractSignedAt: partners.contractSignedAt,
+      onboardedAt: partners.onboardedAt,
       createdAt: partners.createdAt,
     })
     .from(partners)
-    .where(status ? eq(partners.status, status) : undefined)
+    .where(isNull(partners.deletedAt))
     .orderBy(partners.createdAt)
+
+  const partnerLeadRows =
+    rows.length === 0
+      ? []
+      : await db
+          .select({
+            partnerId: leads.partnerId,
+            status: leads.status,
+            createdAt: leads.createdAt,
+          })
+          .from(leads)
+          .where(inArray(leads.partnerId, rows.map((row) => row.id)))
+
+  const leadMap = partnerLeadRows.reduce(
+    (map, row) => {
+      const current = map.get(row.partnerId) ?? []
+      current.push({ status: row.status, createdAt: row.createdAt })
+      map.set(row.partnerId, current)
+      return map
+    },
+    new Map<string, { status: string; createdAt: Date }[]>()
+  )
+
+  const scopedRows = rows
+    .map((row) => {
+      const operationalStatus = derivePartnerOperationalStatus(
+        {
+          contractStatus: row.contractStatus,
+          contractSignedAt: row.contractSignedAt,
+          onboardedAt: row.onboardedAt,
+        },
+        leadMap.get(row.id) ?? []
+      )
+
+      return {
+        ...row,
+        operationalStatus,
+      }
+    })
+    .filter((row) => !operational || row.operationalStatus === operational)
 
   return (
     <div className="space-y-6">
@@ -56,7 +100,7 @@ export default async function PartnersPage({
         <div>
           <h1 className="text-2xl font-bold text-white">Partners</h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Manage partner accounts, approvals, and status
+            Manage partner accounts, approvals, onboarding, and automated lifecycle status
           </p>
         </div>
         <Link
@@ -71,11 +115,11 @@ export default async function PartnersPage({
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1 w-fit">
         {tabs.map((tab) => {
-          const isActive = status === tab.value || (!status && !tab.value)
+          const isActive = operational === tab.value || (!operational && !tab.value)
           return (
             <Link
               key={tab.label}
-              href={tab.value ? `/partners?status=${tab.value}` : "/partners"}
+              href={tab.value ? `/partners?operational=${tab.value}` : "/partners"}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-zinc-800 text-zinc-100"
@@ -90,18 +134,16 @@ export default async function PartnersPage({
 
       {/* Table */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        {rows.length === 0 ? (
+        {scopedRows.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-6">
             <div className="w-12 h-12 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center mb-4">
               <UserCheck className="w-6 h-6 text-zinc-600" />
             </div>
             <p className="text-zinc-400 font-medium text-sm">
-              No {status ?? ""} partners found
+              No matching partners found
             </p>
             <p className="text-zinc-600 text-xs mt-1">
-              {status === "pending"
-                ? "All partner applications have been reviewed."
-                : "Partners will appear here once they register."}
+              Partners will appear here once they register and move through onboarding.
             </p>
           </div>
         ) : (
@@ -122,6 +164,9 @@ export default async function PartnersPage({
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    Partner Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Date
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 uppercase tracking-wider">
@@ -130,7 +175,7 @@ export default async function PartnersPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-800">
-                {rows.map((partner) => (
+                {scopedRows.map((partner) => (
                   <tr
                     key={partner.id}
                     className="hover:bg-zinc-800/40 transition-colors"
@@ -158,6 +203,11 @@ export default async function PartnersPage({
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={partner.status} />
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-zinc-300 text-sm capitalize">
+                        {formatPartnerOperationalStatus(partner.operationalStatus)}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-zinc-500 text-sm">

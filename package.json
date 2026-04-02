@@ -1,32 +1,35 @@
 {
   "name": "finanshels-partner-portal",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "turbo run build",
+    "build": "npm run --workspaces --if-present build",
     "dev": "node ./scripts/dev.mjs",
-    "dev:turbo": "turbo run dev",
-    "db:generate": "corepack pnpm --filter @repo/db db:generate",
-    "db:migrate": "corepack pnpm --filter @repo/db db:migrate",
-    "db:push": "corepack pnpm --filter @repo/db db:push",
-    "db:studio": "corepack pnpm --filter @repo/db db:studio",
-    "lint": "turbo run lint",
-    "type-check": "turbo run type-check",
-    "test": "turbo run test",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "dev:apps": "npm run dev --workspace @repo/partner --workspace @repo/admin --if-present --parallel",
+    "db:bootstrap:supabase": "node ./scripts/db-bootstrap-supabase.mjs",
+    "db:generate": "npm run db:generate --workspace @repo/db",
+    "db:migrate": "npm run db:migrate --workspace @repo/db",
+    "db:push": "npm run db:push --workspace @repo/db",
+    "db:seed": "node ./scripts/db-seed.mjs",
+    "db:studio": "npm run db:studio --workspace @repo/db",
+    "lint": "npm run --workspaces --if-present lint",
+    "type-check": "npm run --workspaces --if-present type-check",
+    "test": "npm run --workspaces --if-present test",
+    "clean": "npm run --workspaces --if-present clean && rm -rf node_modules"
   },
   "devDependencies": {
-    "turbo": "^2.8.0",
     "typescript": "^5.7.0",
     "@types/node": "^22.0.0",
     "prettier": "^3.5.0"
   },
-  "packageManager": "pnpm@10.33.0",
+  "packageManager": "npm@10.9.2",
   "engines": {
     "node": ">=20"
   },
-  "pnpm": {
-    "overrides": {
-      "drizzle-orm": "0.40.1"
-    }
+  "overrides": {
+    "drizzle-orm": "0.40.1"
   }
 }

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
 import { db, partners, serviceRequests, services } from "@repo/db"
 
@@ -46,7 +46,7 @@ export async function GET() {
       })
       .from(serviceRequests)
       .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-      .where(eq(serviceRequests.partnerId, partner.id))
+      .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
       .orderBy(serviceRequests.createdAt)
 
     return NextResponse.json({ serviceRequests: rows })

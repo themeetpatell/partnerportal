@@ -109,6 +109,7 @@ export default async function UsersPage() {
               <thead>
                 <tr className="border-b border-zinc-800">
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Designation</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Role</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Scope</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">Status</th>
@@ -124,6 +125,12 @@ export default async function UsersPage() {
                       <td className="px-6 py-4">
                         <p className="text-zinc-200 font-medium">{m.name}</p>
                         <p className="text-zinc-500 text-xs">{m.email}</p>
+                        {m.phone ? <p className="text-zinc-600 text-xs mt-1">{m.phone}</p> : null}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-zinc-300 text-sm">
+                          {m.designation || "Not set"}
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${roleMeta.color}`}>
