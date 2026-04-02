@@ -1,30 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { db, leads, teamMembers, logActivity } from "@repo/db"
+import { auth } from "@clerk/nextjs/server"
+import { db, leads, logActivity } from "@repo/db"
 import { eq, and, or, isNull } from "drizzle-orm"
-
-const TENANT_ID = process.env.DEFAULT_TENANT_ID!
+import { rateLimit } from "@repo/auth"
+import { getActiveTeamMember, getActorName } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
-    "Admin"
+  const limited = rateLimit(`admin-leads:create:${userId}`, 30, 60_000)
+  if (limited) return limited
 
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
+  const actorName = await getActorName()
+  const member = await getActiveTeamMember(userId)
 
   const allowedRoles = ["admin", "partnership", "sales", "appointment_setter"]
-  if (member && !allowedRoles.includes(member.role)) {
+  if (!member || !allowedRoles.includes(member.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
+
+  const tenantId = getRequiredTenantId()
 
   const body = await req.json()
   const {
@@ -65,7 +62,7 @@ export async function POST(req: NextRequest) {
     .where(
       and(
         eq(leads.partnerId, partnerId),
-        eq(leads.tenantId, TENANT_ID),
+        eq(leads.tenantId, tenantId),
         isNull(leads.deletedAt),
         or(
           eq(leads.customerEmail, customerEmail),
@@ -85,7 +82,7 @@ export async function POST(req: NextRequest) {
   const [created] = await db
     .insert(leads)
     .values({
-      tenantId: TENANT_ID,
+      tenantId,
       partnerId,
       customerName,
       customerEmail,
@@ -106,7 +103,7 @@ export async function POST(req: NextRequest) {
     .returning()
 
   await logActivity({
-    tenantId: TENANT_ID,
+    tenantId,
     entityType: "lead",
     entityId: created!.id,
     actorId: userId,

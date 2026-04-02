@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255).optional(),
@@ -35,6 +36,9 @@ export async function PATCH(request: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 })
     }
+
+    const limited = rateLimit(`profile:update:${userId}`, 20, 60_000)
+    if (limited) return limited
 
     let body: unknown
     try {

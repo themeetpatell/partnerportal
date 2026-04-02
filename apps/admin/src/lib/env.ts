@@ -23,3 +23,12 @@ export function validateEnv() {
     throw new Error("Missing or invalid environment variables. See above for details.")
   }
 }
+
+export function getRequiredTenantId() {
+  const result = envSchema.safeParse(process.env)
+  if (!result.success) {
+    throw new Error("DEFAULT_TENANT_ID is missing or invalid.")
+  }
+
+  return result.data.DEFAULT_TENANT_ID
+}

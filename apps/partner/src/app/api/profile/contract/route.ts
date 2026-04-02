@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
 import { db, documents, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
 import {
   createSignedAgreementPdf,
   getAgreementFilePath,
@@ -16,6 +17,9 @@ export async function POST(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
+
+  const limited = rateLimit(`profile-contract:sign:${userId}`, 10, 60_000)
+  if (limited) return limited
 
   const user = await currentUser()
   const form = await request.formData()

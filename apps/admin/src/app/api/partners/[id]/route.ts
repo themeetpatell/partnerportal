@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { db, partners, teamMembers, logActivity } from "@repo/db"
-import { eq, and } from "drizzle-orm"
+import { auth } from "@clerk/nextjs/server"
+import { db, partners, logActivity } from "@repo/db"
+import { eq } from "drizzle-orm"
 import { z } from "zod"
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 
 const updatePartnerSchema = z.object({
   // Identity (admin-only)
@@ -74,13 +76,11 @@ export async function PATCH(
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Verify admin/partnership role
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
+  const limited = rateLimit(`partner:update:${userId}`, 20, 60_000)
+  if (limited) return limited
 
+  // Verify admin/partnership role
+  const member = await getActiveTeamMember(userId)
   if (!member || !["admin", "partnership"].includes(member.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
@@ -154,9 +154,7 @@ export async function PATCH(
   }
 
   // Log activity
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Admin"
+  const actorName = await getActorName()
 
   await logActivity({
     tenantId: updated.tenantId,

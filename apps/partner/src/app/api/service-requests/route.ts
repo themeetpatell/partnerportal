@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
 import { db, partners, serviceRequests, services } from "@repo/db"
+import { rateLimit } from "@repo/auth"
 
 const createServiceRequestSchema = z.object({
   clientCompany: z.string().min(1, "Client company is required").max(255),
@@ -68,6 +69,9 @@ export async function POST(request: NextRequest) {
         { status: 401 },
       )
     }
+
+    const limited = rateLimit(`service-requests:${userId}`, 20, 60_000)
+    if (limited) return limited
 
     const partner = await getPartner(userId)
     if (!partner) {

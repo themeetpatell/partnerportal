@@ -140,6 +140,19 @@ function parseEnvFile(filePath) {
   return env
 }
 
+function resetNextArtifacts(appDir) {
+  const nextDir = path.join(appDir, ".next")
+  try {
+    fs.rmSync(nextDir, { recursive: true, force: true })
+  } catch (error) {
+    throw new Error(
+      `Failed to reset ${path.relative(rootDir, nextDir)} before starting dev: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
+}
+
 const rootEnv = parseEnvFile(path.join(rootDir, ".env.local"))
 
 function warnOnEnvOverrides(appName, appEnv) {
@@ -201,6 +214,7 @@ async function main() {
     const appEnv = parseEnvFile(path.join(app.cwd, ".env.local"))
     warnOnEnvOverrides(app.name, appEnv)
     const defaultTenantId = resolveDefaultTenantId(app.name, appEnv)
+    resetNextArtifacts(app.cwd)
 
     const child = spawn(process.execPath, [nextBin, "dev", "--turbopack", "--port", app.port], {
       cwd: app.cwd,

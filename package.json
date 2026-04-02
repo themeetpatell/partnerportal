@@ -15,7 +15,7 @@
     "db:push": "npm run db:push --workspace @repo/db",
     "db:seed": "node ./scripts/db-seed.mjs",
     "db:studio": "npm run db:studio --workspace @repo/db",
-    "lint": "npm run --workspaces --if-present lint",
+    "lint": "node ./node_modules/eslint/bin/eslint.js apps packages scripts --ext .js,.mjs,.ts,.tsx",
     "type-check": "npm run --workspaces --if-present type-check",
     "test": "npm run --workspaces --if-present test",
     "clean": "npm run --workspaces --if-present clean && rm -rf node_modules"

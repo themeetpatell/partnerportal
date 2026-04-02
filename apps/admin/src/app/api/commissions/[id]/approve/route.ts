@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
-import { db, commissions, partners } from "@repo/db"
+import { db, commissions, partners, logActivity } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { sendCommissionApprovedEmail } from "@repo/notifications"
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 
 export async function POST(
   _req: NextRequest,
@@ -11,6 +13,15 @@ export async function POST(
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const limited = rateLimit(`commissions:approve:${userId}`, 20, 60_000)
+  if (limited) return limited
+
+  const actorName = await getActorName()
+  const member = await getActiveTeamMember(userId)
+  if (!member || !["admin", "finance"].includes(member.role)) {
+    return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 
   const { id } = await params
@@ -45,6 +56,17 @@ export async function POST(
     .returning()
 
   if (updated) {
+    await logActivity({
+      tenantId: updated.tenantId,
+      entityType: "commission",
+      entityId: updated.id,
+      actorId: userId,
+      actorName,
+      action: "approved",
+      note: `Commission approved by ${actorName}`,
+      metadata: { amount: updated.amount, currency: updated.currency },
+    })
+
     try {
       const [partner] = await db
         .select()

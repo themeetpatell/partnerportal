@@ -1,28 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { db, serviceRequests, teamMembers, logActivity } from "@repo/db"
-import { and, eq } from "drizzle-orm"
-
-const TENANT_ID = process.env.DEFAULT_TENANT_ID!
+import { auth } from "@clerk/nextjs/server"
+import { db, serviceRequests, logActivity } from "@repo/db"
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
-    "Admin"
+  const limited = rateLimit(`admin-service-requests:create:${userId}`, 30, 60_000)
+  if (limited) return limited
 
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
+  const actorName = await getActorName()
+  const member = await getActiveTeamMember(userId)
+  const tenantId = getRequiredTenantId()
 
   const allowedRoles = ["admin", "partnership", "sales"]
-  if (member && !allowedRoles.includes(member.role)) {
+  if (!member || !allowedRoles.includes(member.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -59,7 +54,7 @@ export async function POST(req: NextRequest) {
   const [created] = await db
     .insert(serviceRequests)
     .values({
-      tenantId: TENANT_ID,
+      tenantId,
       partnerId,
       serviceId,
       leadId: leadId || null,
@@ -79,7 +74,7 @@ export async function POST(req: NextRequest) {
     .returning()
 
   await logActivity({
-    tenantId: TENANT_ID,
+    tenantId,
     entityType: "service_request",
     entityId: created!.id,
     actorId: userId,

@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { db, partners, teamMembers, commissionModels, logActivity } from "@repo/db"
+import { auth } from "@clerk/nextjs/server"
+import { db, partners, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
-
-const TENANT_ID = process.env.DEFAULT_TENANT_ID!
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
-    "Admin"
+  const limited = rateLimit(`admin-partners:create:${userId}`, 20, 60_000)
+  if (limited) return limited
+
+  const actorName = await getActorName()
+  const member = await getActiveTeamMember(userId)
+  const tenantId = getRequiredTenantId()
 
   // Only admin or partnership roles may create partners
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
-
-  if (member && !["admin", "partnership"].includes(member.role)) {
+  if (!member || !["admin", "partnership"].includes(member.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -57,7 +53,7 @@ export async function POST(req: NextRequest) {
   const [created] = await db
     .insert(partners)
     .values({
-      tenantId: TENANT_ID,
+      tenantId,
       clerkUserId: placeholderClerkId,
       companyName,
       contactName,
@@ -77,7 +73,7 @@ export async function POST(req: NextRequest) {
     .returning()
 
   await logActivity({
-    tenantId: TENANT_ID,
+    tenantId,
     entityType: "partner",
     entityId: created!.id,
     actorId: userId,

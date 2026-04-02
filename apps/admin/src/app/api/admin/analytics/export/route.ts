@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@clerk/nextjs/server"
 import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
 
 function getDateRange(preset: string | undefined) {
   const now = new Date()
@@ -32,6 +33,9 @@ function toCsv(rows: Record<string, unknown>[]): string {
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  const limited = rateLimit(`analytics-export:${userId}`, 10, 60_000)
+  if (limited) return limited
 
   // Verify role — only admin, partnership, finance can export analytics
   const [member] = await db

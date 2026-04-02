@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server"
 import { db, teamMembers, logActivity } from "@repo/db"
-import { and, eq } from "drizzle-orm"
-
-const TENANT_ID = process.env.DEFAULT_TENANT_ID!
+import { eq } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 // Default permission matrices per role
 const ROLE_PERMISSIONS: Record<string, Record<string, string>> = {
@@ -37,10 +38,16 @@ export async function GET() {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  const caller = await getActiveTeamMember(userId)
+  if (!caller || caller.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
+  }
+
+  const tenantId = getRequiredTenantId()
   const rows = await db
     .select()
     .from(teamMembers)
-    .where(eq(teamMembers.tenantId, TENANT_ID))
+    .where(eq(teamMembers.tenantId, tenantId))
     .orderBy(teamMembers.createdAt)
 
   return NextResponse.json(rows)
@@ -50,20 +57,15 @@ export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
-    "Admin"
+  const limited = rateLimit(`admin-users:create:${userId}`, 10, 60_000)
+  if (limited) return limited
+
+  const actorName = await getActorName()
+  const caller = await getActiveTeamMember(userId)
+  const tenantId = getRequiredTenantId()
 
   // Only admin can create users
-  const [caller] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
-
-  if (caller && caller.role !== "admin") {
+  if (!caller || caller.role !== "admin") {
     return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
   }
 
@@ -89,7 +91,7 @@ export async function POST(req: NextRequest) {
   const [created] = await db
     .insert(teamMembers)
     .values({
-      tenantId: TENANT_ID,
+      tenantId,
       clerkUserId: placeholderClerkId,
       name,
       email,
@@ -103,7 +105,7 @@ export async function POST(req: NextRequest) {
     .returning()
 
   await logActivity({
-    tenantId: TENANT_ID,
+    tenantId,
     entityType: "team_member",
     entityId: created!.id,
     actorId: userId,
@@ -124,13 +126,12 @@ export async function PATCH(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const [caller] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
+  const limited = rateLimit(`admin-users:update:${userId}`, 20, 60_000)
+  if (limited) return limited
 
-  if (caller && caller.role !== "admin") {
+  const caller = await getActiveTeamMember(userId)
+
+  if (!caller || caller.role !== "admin") {
     return NextResponse.json({ error: "Forbidden — Admin only" }, { status: 403 })
   }
 

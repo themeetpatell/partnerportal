@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth, currentUser } from "@clerk/nextjs/server"
-import { db, invoices, teamMembers, logActivity } from "@repo/db"
-import { and, eq, sql } from "drizzle-orm"
-
-const TENANT_ID = process.env.DEFAULT_TENANT_ID!
+import { auth } from "@clerk/nextjs/server"
+import { db, invoices, logActivity } from "@repo/db"
+import { and, count, eq, isNull } from "drizzle-orm"
+import { rateLimit } from "@repo/auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const user = await currentUser()
-  const actorName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.emailAddresses[0]?.emailAddress ||
-    "Admin"
+  const limited = rateLimit(`admin-invoices:create:${userId}`, 20, 60_000)
+  if (limited) return limited
+
+  const actorName = await getActorName()
+  const member = await getActiveTeamMember(userId)
+  const tenantId = getRequiredTenantId()
 
   // Finance and admin only
-  const [member] = await db
-    .select()
-    .from(teamMembers)
-    .where(and(eq(teamMembers.clerkUserId, userId), eq(teamMembers.isActive, true)))
-    .limit(1)
-
-  if (member && !["admin", "finance"].includes(member.role)) {
+  if (!member || !["admin", "finance"].includes(member.role)) {
     return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 
@@ -52,17 +48,17 @@ export async function POST(req: NextRequest) {
   const total = Number(subtotal) - Number(discount) + Number(tax)
 
   // Generate sequential invoice number
-  const numResult = await db.execute(
-    sql`SELECT COUNT(*) AS cnt FROM invoices WHERE tenant_id = ${TENANT_ID}`
-  )
-  const numRow = numResult.rows[0] as { cnt: string } | undefined
-  const seq = Number((numRow as { cnt: string }).cnt) + 1
+  const [numResult] = await db
+    .select({ count: count() })
+    .from(invoices)
+    .where(and(eq(invoices.tenantId, tenantId), isNull(invoices.deletedAt)))
+  const seq = Number(numResult?.count ?? 0) + 1
   const invoiceNumber = `INV-${String(seq).padStart(5, "0")}`
 
   const [created] = await db
     .insert(invoices)
     .values({
-      tenantId: TENANT_ID,
+      tenantId,
       partnerId,
       serviceRequestId: serviceRequestId || null,
       invoiceNumber,
@@ -83,7 +79,7 @@ export async function POST(req: NextRequest) {
     .returning()
 
   await logActivity({
-    tenantId: TENANT_ID,
+    tenantId,
     entityType: "invoice",
     entityId: created!.id,
     actorId: userId,

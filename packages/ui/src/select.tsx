@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "./cn"
 
-export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {}
+export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, ...props }, ref) => {
@@ -23,7 +23,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 )
 Select.displayName = "Select"
 
-export interface SelectItemProps extends React.OptionHTMLAttributes<HTMLOptionElement> {}
+export type SelectItemProps = React.OptionHTMLAttributes<HTMLOptionElement>
 
 const SelectItem = React.forwardRef<HTMLOptionElement, SelectItemProps>(
   ({ className, children, ...props }, ref) => (

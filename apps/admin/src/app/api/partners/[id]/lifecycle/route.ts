@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { sendWelcomeEmail } from "@repo/notifications"
+import { rateLimit } from "@repo/auth"
+import { getActiveTeamMember } from "@/lib/admin-auth"
 
 type LifecycleAction =
   | "approve"
@@ -36,6 +38,14 @@ export async function POST(
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const limited = rateLimit(`partner:lifecycle:${userId}`, 20, 60_000)
+  if (limited) return limited
+
+  const member = await getActiveTeamMember(userId)
+  if (!member || !["admin", "partnership"].includes(member.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
   const user = await currentUser()

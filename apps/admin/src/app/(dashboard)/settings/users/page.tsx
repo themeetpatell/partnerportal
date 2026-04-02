@@ -1,8 +1,12 @@
+import { auth } from "@clerk/nextjs/server"
 import { db, teamMembers } from "@repo/db"
 import { eq } from "drizzle-orm"
 import Link from "next/link"
+import { redirect } from "next/navigation"
 import { Plus, Shield, Users } from "lucide-react"
 import { UserActionsMenu } from "./actions"
+import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 
 const ROLE_META: Record<string, { label: string; color: string; perms: string }> = {
   admin:            { label: "Admin",            color: "bg-red-950/60 border-red-800/40 text-red-400",         perms: "Full access" },
@@ -16,10 +20,21 @@ const ROLE_META: Record<string, { label: string; color: string; perms: string }>
 const MODULES = ["partners", "leads", "services", "invoices", "commissions", "users", "analytics"]
 
 export default async function UsersPage() {
+  const { userId } = await auth()
+  if (!userId) {
+    redirect("/sign-in")
+  }
+
+  const member = await getActiveTeamMember(userId)
+  if (!member || member.role !== "admin") {
+    redirect("/")
+  }
+
+  const tenantId = getRequiredTenantId()
   const members = await db
     .select()
     .from(teamMembers)
-    .where(eq(teamMembers.tenantId, process.env.DEFAULT_TENANT_ID!))
+    .where(eq(teamMembers.tenantId, tenantId))
     .orderBy(teamMembers.createdAt)
 
   return (
