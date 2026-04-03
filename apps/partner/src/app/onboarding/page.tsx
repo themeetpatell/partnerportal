@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useUser } from "@repo/auth/client"
 import Link from "next/link"
+import Image from "next/image"
 import {
   ArrowLeft,
   ArrowRight,
@@ -323,7 +324,7 @@ function Step3Terms({
     context.fillRect(0, 0, canvas.width, canvas.height)
 
     if (formData.signatureDataUrl) {
-      const image = new Image()
+      const image = new window.Image()
       image.onload = () => {
         context.drawImage(image, 0, 0, canvas.width, canvas.height)
       }
@@ -372,6 +373,108 @@ function Step3Terms({
   }
 
   const typedSignatureValue = formData.typedSignature || contactName
+  const partnerLabel = isChannel ? "Channel Partner" : "Referral Partner"
+  const serviceList = isChannel
+    ? [
+        "Bookkeeping",
+        "Tax Consultancy",
+        "Audit Services",
+        "Liquidation Services",
+        "Financial Advisory Services",
+        "AML Services",
+        "Compliance Services",
+      ]
+    : [
+        "Bookkeeping",
+        "Tax Consultancy",
+        "Audit Services",
+        "Liquidation Services",
+        "Financial Advisory Services",
+      ]
+  const agreementSections = [
+    {
+      title: "1. Purpose",
+      clauses: [
+        "The First Party agrees to provide the financial services listed in Annexure I, together with any approved related services communicated in writing.",
+        `The ${partnerLabel} will introduce potential clients to the First Party for those services, and the applicable client engagement terms of Finanshels will govern the delivery of those services.`,
+      ],
+    },
+    {
+      title: "2. Relationship of Parties",
+      clauses: [
+        "Nothing in this Agreement creates any agency, partnership, joint venture, franchise, or employment relationship between the Parties.",
+        "Neither Party is authorized to bind, represent, or create obligations on behalf of the other Party unless expressly approved in writing.",
+      ],
+    },
+    {
+      title: "3. Responsibilities of the Parties",
+      clauses: [
+        `The ${partnerLabel} will submit only legitimate referrals from prospects who have consented to be contacted and whose needs fit the First Party's services.`,
+        "The First Party will manage qualification, commercials, onboarding, and delivery for any client accepted through the partnership.",
+        "The First Party may share reasonable updates on referred opportunities, subject to confidentiality, compliance, and client-consent boundaries.",
+        `The ${partnerLabel} may not make misleading statements about pricing, scope, timelines, licensing, or service outcomes.`,
+      ],
+    },
+    {
+      title: "4. Referral Fees and Payment Terms",
+      clauses: [
+        `The First Party will pay the ${partnerLabel} in accordance with Annexure II: ${partnerLabel} Commission Structure.`,
+        "Eligible commissions are payable within thirty (30) days after the First Party receives cleared payment from the referred client, unless otherwise stated in writing.",
+      ],
+    },
+    {
+      title: "5. Renewal Commission Eligibility",
+      clauses: [
+        `Annual renewal commissions apply only while the ${partnerLabel} maintains active status.`,
+        `If the ${partnerLabel} does not submit any qualified lead for ninety (90) consecutive days, the partner is considered to be in a Commercial Reset (Churn) period and renewal commissions stop during that period.`,
+        `Renewal commissions resume only for client renewals occurring after the ${partnerLabel} regains active status by submitting a new qualified lead accepted by Finanshels.`,
+      ],
+    },
+    {
+      title: "6. Term and Termination",
+      clauses: [
+        "This Agreement starts on the Effective Date and remains in force for one (1) year, automatically renewing for successive one-year periods unless terminated by either Party on thirty (30) days written notice.",
+        "Termination does not remove the obligation to pay valid commissions already earned under this Agreement.",
+      ],
+    },
+    {
+      title: "7. Confidentiality",
+      clauses: [
+        "Both Parties must maintain the confidentiality of client, pricing, commercial, and operational information exchanged under this Agreement, except where disclosure is required by law.",
+      ],
+    },
+    {
+      title: "8. Limitation of Liability and Indemnification",
+      clauses: [
+        "Neither Party is liable for indirect, incidental, special, or consequential damages arising from this Agreement.",
+        "Each Party agrees to indemnify the other against direct claims, damages, and costs resulting from its own breach, misrepresentation, or unlawful conduct.",
+        "For the avoidance of doubt, Finanshels' aggregate liability under this Agreement will not exceed the total commission payable to the Second Party under this Agreement.",
+      ],
+    },
+    {
+      title: "9. Non-Solicitation",
+      clauses: [
+        "During the term of this Agreement and for one (1) year after termination, neither Party may solicit or induce the other Party's clients to end or reduce their business relationship for competing services.",
+        "During the same period, neither Party may solicit the other Party's employees or contractors away for competing activities.",
+      ],
+    },
+    {
+      title: "10. Dispute Resolution",
+      clauses: [
+        "The Parties will first attempt to resolve disputes through good-faith negotiations within thirty (30) days.",
+        "If unresolved, the dispute will be settled by arbitration under the rules of the Dubai International Arbitration Centre (DIAC) in Dubai, UAE, in English.",
+        "Either Party may seek interim or urgent relief from the courts of Dubai where necessary.",
+      ],
+    },
+    {
+      title: "11. Miscellaneous",
+      clauses: [
+        "Neither Party is liable for delay or failure in performance caused by events beyond its reasonable control, including natural disasters, government restrictions, or acts of God.",
+        "This Agreement represents the complete understanding between the Parties and supersedes all prior discussions and understandings relating to the partnership.",
+        "Any amendment to this Agreement must be in writing and signed by both Parties.",
+      ],
+    },
+  ]
 
   return (
     <div>
@@ -382,9 +485,11 @@ function Step3Terms({
 
       <div className="surface-card mt-8 overflow-hidden rounded-[1.75rem] border border-white/8">
         <div className="relative max-h-[36rem] overflow-y-auto px-6 py-6 sm:px-8">
-          <img
+          <Image
             src="/brand-mark.png"
             alt=""
+            width={360}
+            height={360}
             className="pointer-events-none absolute bottom-0 right-0 w-[360px] opacity-[0.05] select-none"
           />
 
@@ -395,11 +500,11 @@ function Step3Terms({
                   Finanshels Partner Agreement
                 </p>
                 <h3 className="mt-3 font-heading text-2xl font-semibold text-white">
-                  {isChannel ? "Channel Partner Agreement" : "Referral Partner Agreement"}
+                  {partnerLabel} Agreement
                 </h3>
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
                   This agreement governs the commercial relationship between Finanshels Accounting
-                  Technologies LLC and the {isChannel ? "Channel Partner" : "Referral Partner"}.
+                  Technologies LLC and the {partnerLabel}.
                   By signing below, both parties confirm the particulars, commercial terms, and
                   conduct obligations described here.
                 </p>
@@ -429,7 +534,7 @@ function Step3Terms({
                   Second Party
                 </p>
                 <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                  <p><span className="text-slate-500">Partner type:</span> {isChannel ? "Channel Partner" : "Referral Partner"}</p>
+                  <p><span className="text-slate-500">Partner type:</span> {partnerLabel}</p>
                   <p><span className="text-slate-500">Company:</span> {formData.companyName || "Your company name"}</p>
                   <p><span className="text-slate-500">Authorized signatory:</span> {contactName || "Your full name"}</p>
                   <p><span className="text-slate-500">Email:</span> {contactEmail || "your@email.com"}</p>
@@ -439,100 +544,112 @@ function Step3Terms({
             </div>
 
             <div className="mt-6 space-y-5 text-sm leading-7 text-slate-300">
-              <div>
-                <h4 className="font-semibold text-white">1. Purpose</h4>
-                <p className="mt-2">
-                  Finanshels will provide the services listed in Annexure I, and the partner will
-                  introduce qualified prospects for those services under the terms of this agreement.
-                </p>
-              </div>
+              {agreementSections.map((section) => (
+                <div key={section.title}>
+                  <h4 className="font-semibold text-white">{section.title}</h4>
+                  <div className="mt-2 space-y-2.5">
+                    {section.clauses.map((clause) => (
+                      <p key={clause}>{clause}</p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
 
-              <div>
-                <h4 className="font-semibold text-white">2. Relationship of Parties</h4>
-                <p className="mt-2">
-                  This agreement does not create an agency, employment, or joint venture relationship.
-                  Neither party may bind the other without express written consent.
+            <div className="mt-8 space-y-5">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Annexure I • Service List
                 </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-white">3. Responsibilities</h4>
-                <ul className="mt-2 space-y-2 list-disc pl-5">
-                  <li>The partner will share only legitimate prospects who have consented to be approached.</li>
-                  <li>Finanshels will manage service delivery, commercial discussions, onboarding, and client execution.</li>
-                  <li>The partner must present Finanshels accurately and may not make misleading service or pricing claims.</li>
-                </ul>
+                <div className="mt-4 overflow-hidden rounded-xl border border-white/8">
+                  <div className="grid grid-cols-[88px_minmax(0,1fr)] bg-white/[0.04] text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                    <div className="border-r border-white/8 px-4 py-3">Sl. No.</div>
+                    <div className="px-4 py-3">Services</div>
+                  </div>
+                  {serviceList.map((service, index) => (
+                    <div
+                      key={service}
+                      className="grid grid-cols-[88px_minmax(0,1fr)] border-t border-white/8 text-sm text-slate-200"
+                    >
+                      <div className="border-r border-white/8 px-4 py-3 text-slate-400">
+                        {index + 1}
+                      </div>
+                      <div className="px-4 py-3">{service}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {modelConfig && (
                 <div className="rounded-2xl border border-indigo-400/15 bg-indigo-500/5 p-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
-                    Annexure II • Commission Structure
+                    {isChannel
+                      ? "Annexure II • Channel Partner Commission Structure"
+                      : "Annexure II • Referral Partner Commission Structure"}
                   </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-4 space-y-4">
                     <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Initial commission</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.annual}</p>
+                      <p className="text-sm font-semibold text-white">Annual Packages</p>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+                        <li>Initial commission: {modelConfig.commission.annual}</li>
+                        <li>Subsequent annual renewal commission: {modelConfig.commission.renewal}</li>
+                      </ul>
                     </div>
                     <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Renewals</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.renewal}</p>
+                      <p className="text-sm font-semibold text-white">Add-on Services (Annual)</p>
+                      <p className="mt-3 text-sm leading-6 text-slate-300">
+                        {modelConfig.commission.addon} on all pre-approved add-on services.
+                      </p>
                     </div>
                     <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Add-on services</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.addon}</p>
-                    </div>
-                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Alternative plan</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.altRate}</p>
+                      <p className="text-sm font-semibold text-white">
+                        Alternative Payment Plan
+                      </p>
+                      <p className="text-xs leading-6 text-slate-500">
+                        Applies to monthly or quarterly packages and recurring add-on services.
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+                        <li>{partnerLabel} receives {modelConfig.commission.altRate}.</li>
+                        <li>No commission on subsequent payments.</li>
+                        <li>No commission on recurring add-on services.</li>
+                      </ul>
                     </div>
                   </div>
                   <p className="mt-4 text-xs leading-6 text-slate-400">
-                    Renewal commissions apply only while the partner remains active. If no qualified lead is submitted for ninety consecutive days, the partner enters a commercial reset period and renewal commissions stop until active status is regained.
+                    Actual package pricing and approved add-on service fees will be shared separately.
                   </p>
                 </div>
               )}
-
-              <div>
-                <h4 className="font-semibold text-white">4. Term and Termination</h4>
-                <p className="mt-2">
-                  This agreement starts on the effective date and renews automatically each year unless either party gives thirty days written notice. Any commissions earned before termination remain payable under this agreement.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-white">5. Confidentiality and Non-Solicitation</h4>
-                <p className="mt-2">
-                  Both parties must keep client and commercial information confidential. During the term and for one year after termination, neither party may solicit the other party&apos;s clients, employees, or contractors away from the relationship.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="font-semibold text-white">6. Liability and Governing Law</h4>
-                <p className="mt-2">
-                  Neither party is liable for indirect or consequential loss. Finanshels&apos; aggregate liability under this agreement is capped at the total commission payable to the partner. UAE law governs this agreement, and disputes will be handled in Dubai.
-                </p>
-              </div>
             </div>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-2">
+            <div className="mt-8 grid gap-5 xl:grid-cols-2">
               <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   First Party Signature
                 </p>
-                <div className="mt-4 flex items-start gap-4">
-                  <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/8 px-4 py-3">
-                    <p className="text-4xl leading-none text-indigo-200 [font-family:cursive]">Shafeeq</p>
-                  </div>
-                  <div className="rounded-full border-2 border-indigo-300/40 px-4 py-4 text-center text-xs uppercase tracking-[0.18em] text-indigo-200">
-                    Finanshels
-                    <br />
-                    Registration No
-                    <br />
-                    2221700.01
+                <div className="mt-4 rounded-2xl border border-white/8 bg-[#0b1020] p-4">
+                  <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px] sm:items-center">
+                    <div className="flex min-h-[118px] items-center rounded-xl border border-indigo-400/15 bg-indigo-500/6 px-4 py-4">
+                      <Image
+                        src="/finanshels-owner-signature.png"
+                        alt="Muhammed Shafeeq signature"
+                        width={320}
+                        height={120}
+                        className="h-auto w-full max-w-[260px] object-contain"
+                      />
+                    </div>
+                    <div className="mx-auto w-full max-w-[150px]">
+                      <Image
+                        src="/finanshels-owner-stamp.png"
+                        alt="Finanshels company stamp"
+                        width={220}
+                        height={220}
+                        className="h-auto w-full object-contain opacity-90"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="mt-4 text-sm leading-6 text-slate-300">
+                <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-300">
                   <p>Muhammed Shafeeq</p>
                   <p>CEO</p>
                   <p>Authorized Signatory</p>
@@ -544,11 +661,11 @@ function Step3Terms({
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Second Party Signature
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => onChange("signatureMode", "typed")}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                       formData.signatureMode === "typed"
                         ? "bg-indigo-400 text-[#101426]"
                         : "border border-white/10 bg-white/[0.03] text-slate-300"
@@ -559,7 +676,7 @@ function Step3Terms({
                   <button
                     type="button"
                     onClick={() => onChange("signatureMode", "draw")}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                       formData.signatureMode === "draw"
                         ? "bg-indigo-400 text-[#101426]"
                         : "border border-white/10 bg-white/[0.03] text-slate-300"
@@ -579,8 +696,8 @@ function Step3Terms({
                       className="field-input mt-2"
                       placeholder="Type your full name"
                     />
-                    <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-[#0b1020] px-4 py-6 text-center">
-                      <p className="text-4xl leading-none text-indigo-200 [font-family:cursive]">
+                    <div className="mt-4 flex min-h-[176px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-[#0b1020] px-4 py-6 text-center">
+                      <p className="text-4xl leading-none text-indigo-200 [font-family:cursive] sm:text-5xl">
                         {typedSignatureValue || "Your signature"}
                       </p>
                     </div>
@@ -605,12 +722,12 @@ function Step3Terms({
                       onPointerMove={handlePointerMove}
                       onPointerUp={handlePointerUp}
                       onPointerLeave={handlePointerUp}
-                      className="mt-2 h-40 w-full rounded-2xl border border-dashed border-white/10 bg-[#0b1020] touch-none"
+                      className="mt-2 h-44 w-full rounded-2xl border border-dashed border-white/10 bg-[#0b1020] touch-none"
                     />
                   </div>
                 )}
 
-                <div className="mt-4 text-sm leading-6 text-slate-300">
+                <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-300">
                   <p>{contactName || "Authorized signatory"}</p>
                   <p>Authorized Signatory</p>
                   <p>{formData.companyName || "Your company"}</p>
