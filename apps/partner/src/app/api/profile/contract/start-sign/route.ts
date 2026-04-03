@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
   try {
     result = await createZohoContractSigningUrl(partner)
   } catch (error) {
+    console.error("[start-sign] Zoho signing URL failed:", error)
     return redirectToProfile(request, {
       contract: "unavailable",
       reason: getContractUnavailableReason(error),
