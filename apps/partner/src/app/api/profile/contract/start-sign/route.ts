@@ -28,7 +28,7 @@ function getContractUnavailableReason(error: unknown) {
     return "Zoho Sign authentication failed. Please reconnect the Zoho Sign credentials."
   }
 
-  return "The signing link could not be prepared. Please try again."
+  return `Zoho Sign error: ${message}`
 }
 
 export async function GET(request: NextRequest) {
