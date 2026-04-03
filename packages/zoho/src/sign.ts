@@ -1,13 +1,18 @@
+function getEnvTrimmed(name: string) {
+  const value = process.env[name]
+  return typeof value === "string" ? value.trim() : ""
+}
+
 const ZOHO_SIGN_BASE_URL =
-  process.env.ZOHO_SIGN_BASE_URL || "https://sign.zoho.com/api/v1"
+  getEnvTrimmed("ZOHO_SIGN_BASE_URL") || "https://sign.zoho.com/api/v1"
 const ZOHO_ACCOUNTS_BASE_URL =
-  process.env.ZOHO_ACCOUNTS_BASE_URL || "https://accounts.zoho.com"
+  getEnvTrimmed("ZOHO_ACCOUNTS_BASE_URL") || "https://accounts.zoho.com"
 const ZOHO_SIGN_CLIENT_ID =
-  process.env.ZOHO_SIGN_CLIENT_ID || process.env.ZOHO_CLIENT_ID
+  getEnvTrimmed("ZOHO_SIGN_CLIENT_ID") || getEnvTrimmed("ZOHO_CLIENT_ID")
 const ZOHO_SIGN_CLIENT_SECRET =
-  process.env.ZOHO_SIGN_CLIENT_SECRET || process.env.ZOHO_CLIENT_SECRET
+  getEnvTrimmed("ZOHO_SIGN_CLIENT_SECRET") || getEnvTrimmed("ZOHO_CLIENT_SECRET")
 const ZOHO_SIGN_REFRESH_TOKEN =
-  process.env.ZOHO_SIGN_REFRESH_TOKEN || process.env.ZOHO_REFRESH_TOKEN
+  getEnvTrimmed("ZOHO_SIGN_REFRESH_TOKEN") || getEnvTrimmed("ZOHO_REFRESH_TOKEN")
 
 type ZohoSignAction = {
   action_id: string
@@ -226,7 +231,6 @@ export async function createZohoSignTemplateDocument(params: {
   expirationDays?: number
   reminderPeriod?: number
   emailReminders?: boolean
-  redirectPages?: Partial<Record<"sign_success" | "sign_completed" | "sign_declined" | "sign_later", string>>
   actions: ZohoSignTemplateActionInput[]
   fieldData?: ZohoSignFieldData
 }) {
@@ -240,7 +244,6 @@ export async function createZohoSignTemplateDocument(params: {
       expiration_days: params.expirationDays,
       email_reminders: params.emailReminders,
       reminder_period: params.reminderPeriod,
-      redirect_pages: params.redirectPages,
       field_data: {
         field_text_data: params.fieldData?.field_text_data || {},
         field_boolean_data: params.fieldData?.field_boolean_data || {},

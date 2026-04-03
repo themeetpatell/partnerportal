@@ -3,8 +3,19 @@ import { PUBLIC_PARTNER_ROUTES } from "@repo/auth"
 import { createRouteMatcher, updateSession } from "@repo/auth/middleware"
 
 const isPublicRoute = createRouteMatcher(PUBLIC_PARTNER_ROUTES)
+const ADMIN_PORTAL_FALLBACK_URL = "https://finanshels-admin.vercel.app"
+
+function getAdminPortalUrl() {
+  return process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || ADMIN_PORTAL_FALLBACK_URL
+}
 
 export default async function middleware(req: NextRequest) {
+  if (req.nextUrl.hostname === "collab.finanshels.com") {
+    const redirectUrl = new URL(req.nextUrl.pathname, getAdminPortalUrl())
+    redirectUrl.search = req.nextUrl.search
+    return NextResponse.redirect(redirectUrl, 307)
+  }
+
   const { response, user } = await updateSession(req)
   const pathname = req.nextUrl.pathname
 

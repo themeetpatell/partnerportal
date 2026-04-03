@@ -13,6 +13,24 @@ function redirectToProfile(request: NextRequest, params: Record<string, string>)
   return NextResponse.redirect(url)
 }
 
+function getContractUnavailableReason(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message.includes("Upgrade Zoho Sign license to send documents via API")) {
+    return "Zoho Sign API access is not enabled on the current Zoho Sign plan."
+  }
+
+  if (message.includes("\"error\":\"invalid_client\"")) {
+    return "Zoho rejected the configured Zoho Sign client ID or client secret. Update the production Zoho Sign OAuth credentials."
+  }
+
+  if (message.includes("token refresh")) {
+    return "Zoho Sign authentication failed. Please reconnect the Zoho Sign credentials."
+  }
+
+  return "The signing link could not be prepared. Please try again."
+}
+
 export async function GET(request: NextRequest) {
   const { userId } = await auth()
   if (!userId) {
@@ -33,7 +51,16 @@ export async function GET(request: NextRequest) {
     return redirectToProfile(request, { contract: "not-sent" })
   }
 
-  const result = await createZohoContractSigningUrl(partner)
+  let result: Awaited<ReturnType<typeof createZohoContractSigningUrl>>
+
+  try {
+    result = await createZohoContractSigningUrl(partner)
+  } catch (error) {
+    return redirectToProfile(request, {
+      contract: "unavailable",
+      reason: getContractUnavailableReason(error),
+    })
+  }
 
   if ("error" in result) {
     return redirectToProfile(request, {

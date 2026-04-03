@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -119,9 +120,13 @@ function SidebarContent({
       {/* Logo */}
       <div className="px-4 py-5 border-b border-zinc-800">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white font-bold text-sm">F</span>
-          </div>
+          <Image
+            src="/brand-mark.png"
+            alt="Finanshels logo"
+            width={32}
+            height={32}
+            className="h-8 w-8 flex-shrink-0"
+          />
           <div>
             <p className="text-zinc-100 font-semibold text-sm leading-none">
               Finanshels
@@ -202,9 +207,13 @@ export function AdminSidebarNav({
       {/* Mobile top bar */}
       <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
-            <span className="text-white font-bold text-xs">F</span>
-          </div>
+          <Image
+            src="/brand-mark.png"
+            alt="Finanshels logo"
+            width={28}
+            height={28}
+            className="h-7 w-7"
+          />
           <span className="text-zinc-100 font-semibold text-sm">
             Finanshels Admin
           </span>

@@ -80,10 +80,6 @@ function getContractStartPath() {
   return "/api/profile/contract/start-sign"
 }
 
-function getContractCallbackUrl(state: string) {
-  return `${getPartnerAppUrl()}/api/profile/contract/callback?state=${encodeURIComponent(state)}`
-}
-
 function trimValue(value: string | null | undefined) {
   return typeof value === "string" ? value.trim() : ""
 }
@@ -94,6 +90,7 @@ function getAgreementData(partner: PartnerRecord) {
     companyName: partner.companyName,
     contactName: partner.contactName,
     email: partner.email,
+    designation: partner.designation,
     partnerAddress: partner.partnerAddress,
     emirateIdPassport: partner.emirateIdPassport,
     tradeLicense: partner.tradeLicense,
@@ -437,12 +434,6 @@ export async function ensureZohoContractRequest(
     expirationDays: template.expiration_days ?? 30,
     emailReminders: template.email_reminders ?? false,
     reminderPeriod: template.reminder_period ?? 3,
-    redirectPages: {
-      sign_success: getContractCallbackUrl("success"),
-      sign_completed: getContractCallbackUrl("completed"),
-      sign_declined: getContractCallbackUrl("declined"),
-      sign_later: getContractCallbackUrl("later"),
-    },
     fieldData: {
       field_text_data: buildTemplateFieldTextData(partner),
     },

@@ -240,10 +240,10 @@ export default async function ProfilePage({
         ? "The signing flow was declined. You can reopen it whenever you are ready."
         : contractQuery === "later"
           ? "The signing flow was saved for later."
-          : contractQuery === "missing-fields"
+        : contractQuery === "missing-fields"
             ? contractReason || "Complete the required profile fields before you start signing."
             : contractQuery === "unavailable"
-              ? "The signing link could not be prepared. Please try again."
+              ? contractReason || "The signing link could not be prepared. Please try again."
               : null
   const contractFlashTone =
     contractQuery === "signed"
@@ -286,6 +286,7 @@ export default async function ProfilePage({
     companyName: partnerRecord.companyName,
     contactName: partnerRecord.contactName,
     email: partnerRecord.email,
+    designation: partnerRecord.designation,
     partnerAddress: partnerRecord.partnerAddress,
     emirateIdPassport: partnerRecord.emirateIdPassport,
     tradeLicense: partnerRecord.tradeLicense,

@@ -1,4 +1,5 @@
 import { auth } from "@repo/auth/server"
+import Image from "next/image"
 import { redirect } from "next/navigation"
 import { AdminSignInForm } from "@/components/admin-sign-in-form"
 import { getActiveTeamMember } from "@/lib/admin-auth"
@@ -18,9 +19,14 @@ export default async function SignInPage() {
     <div className="relative min-h-screen">
       <div className="flex min-h-screen flex-col items-center justify-center px-5 py-16">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-400 to-violet-500 text-white shadow-[0_12px_28px_rgba(99,102,241,0.28)]">
-            <span className="text-xl font-bold tracking-tight">F</span>
-          </div>
+          <Image
+            src="/brand-mark.png"
+            alt="Finanshels logo"
+            width={56}
+            height={56}
+            className="mx-auto mb-5 h-14 w-14"
+            priority
+          />
           <h1 className="text-3xl font-semibold tracking-tight text-white">
             Admin Portal
           </h1>

@@ -13,6 +13,7 @@ type AgreementSection = "secondary" | "financial"
 
 type AgreementRequiredField = {
   key:
+    | "designation"
     | "partnerAddress"
     | "emirateIdPassport"
     | "tradeLicense"
@@ -31,6 +32,7 @@ export type AgreementPartnerData = {
   companyName: string
   contactName: string
   email: string
+  designation?: string | null
   partnerAddress?: string | null
   emirateIdPassport?: string | null
   tradeLicense?: string | null
@@ -81,6 +83,7 @@ const LINE_HEIGHT = 14
 
 const REQUIRED_FIELDS: Record<AgreementType, AgreementRequiredField[]> = {
   referral: [
+    { key: "designation", label: "Job title / designation", section: "secondary" },
     { key: "partnerAddress", label: "Registered address", section: "secondary" },
     { key: "emirateIdPassport", label: "EID / passport / national ID", section: "financial" },
     { key: "beneficiaryName", label: "Bank account name", section: "financial" },
@@ -89,6 +92,7 @@ const REQUIRED_FIELDS: Record<AgreementType, AgreementRequiredField[]> = {
     { key: "swiftBicCode", label: "SWIFT / BIC code", section: "financial" },
   ],
   channel: [
+    { key: "designation", label: "Job title / designation", section: "secondary" },
     { key: "partnerAddress", label: "Registered address", section: "secondary" },
     { key: "tradeLicense", label: "Trade license number", section: "financial" },
     { key: "beneficiaryName", label: "Bank account name", section: "financial" },

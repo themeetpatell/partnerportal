@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ClipboardList, FileCheck2, Handshake } from "lucide-react"
@@ -70,15 +71,14 @@ export default function SignUpPage() {
         <div className="relative z-10 flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div
-              className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
-              style={{
-                background: "linear-gradient(135deg,#818cf8 0%,#4f46e5 100%)",
-                boxShadow: "0 4px 16px rgba(99,102,241,0.35)",
-              }}
-            >
-              F
-            </div>
+            <Image
+              src="/brand-mark.png"
+              alt="Finanshels logo"
+              width={36}
+              height={36}
+              className="h-9 w-9"
+              priority
+            />
             <div>
               <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
               <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
@@ -151,10 +151,14 @@ export default function SignUpPage() {
 
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-3 lg:hidden">
-          <div
-            className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
-            style={{ background: "linear-gradient(135deg,#818cf8,#4f46e5)", boxShadow: "0 4px 16px rgba(99,102,241,0.3)" }}
-          >F</div>
+          <Image
+            src="/brand-mark.png"
+            alt="Finanshels logo"
+            width={36}
+            height={36}
+            className="h-9 w-9"
+            priority
+          />
           <div>
             <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
             <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
