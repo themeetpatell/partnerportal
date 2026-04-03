@@ -13,6 +13,7 @@ type ZohoSignAction = {
   action_id: string
   recipient_name?: string
   recipient_email?: string
+  role?: string
   action_type?: string
   action_status?: string
   signing_order?: number
@@ -37,6 +38,35 @@ type ZohoSignRequest = {
   request_status?: string
   actions?: ZohoSignAction[]
   document_ids?: ZohoSignDocument[]
+}
+
+type ZohoSignTemplate = {
+  template_id: string
+  template_name?: string
+  expiration_days?: number
+  email_reminders?: boolean
+  reminder_period?: number
+  actions?: ZohoSignAction[]
+}
+
+type ZohoSignFieldData = {
+  field_text_data?: Record<string, string>
+  field_boolean_data?: Record<string, boolean>
+  field_date_data?: Record<string, string>
+  field_radio_data?: Record<string, string>
+  field_checkboxgroup_data?: Record<string, string[]>
+}
+
+type ZohoSignTemplateActionInput = {
+  actionId: string
+  recipientName: string
+  recipientEmail: string
+  actionType: string
+  signingOrder: number
+  role?: string
+  verifyRecipient?: boolean
+  privateNotes?: string
+  isEmbedded?: boolean
 }
 
 function bufferToPdfBlob(buffer: Buffer) {
@@ -172,6 +202,98 @@ export async function createZohoSignRequest(params: {
   }
 
   return data.requests
+}
+
+export async function getZohoSignTemplate(templateId: string) {
+  const data = await zohoSignJson<{
+    templates?: ZohoSignTemplate
+    status?: string
+    message?: string
+  }>(`/templates/${templateId}`)
+
+  if (!data.templates?.template_id) {
+    throw new Error(`[zoho/sign] template lookup returned no template: ${JSON.stringify(data)}`)
+  }
+
+  return data.templates
+}
+
+export async function createZohoSignTemplateDocument(params: {
+  templateId: string
+  requestName: string
+  description?: string
+  notes?: string
+  expirationDays?: number
+  reminderPeriod?: number
+  emailReminders?: boolean
+  redirectPages?: Partial<Record<"sign_success" | "sign_completed" | "sign_declined" | "sign_later", string>>
+  actions: ZohoSignTemplateActionInput[]
+  fieldData?: ZohoSignFieldData
+}) {
+  const token = await getZohoSignAccessToken()
+  const formData = new FormData()
+  const payload = {
+    templates: {
+      request_name: params.requestName,
+      description: params.description || "",
+      notes: params.notes || "",
+      expiration_days: params.expirationDays,
+      email_reminders: params.emailReminders,
+      reminder_period: params.reminderPeriod,
+      redirect_pages: params.redirectPages,
+      field_data: {
+        field_text_data: params.fieldData?.field_text_data || {},
+        field_boolean_data: params.fieldData?.field_boolean_data || {},
+        field_date_data: params.fieldData?.field_date_data || {},
+        field_radio_data: params.fieldData?.field_radio_data || {},
+        field_checkboxgroup_data: params.fieldData?.field_checkboxgroup_data || {},
+      },
+      actions: params.actions.map((action) => ({
+        recipient_name: action.recipientName,
+        recipient_email: action.recipientEmail,
+        action_id: action.actionId,
+        action_type: action.actionType,
+        signing_order: action.signingOrder,
+        role: action.role,
+        verify_recipient: action.verifyRecipient ?? false,
+        private_notes: action.privateNotes || "",
+        is_embedded: action.isEmbedded,
+      })),
+    },
+  }
+
+  formData.append("data", JSON.stringify(payload))
+  formData.append("is_quicksend", "true")
+
+  const res = await fetch(`${ZOHO_SIGN_BASE_URL}/templates/${params.templateId}/createdocument`, {
+    method: "POST",
+    headers: {
+      Authorization: `Zoho-oauthtoken ${token}`,
+    },
+    body: formData,
+  })
+
+  if (!res.ok) {
+    throw new Error(
+      `[zoho/sign] create template document failed: ${res.status} ${await res.text()}`
+    )
+  }
+
+  const data = (await res.json()) as {
+    requests?: ZohoSignRequest
+    templates?: ZohoSignRequest
+    status?: string
+    message?: string
+  }
+  const request = data.requests || data.templates
+
+  if (!request?.request_id) {
+    throw new Error(
+      `[zoho/sign] create template document returned no request_id: ${JSON.stringify(data)}`
+    )
+  }
+
+  return request
 }
 
 export async function submitZohoSignRequest(params: {

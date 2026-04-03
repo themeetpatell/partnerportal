@@ -1,14 +1,51 @@
 import { db, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, desc, eq, ilike, isNull } from "drizzle-orm"
 
 export async function getPartnerRecordByAuthUserId(userId: string) {
+  return getPartnerRecordForAuthenticatedUser({ userId })
+}
+
+export async function getPartnerRecordForAuthenticatedUser(params: {
+  userId: string
+  email?: string | null
+}) {
   const [partner] = await db
     .select()
     .from(partners)
-    .where(eq(partners.authUserId, userId))
+    .where(and(eq(partners.authUserId, params.userId), isNull(partners.deletedAt)))
     .limit(1)
 
-  return partner ?? null
+  if (partner) {
+    return partner
+  }
+
+  const normalizedEmail = params.email?.trim().toLowerCase()
+
+  if (!normalizedEmail) {
+    return null
+  }
+
+  const [partnerByEmail] = await db
+    .select()
+    .from(partners)
+    .where(and(ilike(partners.email, normalizedEmail), isNull(partners.deletedAt)))
+    .orderBy(desc(partners.updatedAt), desc(partners.createdAt))
+    .limit(1)
+
+  if (!partnerByEmail) {
+    return null
+  }
+
+  const [linkedPartner] = await db
+    .update(partners)
+    .set({
+      authUserId: params.userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(partners.id, partnerByEmail.id))
+    .returning()
+
+  return linkedPartner ?? partnerByEmail
 }
 
 export function hasApprovedWorkspaceAccess(

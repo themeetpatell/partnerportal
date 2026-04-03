@@ -1,16 +1,14 @@
 import { and, desc, eq } from "drizzle-orm"
 import {
+  createZohoSignTemplateDocument,
   createZohoSignEmbedUrl,
-  createZohoSignRequest,
   downloadZohoSignCompletionCertificate,
   downloadZohoSignRequestPdf,
   getZohoSignRequest,
-  submitZohoSignRequest,
+  getZohoSignTemplate,
 } from "@repo/zoho"
 import { db, documents, logActivity, partners } from "@repo/db"
 import {
-  createExternalAgreementPdf,
-  getAgreementFilePath,
   getAgreementTitle,
   getMissingAgreementFields,
 } from "@/lib/signed-agreement"
@@ -60,6 +58,13 @@ type ZohoContractSigningUrlResult =
       completed: false
     }
 
+type ContractTemplateType = "referral" | "channel"
+
+const DEFAULT_ZOHO_SIGN_TEMPLATE_IDS: Record<ContractTemplateType, string> = {
+  referral: "430475000001289195",
+  channel: "430475000001289125",
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -71,12 +76,16 @@ function getPartnerAppUrl() {
   return process.env.NEXT_PUBLIC_PARTNER_APP_URL?.trim() || "http://localhost:3000"
 }
 
-function getContractStartUrl() {
-  return `${getPartnerAppUrl()}/api/profile/contract/start-sign`
+function getContractStartPath() {
+  return "/api/profile/contract/start-sign"
 }
 
 function getContractCallbackUrl(state: string) {
   return `${getPartnerAppUrl()}/api/profile/contract/callback?state=${encodeURIComponent(state)}`
+}
+
+function trimValue(value: string | null | undefined) {
+  return typeof value === "string" ? value.trim() : ""
 }
 
 function getAgreementData(partner: PartnerRecord) {
@@ -95,6 +104,91 @@ function getAgreementData(partner: PartnerRecord) {
     swiftBicCode: partner.swiftBicCode,
     contractSentAt: partner.contractSentAt,
   }
+}
+
+function getZohoSignTemplateId(type: ContractTemplateType) {
+  const envKey =
+    type === "referral"
+      ? process.env.ZOHO_SIGN_REFERRAL_TEMPLATE_ID
+      : process.env.ZOHO_SIGN_CHANNEL_TEMPLATE_ID
+
+  return envKey?.trim() || DEFAULT_ZOHO_SIGN_TEMPLATE_IDS[type]
+}
+
+function getBankNameLine(partner: PartnerRecord) {
+  const bankName = trimValue(partner.bankName)
+  const bankCountry = trimValue(partner.bankCountry)
+
+  if (bankName && bankCountry) {
+    return `${bankName} (${bankCountry})`
+  }
+
+  return bankName || bankCountry
+}
+
+function getChannelLicensingAuthority(partner: PartnerRecord) {
+  return trimValue(partner.tradeLicense) ? "As per the submitted trade license" : ""
+}
+
+function buildTemplateFieldTextData(partner: PartnerRecord) {
+  const baseFields: Record<string, string> = {
+    "Full name": partner.contactName,
+    "Job title": trimValue(partner.designation),
+  }
+
+  if (partner.type === "channel") {
+    return {
+      ...baseFields,
+      "Company Legal Name": partner.companyName,
+      "Licensing Authority": getChannelLicensingAuthority(partner),
+      "Trade License Number": trimValue(partner.tradeLicense),
+      "Registered Address": trimValue(partner.partnerAddress),
+      "Bank Account Name": trimValue(partner.beneficiaryName),
+      "Bank Account Number / IBAN": trimValue(partner.accountNoIban),
+      "Bank Name": getBankNameLine(partner),
+      "SWIFT Code": trimValue(partner.swiftBicCode),
+    }
+  }
+
+  return {
+    ...baseFields,
+    Company: partner.companyName,
+    "EID No": trimValue(partner.emirateIdPassport),
+    "Registered Address": trimValue(partner.partnerAddress),
+    "Bank Account Name": trimValue(partner.beneficiaryName),
+    "Bank Account Number / IBAN": trimValue(partner.accountNoIban),
+    "Bank Name": getBankNameLine(partner),
+    "SWIFT Code": trimValue(partner.swiftBicCode),
+  }
+}
+
+function buildZohoTemplateActions(
+  partner: PartnerRecord,
+  template: Awaited<ReturnType<typeof getZohoSignTemplate>>
+) {
+  const templateActions = template.actions || []
+  const signerAction =
+    templateActions.find((action) => action.action_type === "SIGN") || templateActions[0] || null
+
+  if (!signerAction?.action_id) {
+    throw new Error("[zoho/sign] template is missing a signer action")
+  }
+
+  return templateActions.map((action) => {
+    const isSigner = action.action_id === signerAction.action_id
+
+    return {
+      actionId: action.action_id,
+      recipientName: isSigner ? partner.contactName : action.recipient_name || "",
+      recipientEmail: isSigner ? partner.email : action.recipient_email || "",
+      actionType: action.action_type || (isSigner ? "SIGN" : "VIEW"),
+      signingOrder: action.signing_order ?? 1,
+      role: action.role,
+      verifyRecipient: action.verify_recipient ?? false,
+      privateNotes: action.private_notes || "",
+      isEmbedded: isSigner ? true : action.is_embedded,
+    }
+  })
 }
 
 function normalizeZohoSignStatus(status: string | null | undefined) {
@@ -333,49 +427,26 @@ export async function ensureZohoContractRequest(
   }
 
   const agreementTitle = getAgreementTitle(partner.type as "referral" | "channel")
-  const { pdfBytes, signaturePlacement } = await createExternalAgreementPdf({
-    agreementFilePath: getAgreementFilePath(partner.type as "referral" | "channel"),
-    agreementTitle,
-    partnerCompanyName: partner.companyName,
-    partnerTypeLabel: partner.type === "channel" ? "Channel Partner" : "Referral Partner",
-    generatedAt: new Date(),
-    partner: agreementData,
-  })
-
-  const request = await createZohoSignRequest({
+  const templateId = getZohoSignTemplateId(partner.type as ContractTemplateType)
+  const template = await getZohoSignTemplate(templateId)
+  const request = await createZohoSignTemplateDocument({
+    templateId,
     requestName: `${partner.companyName} - ${agreementTitle}`,
     description: `Partner agreement for ${partner.companyName}`,
-    recipientName: partner.contactName,
-    recipientEmail: partner.email,
-    fileName: `${slugify(partner.companyName) || "partner"}-agreement.pdf`,
-    fileBytes: pdfBytes,
     notes: "Please review and sign this partner agreement.",
+    expirationDays: template.expiration_days ?? 30,
+    emailReminders: template.email_reminders ?? false,
+    reminderPeriod: template.reminder_period ?? 3,
     redirectPages: {
       sign_success: getContractCallbackUrl("success"),
       sign_completed: getContractCallbackUrl("completed"),
       sign_declined: getContractCallbackUrl("declined"),
       sign_later: getContractCallbackUrl("later"),
     },
-  })
-
-  const signerAction = findSignerAction(request, partner)
-  const documentId = request.document_ids?.[0]?.document_id
-
-  if (!signerAction?.action_id || !documentId) {
-    throw new Error("[zoho/sign] request created without signer action or document id")
-  }
-
-  await submitZohoSignRequest({
-    requestId: request.request_id,
-    actionId: signerAction.action_id,
-    recipientName: partner.contactName,
-    recipientEmail: partner.email,
-    documentId,
-    pageNo: signaturePlacement.pageNo,
-    xCoord: signaturePlacement.xCoord,
-    yCoord: signaturePlacement.yCoord,
-    width: signaturePlacement.width,
-    height: signaturePlacement.height,
+    fieldData: {
+      field_text_data: buildTemplateFieldTextData(partner),
+    },
+    actions: buildZohoTemplateActions(partner, template),
   })
 
   const now = new Date()
@@ -383,7 +454,7 @@ export async function ensureZohoContractRequest(
     .update(partners)
     .set({
       zohoSignRequestId: request.request_id,
-      agreementUrl: getContractStartUrl(),
+      agreementUrl: getContractStartPath(),
       updatedAt: now,
     })
     .where(eq(partners.id, partner.id))

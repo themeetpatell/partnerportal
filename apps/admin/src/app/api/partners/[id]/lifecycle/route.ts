@@ -27,10 +27,7 @@ function redirectToPartner(request: NextRequest, partnerId: string) {
 }
 
 function getPartnerAgreementUrl() {
-  const partnerAppUrl =
-    process.env.NEXT_PUBLIC_PARTNER_APP_URL || "http://localhost:3000"
-
-  return `${partnerAppUrl}/api/profile/contract/start-sign`
+  return "/api/profile/contract/start-sign"
 }
 
 export async function POST(

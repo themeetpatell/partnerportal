@@ -1,12 +1,11 @@
-import { auth } from "@repo/auth/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { NextResponse } from "next/server"
-import { db, partners } from "@repo/db"
-import { eq } from "drizzle-orm"
 import {
   createPrefilledAgreementPdf,
   getAgreementFilePath,
   getAgreementTitle,
 } from "@/lib/signed-agreement"
+import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 function slugify(value: string) {
   return value
@@ -21,17 +20,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const [partner] = await db
-    .select()
-    .from(partners)
-    .where(eq(partners.authUserId, userId))
-    .limit(1)
+  const user = await currentUser()
+  const partner = await getPartnerRecordForAuthenticatedUser({
+    userId,
+    email: user?.email,
+  })
 
   if (!partner) {
     return NextResponse.json({ error: "Partner record not found." }, { status: 404 })
   }
 
-  if (!partner.agreementUrl || partner.contractStatus === "not_sent") {
+  if (partner.contractStatus === "not_sent") {
     return NextResponse.json(
       { error: "No agreement is available yet." },
       { status: 400 }

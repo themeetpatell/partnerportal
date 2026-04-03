@@ -1,9 +1,10 @@
-import { auth } from "@repo/auth/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
+import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255).optional(),
@@ -57,6 +58,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     const data = parsed.data
+    const user = await currentUser()
+    const existingPartner = await getPartnerRecordForAuthenticatedUser({
+      userId,
+      email: user?.email,
+    })
+
+    if (!existingPartner) {
+      return NextResponse.json({ error: "Partner record not found." }, { status: 404 })
+    }
 
     const [updated] = await db
       .update(partners)
@@ -85,7 +95,7 @@ export async function PATCH(request: NextRequest) {
         ...(data.paymentFrequency !== undefined && { paymentFrequency: data.paymentFrequency }),
         updatedAt: new Date(),
       })
-      .where(eq(partners.authUserId, userId))
+      .where(eq(partners.id, existingPartner.id))
       .returning()
 
     if (!updated) {

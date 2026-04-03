@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
 import {
-  getPartnerRecordByAuthUserId,
+  getPartnerRecordForAuthenticatedUser,
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
@@ -19,7 +19,10 @@ export default async function DashboardLayout({
     redirect("/sign-in")
   }
 
-  const partnerRecord = await getPartnerRecordByAuthUserId(user.id)
+  const partnerRecord = await getPartnerRecordForAuthenticatedUser({
+    userId: user.id,
+    email: user.email,
+  })
 
   if (!partnerRecord) {
     redirect("/onboarding")

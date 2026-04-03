@@ -5,7 +5,6 @@ import {
   derivePartnerOperationalStatus,
   formatPartnerOperationalStatus,
   leads,
-  partners,
 } from "@repo/db"
 import { eq } from "drizzle-orm"
 import {
@@ -26,6 +25,7 @@ import {
   User,
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
+import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 import { getMissingAgreementFields } from "@/lib/signed-agreement"
 import { syncZohoSignedContract } from "@/lib/zoho-sign-contract"
 
@@ -150,12 +150,10 @@ export default async function ProfilePage({
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner"
 
   let partnerRecord = userId
-    ? await db
-        .select()
-        .from(partners)
-        .where(eq(partners.authUserId, userId))
-        .limit(1)
-        .then((rows) => rows[0] ?? null)
+    ? await getPartnerRecordForAuthenticatedUser({
+        userId,
+        email: user?.email,
+      })
     : null
 
   if (!partnerRecord) {
@@ -483,7 +481,7 @@ export default async function ProfilePage({
               agreementMissingFields.length === 0 && (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <a
-                    href={partnerRecord.agreementUrl || "/api/profile/contract/start-sign"}
+                    href="/api/profile/contract/start-sign"
                     className="primary-button"
                   >
                     Open Zoho Sign

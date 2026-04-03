@@ -1,7 +1,7 @@
 import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import {
-  getPartnerRecordByAuthUserId,
+  getPartnerRecordForAuthenticatedUser,
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
@@ -16,7 +16,10 @@ export default async function PartnerWorkspaceLayout({
     redirect("/sign-in")
   }
 
-  const partner = await getPartnerRecordByAuthUserId(user.id)
+  const partner = await getPartnerRecordForAuthenticatedUser({
+    userId: user.id,
+    email: user.email,
+  })
 
   if (!partner) {
     redirect("/onboarding")

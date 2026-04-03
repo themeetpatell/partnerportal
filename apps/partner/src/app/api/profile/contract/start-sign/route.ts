@@ -1,8 +1,7 @@
-import { auth } from "@repo/auth/server"
+import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
-import { eq } from "drizzle-orm"
-import { db, partners } from "@repo/db"
 import { createZohoContractSigningUrl } from "@/lib/zoho-sign-contract"
+import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 function redirectToProfile(request: NextRequest, params: Record<string, string>) {
   const url = new URL("/dashboard/profile", request.url)
@@ -20,17 +19,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const [partner] = await db
-    .select()
-    .from(partners)
-    .where(eq(partners.authUserId, userId))
-    .limit(1)
+  const user = await currentUser()
+  const partner = await getPartnerRecordForAuthenticatedUser({
+    userId,
+    email: user?.email,
+  })
 
   if (!partner) {
     return NextResponse.json({ error: "Partner record not found." }, { status: 404 })
   }
 
-  if (!partner.agreementUrl || partner.contractStatus === "not_sent") {
+  if (partner.contractStatus === "not_sent") {
     return redirectToProfile(request, { contract: "not-sent" })
   }
 

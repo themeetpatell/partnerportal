@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { auth } from "@repo/auth/server"
+import { currentUser } from "@repo/auth/server"
 import {
   ArrowRight,
   BadgeCheck,
@@ -22,7 +22,7 @@ import {
   Zap,
 } from "lucide-react"
 import {
-  getPartnerRecordByAuthUserId,
+  getPartnerRecordForAuthenticatedUser,
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
@@ -252,10 +252,15 @@ function getLandingCtaState({
 /* ── Page ─────────────────────────────────────────────── */
 
 export default async function LandingPage() {
-  const { userId } = await auth()
-  const partner = userId ? await getPartnerRecordByAuthUserId(userId) : null
+  const user = await currentUser()
+  const partner = user
+    ? await getPartnerRecordForAuthenticatedUser({
+        userId: user.id,
+        email: user.email,
+      })
+    : null
   const landingCta = getLandingCtaState({
-    isSignedIn: Boolean(userId),
+    isSignedIn: Boolean(user),
     hasPartnerRecord: Boolean(partner),
     hasWorkspaceAccess: hasApprovedWorkspaceAccess(partner),
     partnerStatus: partner?.status ?? null,
