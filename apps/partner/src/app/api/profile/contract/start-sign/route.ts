@@ -24,11 +24,11 @@ function getContractUnavailableReason(error: unknown) {
     return "Zoho rejected the configured Zoho Sign client ID or client secret. Update the production Zoho Sign OAuth credentials."
   }
 
-  if (message.includes("token refresh")) {
-    return "Zoho Sign authentication failed. Please reconnect the Zoho Sign credentials."
+  if (message.includes("token refresh") || message.includes(" 401 ") || message.includes(" 403 ") || message.includes("Invalid Oauth")) {
+    return "Zoho Sign authentication failed. Regenerate the refresh token at api-console.zoho.com with scopes: ZohoSign.documents.ALL,ZohoSign.templates.ALL"
   }
 
-  return `Zoho Sign error: ${message}`
+  return "The signing link could not be prepared. Please try again."
 }
 
 export async function GET(request: NextRequest) {

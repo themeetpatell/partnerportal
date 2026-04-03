@@ -366,6 +366,11 @@ export async function ensureZohoContractRequest(
   try {
     existingSync = await syncZohoSignedContract(partner)
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error)
+    // Auth/scope failures should propagate — don't clear valid request IDs on 403/401
+    if (msg.includes(" 403 ") || msg.includes(" 401 ") || msg.includes("token refresh") || msg.includes("Invalid Oauth")) {
+      throw error
+    }
     if (partner.zohoSignRequestId) {
       const [clearedPartner] = await db
         .update(partners)
