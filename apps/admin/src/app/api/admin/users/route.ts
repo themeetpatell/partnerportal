@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { db, teamMembers, logActivity } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -13,7 +13,7 @@ import {
   normalizeTeamRole,
 } from "@/lib/rbac"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -23,6 +23,18 @@ export async function GET() {
   }
 
   const tenantId = getRequiredTenantId()
+  const url = new URL(req.url)
+  const id = url.searchParams.get("id")
+
+  if (id) {
+    const [row] = await db
+      .select()
+      .from(teamMembers)
+      .where(and(eq(teamMembers.id, id), eq(teamMembers.tenantId, tenantId)))
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 })
+    return NextResponse.json(row)
+  }
+
   const rows = await db
     .select()
     .from(teamMembers)

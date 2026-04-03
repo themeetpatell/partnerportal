@@ -3,21 +3,15 @@ import { db, teamMembers } from "@repo/db"
 import { eq } from "drizzle-orm"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { Plus, Shield, Users } from "lucide-react"
+import { Plus, Users } from "lucide-react"
 import { UserActionsMenu } from "./actions"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import {
-  ACCESS_MODULES,
-  ROLE_DEFAULT_PERMISSIONS,
-  TEAM_ROLE_META,
-  TEAM_ROLE_ORDER,
   USER_MANAGEMENT_ROLES,
   getTeamRoleMeta,
   hasAnyTeamRole,
 } from "@/lib/rbac"
-
-const MODULES = [...ACCESS_MODULES]
 
 export default async function UsersPage() {
   const { userId } = await auth()
@@ -54,59 +48,6 @@ export default async function UsersPage() {
           <Plus className="w-4 h-4" />
           Add User
         </Link>
-      </div>
-
-      {/* Role legend */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="w-4 h-4 text-zinc-500" />
-          <h2 className="text-zinc-100 font-semibold text-sm">Role Permissions Matrix</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-zinc-800">
-                <th className="pb-2 text-left text-zinc-500 font-medium w-32">Role</th>
-                {MODULES.map((m) => (
-                  <th key={m} className="pb-2 text-center text-zinc-500 font-medium capitalize px-2">
-                    {m}
-                  </th>
-                ))}
-                <th className="pb-2 text-left text-zinc-500 font-medium pl-4">Scope</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/50">
-              {TEAM_ROLE_ORDER.map((role) => {
-                const meta = TEAM_ROLE_META[role]
-                const defaultPerms = getDefaultPerms(role)
-                return (
-                  <tr key={role}>
-                    <td className="py-2.5 pr-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${meta.color}`}>
-                        {meta.label}
-                      </span>
-                    </td>
-                    {MODULES.map((mod) => {
-                      const perm = defaultPerms[mod] ?? ""
-                      return (
-                        <td key={mod} className="py-2.5 text-center px-2">
-                          {perm === "rw" ? (
-                            <span className="text-green-400 font-medium">R/W</span>
-                          ) : perm === "r" ? (
-                            <span className="text-blue-400">R</span>
-                          ) : (
-                            <span className="text-zinc-700">—</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                    <td className="py-2.5 pl-4 text-zinc-500">all</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Members table */}
@@ -183,8 +124,4 @@ export default async function UsersPage() {
       </div>
     </div>
   )
-}
-
-function getDefaultPerms(role: string): Record<string, string> {
-  return ROLE_DEFAULT_PERMISSIONS[role as keyof typeof ROLE_DEFAULT_PERMISSIONS] ?? {}
 }

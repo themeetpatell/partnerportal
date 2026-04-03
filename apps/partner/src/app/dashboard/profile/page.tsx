@@ -197,14 +197,14 @@ export default async function ProfilePage({
 
   const onboardingBannerMessage =
     partnerRecord.onboardedAt
-      ? "Your onboarding acknowledgement has been accepted and the workspace is unlocked."
+      ? "Your partner agreement has been signed and the workspace is unlocked."
       : partnerRecord.status === "approved"
             ? "Your partner account is approved. Workspace access is active."
             : partnerRecord.status === "rejected"
               ? `Your application was rejected${partnerRecord.rejectionReason ? `: ${partnerRecord.rejectionReason}` : "."}`
               : partnerRecord.status === "suspended"
                 ? `Your account is currently suspended${partnerRecord.suspensionReason ? `: ${partnerRecord.suspensionReason}` : "."}`
-                : "Your application is under review. The onboarding acknowledgement you completed during signup is already on file."
+                : "Your application is under review. The partner agreement you completed during signup is already on file."
 
   const operationalLabelMap: Record<string, string> = {
     active_partner: "Active",
@@ -221,15 +221,15 @@ export default async function ProfilePage({
       : "Under review"
   const contractFlashMessage =
     contractQuery === "signed" || contractQuery === "ready"
-      ? "Separate contract signing has been removed. Your onboarding acknowledgement is already captured during signup."
+      ? "Your partner agreement has been signed and is now in effect. Two-party signatures are captured during the onboarding process."
       : contractQuery === "declined"
-        ? "Separate contract signing is no longer part of onboarding."
+        ? "The separate contract signing has been removed from the onboarding flow."
         : contractQuery === "later"
-          ? "Separate contract signing is no longer part of onboarding."
+          ? "The separate contract signing has been removed from the onboarding flow."
         : contractQuery === "missing-fields"
-            ? contractReason || "Your onboarding acknowledgement is already completed. Update profile details when needed."
+            ? contractReason || "Your partner agreement has been signed. Update profile details when needed."
             : contractQuery === "unavailable"
-              ? contractReason || "The agreement flow now lives in onboarding and no extra signature step is required."
+              ? contractReason || "The agreement flow has been integrated into the onboarding process with no separate signature step required."
               : null
   const contractFlashTone =
     contractQuery === "signed"
@@ -351,8 +351,8 @@ export default async function ProfilePage({
         <div className="space-y-6">
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
             <SectionHeader
-              title="Onboarding Status"
-              description="Your onboarding acknowledgement is captured during signup. Track approval and workspace access here."
+              title="Partner Agreement"
+              description="Your partner agreement is signed during the onboarding process. Track approval and workspace access here."
             />
 
             <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
@@ -388,7 +388,7 @@ export default async function ProfilePage({
 
               <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
                 <span>
-                  Acknowledged: {formatDate(partnerRecord.contractSignedAt ?? partnerRecord.createdAt) || "—"}
+                  Signed: {formatDate(partnerRecord.contractSignedAt ?? partnerRecord.createdAt) || "—"}
                 </span>
                 <span>
                   Approved: {formatDate(partnerRecord.activationDate) || "Pending"}
@@ -399,7 +399,7 @@ export default async function ProfilePage({
               </div>
 
               <p className="mt-4 text-sm leading-6 text-slate-400">
-                No separate contract PDF or signature step is required. The onboarding acknowledgement completed during signup is the only required acceptance.
+                Your partner agreement is digitally signed during onboarding with a two-party signature (Finanshels Accounting Technologies + your authorized signatory). This is the sole required legal document for partnership activation.
               </p>
             </div>
           </section>

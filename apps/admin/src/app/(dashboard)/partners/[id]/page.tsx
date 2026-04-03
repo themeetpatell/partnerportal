@@ -120,6 +120,19 @@ export default async function PartnerDetailPage({
         })
       : null
 
+  const formatDateTimeStamp = (d: Date | null | undefined) =>
+    d
+      ? new Date(d).toLocaleDateString("en-AE", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })
+      : null
+
   const fmtInput = (d: Date | null | undefined) =>
     d ? new Date(d).toISOString().slice(0, 10) : null
 
@@ -321,17 +334,17 @@ export default async function PartnerDetailPage({
             <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-white font-semibold">Onboarding acknowledgement</h2>
+                  <h2 className="text-white font-semibold">Partner agreement</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    The commercial terms are acknowledged during partner onboarding. There is no separate contract send or signature step now.
+                    Commercial terms signed during partner onboarding. Legal agreement acknowledged by the authorized signatory.
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />
               </div>
               <p className="mt-4 text-sm text-slate-300">
-                Acknowledged on {formatDate(partner.contractSignedAt ?? partner.createdAt) || "—"}.
+                Signed on {formatDateTimeStamp(partner.contractSignedAt ?? partner.createdAt) || "—"}.
               </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
                     Signed by
@@ -351,14 +364,16 @@ export default async function PartnerDetailPage({
               </div>
               {partner.contractSignatureDataUrl ? (
                 <div className="mt-4 rounded-xl border border-white/8 bg-[#0b1020] p-4">
-                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
-                    Captured signature
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 mb-4">
+                    Authorized signatory signature
                   </p>
-                  <img
-                    src={partner.contractSignatureDataUrl}
-                    alt="Captured onboarding signature"
-                    className="mt-3 h-24 w-full rounded-xl object-contain object-left"
-                  />
+                  <div className="flex min-h-[120px] items-center rounded-xl border border-indigo-400/15 bg-indigo-500/6 px-4 py-4">
+                    <img
+                      src={partner.contractSignatureDataUrl}
+                      alt="Partner authorized signatory signature"
+                      className="h-auto w-full max-w-sm rounded object-contain"
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>
