@@ -75,59 +75,6 @@ function LifecycleBadge({
   )
 }
 
-function getWorkspaceAccessState(partner: {
-  status: string
-  contractStatus: string | null
-  contractSignedAt: Date | null
-  onboardedAt: Date | null
-}) {
-  switch (partner.status) {
-    case "approved":
-      if (!partner.onboardedAt) {
-        return {
-          label: "locked until onboarding accepted",
-          tone: "amber" as const,
-          description:
-            partner.contractSignedAt
-              ? "The partner has signed the contract. Workspace access stays locked until admin accepts the signed agreement."
-              : partner.contractStatus === "sent"
-                ? "The contract is out for signature. Workspace access stays locked until the signed agreement is accepted."
-                : "The application is approved, but workspace access stays locked until the contract is sent, signed, and accepted.",
-        }
-      }
-      return {
-        label: "active access",
-        tone: "emerald" as const,
-        description: "The partner can use the revenue workspace and operate normally.",
-      }
-    case "pending":
-      return {
-        label: "locked pending review",
-        tone: "amber" as const,
-        description:
-          "The account can sign in and finish onboarding, but revenue features stay locked.",
-      }
-    case "rejected":
-      return {
-        label: "access denied",
-        tone: "slate" as const,
-        description: "The application was declined and workspace access remains disabled.",
-      }
-    case "suspended":
-      return {
-        label: "access paused",
-        tone: "slate" as const,
-        description: "The partner record remains in the system, but workspace access is paused.",
-      }
-    default:
-      return {
-        label: "access unknown",
-        tone: "slate" as const,
-        description: "The workspace access state is not recognized.",
-      }
-  }
-}
-
 export default async function PartnerDetailPage({
   params,
 }: {
@@ -223,6 +170,7 @@ export default async function PartnerDetailPage({
 
   const operationalStatus = derivePartnerOperationalStatus(
     {
+      status: partner.status,
       contractStatus: partner.contractStatus,
       contractSignedAt: partner.contractSignedAt,
       onboardedAt: partner.onboardedAt,
@@ -232,6 +180,7 @@ export default async function PartnerDetailPage({
 
   const onboardingStage = derivePartnerOnboardingStage(
     {
+      status: partner.status,
       meetingCompletedAt: partner.meetingCompletedAt,
       onboardedAt: partner.onboardedAt,
       nurturingStartedAt: partner.nurturingStartedAt,
@@ -252,13 +201,6 @@ export default async function PartnerDetailPage({
       : onboardingStage === "yet_to_onboard"
         ? "amber"
         : "indigo"
-  const workspaceAccess = getWorkspaceAccessState({
-    status: partner.status,
-    contractStatus: partner.contractStatus,
-    contractSignedAt: partner.contractSignedAt,
-    onboardedAt: partner.onboardedAt,
-  })
-
   const onboardingSnapshotRows = [
     { label: "Partner type", value: partner.type?.replace("_", " ") },
     { label: "Company name", value: partner.companyName },
@@ -343,8 +285,7 @@ export default async function PartnerDetailPage({
                 <div>
                   <h2 className="text-white font-semibold">Approve application</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    Confirms the partner passed review. Workspace access stays locked until the
-                    contract is signed and the signed agreement is accepted.
+                    Confirms the partner passed review and unlocks the workspace immediately.
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-green-400" />
@@ -380,52 +321,47 @@ export default async function PartnerDetailPage({
             <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-white font-semibold">
-                    {partner.contractStatus === "sent"
-                      ? "Contract awaiting in-app signature"
-                      : "Send contract for signature"}
-                  </h2>
+                  <h2 className="text-white font-semibold">Onboarding acknowledgement</h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    {partner.contractStatus === "sent"
-                      ? "The agreement is already available in the partner portal. The partner must complete the in-app signature before you can finish onboarding."
-                      : "Send the agreement after approval so the partner can review the prefilled terms and complete the in-app signature flow."}
+                    The commercial terms are acknowledged during partner onboarding. There is no separate contract send or signature step now.
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />
               </div>
-              <PartnerActionButton
-                partnerId={partner.id}
-                action="send_contract"
-                endpoint={`/api/partners/${partner.id}/lifecycle`}
-                label={partner.contractStatus === "sent" ? "Resend contract" : "Send contract"}
-                variant="slate"
-                icon="approve"
-                extraBody={{ action: "send_contract" }}
-              />
-            </div>
-
-            {partner.contractSignedAt && !partner.onboardedAt && (
-              <div className="surface-card rounded-2xl p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-white font-semibold">Accept signed contract</h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Review the signed agreement and accept it to mark this partner as onboarded and unlock the workspace.
-                    </p>
-                  </div>
-                  <CheckCircle className="mt-0.5 h-5 w-5 text-emerald-300" />
+              <p className="mt-4 text-sm text-slate-300">
+                Acknowledged on {formatDate(partner.contractSignedAt ?? partner.createdAt) || "—"}.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    Signed by
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white">
+                    {partner.contractSignedName || partner.contactName}
+                  </p>
                 </div>
-                <PartnerActionButton
-                  partnerId={partner.id}
-                  action="mark_onboarded"
-                  endpoint={`/api/partners/${partner.id}/lifecycle`}
-                  label="Accept signed contract"
-                  variant="green"
-                  icon="approve"
-                  extraBody={{ action: "mark_onboarded" }}
-                />
+                <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    Signature mode
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-white capitalize">
+                    {partner.contractSignatureType || "typed"}
+                  </p>
+                </div>
               </div>
-            )}
+              {partner.contractSignatureDataUrl ? (
+                <div className="mt-4 rounded-xl border border-white/8 bg-[#0b1020] p-4">
+                  <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                    Captured signature
+                  </p>
+                  <img
+                    src={partner.contractSignatureDataUrl}
+                    alt="Captured onboarding signature"
+                    className="mt-3 h-24 w-full rounded-xl object-contain object-left"
+                  />
+                </div>
+              ) : null}
+            </div>
 
             <div className="surface-card rounded-2xl p-5">
               <div className="flex items-start justify-between gap-4">
@@ -469,52 +405,6 @@ export default async function PartnerDetailPage({
             />
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="surface-card rounded-2xl p-6">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            Application decision
-          </p>
-          <div className="mt-2">
-            <StatusBadge status={partner.status} />
-          </div>
-          <p className="mt-3 text-sm text-slate-400">
-            {partner.status === "pending"
-              ? "Awaiting admin review before partner access can be activated."
-              : partner.status === "approved"
-                ? "Approved by the partnerships team."
-                : partner.status === "rejected"
-                  ? "Application was declined."
-                  : "Application remains on file, but access is currently paused."}
-          </p>
-        </div>
-        <div className="surface-card rounded-2xl p-6">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            Workspace access
-          </p>
-          <div className="mt-2">
-            <LifecycleBadge
-              label={workspaceAccess.label}
-              tone={workspaceAccess.tone}
-            />
-          </div>
-          <p className="mt-3 text-sm text-slate-400">{workspaceAccess.description}</p>
-        </div>
-        <div className="surface-card rounded-2xl p-6">
-          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-            Onboarding stage
-          </p>
-          <div className="mt-2">
-            <LifecycleBadge
-              label={formatPartnerOnboardingStage(onboardingStage)}
-              tone={onboardingTone}
-            />
-          </div>
-          <p className="mt-3 text-sm text-slate-400">
-            Tracks contract, onboarding, and operational readiness inside the workspace.
-          </p>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -671,15 +561,27 @@ export default async function PartnerDetailPage({
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Agreement Sent?
+                  Onboarding terms acknowledged
                 </dt>
-                <dd className="text-white text-sm">{partner.contractStatus !== "not_sent" ? "Yes" : "No"}</dd>
+                <dd className="text-white text-sm">{partner.contractSignedAt ? "Yes" : "Pending"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Agreement Signed
+                  Acknowledged On
                 </dt>
-                <dd className="text-white text-sm">{partner.contractSignedAt ? "Yes" : "No"}</dd>
+                <dd className="text-white text-sm">{formatDate(partner.contractSignedAt ?? partner.createdAt) || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Signed By
+                </dt>
+                <dd className="text-white text-sm">{partner.contractSignedName || partner.contactName || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Signature Mode
+                </dt>
+                <dd className="text-white text-sm capitalize">{partner.contractSignatureType || "typed"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

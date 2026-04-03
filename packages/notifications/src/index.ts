@@ -138,7 +138,7 @@ export async function sendPartnerApprovedEmail(
         body: `
           <p>Hi ${safePartnerName},</p>
           <p>Your partner application for <strong>${safeCompanyName}</strong> has been approved by the Finanshels team.</p>
-          <p>Your workspace will unlock after the agreement is sent, signed, and accepted. Sign in to track the next onboarding step.</p>
+          <p>Your onboarding acknowledgement is already complete, and your workspace is now ready to use. Sign in to continue.</p>
         `,
         ctaLabel: "Open partner portal",
         ctaHref: portalUrl,
@@ -166,14 +166,14 @@ export async function sendPartnerContractReadyEmail(
 
     await sendEmail({
       to,
-      subject: "Your partner agreement is ready for signature",
+      subject: "Your onboarding details are ready in the partner portal",
       html: buildPartnerEmailShell({
         eyebrow: "Agreement ready",
-        title: "Review and sign your agreement.",
+        title: "Your onboarding details are ready.",
         body: `
           <p>Hi ${safePartnerName},</p>
-          <p>Your partner agreement for <strong>${safeCompanyName}</strong> is now ready.</p>
-          <p>Open your profile to review the prefilled agreement and complete the in-app signature flow.</p>
+          <p>Your onboarding record for <strong>${safeCompanyName}</strong> is available in the partner portal.</p>
+          <p>No separate contract signature is required. Open your profile to review your submitted company and banking details.</p>
         `,
         ctaLabel: "Open agreement",
         ctaHref: profileUrl,

@@ -52,6 +52,17 @@ const registerSchema = z.object({
   agreedToTerms: z.literal(true, {
     errorMap: () => ({ message: "You must confirm the agreement review." }),
   }),
+  signatureType: z.enum(["typed", "drawn"]),
+  signatureName: z.string().trim().min(1, "Signature name is required.").max(255),
+  signatureDataUrl: z.string().max(2_000_000).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.signatureType === "drawn" && !data.signatureDataUrl) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["signatureDataUrl"],
+      message: "Drawn signature is required.",
+    })
+  }
 })
 
 export async function POST(request: NextRequest) {
@@ -106,8 +117,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { companyName, contactName, email, phone, type } = parsed.data
+    const {
+      companyName,
+      contactName,
+      email,
+      phone,
+      type,
+      signatureType,
+      signatureName,
+      signatureDataUrl,
+    } = parsed.data
     const tenantId = getTenantId()
+    const now = new Date()
 
     await ensureDefaultTenantExists(tenantId)
 
@@ -123,7 +144,12 @@ export async function POST(request: NextRequest) {
         email,
         phone: phone || null,
         status: "pending",
-        contractStatus: "not_sent",
+        contractStatus: "signed",
+        contractSignedAt: now,
+        contractSignedName: signatureName,
+        contractSignatureType: signatureType,
+        contractSignatureDataUrl: signatureDataUrl ?? null,
+        agreementUrl: "/onboarding",
       })
       .returning()
 

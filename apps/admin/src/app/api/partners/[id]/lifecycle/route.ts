@@ -4,7 +4,6 @@ import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 import {
   sendPartnerApprovedEmail,
-  sendPartnerContractReadyEmail,
   sendPartnerReactivatedEmail,
   sendPartnerSuspendedEmail,
   sendPartnerWorkspaceUnlockedEmail,
@@ -27,7 +26,7 @@ function redirectToPartner(request: NextRequest, partnerId: string) {
 }
 
 function getPartnerAgreementUrl() {
-  return "/dashboard/profile"
+  return "/onboarding"
 }
 
 export async function POST(
@@ -90,7 +89,7 @@ export async function POST(
     updatedAt: now,
   }
   let note = ""
-  let emailAction: "approved" | "contract_ready" | "reactivated" | "suspended" | "workspace_unlocked" | null = null
+  let emailAction: "approved" | "reactivated" | "suspended" | "workspace_unlocked" | null = null
   let logAction = "partner.lifecycle.updated"
   let logMetadata: Record<string, string> | undefined
 
@@ -100,7 +99,13 @@ export async function POST(
       updates.rejectionReason = null
       updates.suspensionReason = null
       updates.activationDate = partner.activationDate ?? now
-      note = "Partner application approved. Contract step pending before workspace unlock."
+      updates.onboardedAt = partner.onboardedAt ?? now
+      updates.contractStatus = "signed"
+      updates.contractSignedAt = partner.contractSignedAt ?? now
+      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
+      updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
+      note = "Partner application approved and workspace unlocked. Agreement acknowledgement was already completed during onboarding."
       emailAction = "approved"
       logAction = "partner.approved"
       break
@@ -122,19 +127,18 @@ export async function POST(
       logAction = "partner.reactivated"
       break
     case "send_contract": {
-      if (partner.contractStatus === "signed") {
-        return NextResponse.json(
-          { error: "This partner already has a signed contract on file." },
-          { status: 400 }
-        )
-      }
       updates.agreementUrl = getPartnerAgreementUrl()
-      updates.contractSentAt = now
-      updates.contractStatus = "sent"
+      updates.contractSentAt = partner.contractSentAt ?? now
+      updates.contractStatus = "signed"
+      updates.contractSignedAt = partner.contractSignedAt ?? partner.contractSentAt ?? now
+      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
+      updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
+      updates.onboardedAt = partner.onboardedAt ?? now
       updates.zohoSignRequestId = null
-      note = "Contract shared in the partner portal for in-app signing."
-      emailAction = "contract_ready"
-      logAction = "partner.contract.sent"
+      note = "Legacy contract action mapped to onboarding acceptance. Workspace remains unlocked without a separate contract step."
+      emailAction = partner.onboardedAt ? null : "workspace_unlocked"
+      logAction = "partner.contract.bypassed"
       break
     }
     case "mark_meeting_done":
@@ -144,14 +148,13 @@ export async function POST(
       logAction = "partner.meeting.completed"
       break
     case "mark_onboarded":
-      if (!partner.contractSignedAt) {
-        return NextResponse.json(
-          { error: "Contract must be signed before a partner can be onboarded." },
-          { status: 400 }
-        )
-      }
       updates.onboardedAt = now
-      note = "Signed contract accepted. Partner marked as onboarded and workspace unlocked."
+      updates.contractStatus = "signed"
+      updates.contractSignedAt = partner.contractSignedAt ?? now
+      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
+      updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
+      note = "Partner marked as onboarded. Separate contract acceptance is no longer required."
       emailAction = "workspace_unlocked"
       logAction = "partner.onboarded"
       break
@@ -202,14 +205,6 @@ export async function POST(
       updated.email,
       updated.contactName,
       updated.suspensionReason,
-    )
-  }
-
-  if (emailAction === "contract_ready") {
-    await sendPartnerContractReadyEmail(
-      updated.email,
-      updated.contactName,
-      updated.companyName,
     )
   }
 

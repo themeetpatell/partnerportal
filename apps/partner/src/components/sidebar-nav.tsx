@@ -247,13 +247,9 @@ function SidebarContent({
         ? "Needs review"
         : partnerStatus === "suspended"
           ? "Suspended"
-          : isOnboarded
+          : isOnboarded || partnerStatus === "approved"
             ? "Workspace unlocked"
-            : contractStatus === "signed"
-              ? "Awaiting final acceptance"
-              : contractStatus === "sent"
-                ? "Signature required"
-                : "Contract pending"
+            : "Review in progress"
 
   const lockedHint =
     partnerStatus === "pending"
@@ -262,13 +258,9 @@ function SidebarContent({
         ? "Tabs stay locked until the application is cleared."
         : partnerStatus === "suspended"
           ? "Tabs stay locked while access is suspended."
-          : isOnboarded
+          : isOnboarded || partnerStatus === "approved"
             ? "Workspace is unlocked."
-            : contractStatus === "signed"
-              ? "Waiting for Finanshels to accept the signed contract."
-              : contractStatus === "sent"
-                ? "Sign the agreement in your profile to continue."
-                : "Waiting for Finanshels to send the contract."
+            : "Your application is still under review."
 
   return (
     <div className="flex h-full flex-col">

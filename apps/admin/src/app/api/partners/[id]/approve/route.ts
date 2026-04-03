@@ -40,6 +40,7 @@ export async function POST(
       rejectionReason: null,
       suspensionReason: null,
       activationDate: now,
+      onboardedAt: now,
       updatedAt: now,
     })
     .where(eq(partners.id, id))
@@ -62,7 +63,7 @@ export async function POST(
     action: "partner.approved",
     entityType: "partner",
     entityId: id,
-    note: "Partner approved. Workspace unlocks after contract signing and admin acceptance.",
+    note: "Partner approved and workspace unlocked. Agreement acknowledgement was already completed during onboarding.",
   })
 
   return NextResponse.redirect(new URL(`/partners/${id}`, _req.url))

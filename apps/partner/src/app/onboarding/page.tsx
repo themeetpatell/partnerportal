@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { useUser } from "@repo/auth/client"
 import Link from "next/link"
 import {
@@ -28,6 +28,9 @@ interface FormData {
   email: string
   phone: string
   agreedToTerms: boolean
+  signatureMode: "typed" | "draw"
+  typedSignature: string
+  signatureDataUrl: string | null
 }
 
 const INITIAL_FORM: FormData = {
@@ -37,6 +40,9 @@ const INITIAL_FORM: FormData = {
   email: "",
   phone: "",
   agreedToTerms: false,
+  signatureMode: "typed",
+  typedSignature: "",
+  signatureDataUrl: null,
 }
 
 const STEPS = [
@@ -284,123 +290,334 @@ function Step2CompanyDetails({
 }
 
 function Step3Terms({
-  agreed,
+  formData,
   onToggle,
+  onChange,
   partnerType,
+  contactName,
+  contactEmail,
 }: {
-  agreed: boolean
+  formData: FormData
   onToggle: () => void
+  onChange: (field: keyof FormData, value: string | boolean | null) => void
   partnerType: PartnerType | null
+  contactName: string
+  contactEmail: string
 }) {
   const isChannel = partnerType === "channel"
   const modelConfig = partnerType ? PARTNER_MODELS[partnerType] : null
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const drawingRef = useRef(false)
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    const canvas = canvasRef.current
+    const context = canvas.getContext("2d")
+    if (!context) return
+
+    context.lineWidth = 2.5
+    context.lineCap = "round"
+    context.lineJoin = "round"
+    context.strokeStyle = "#c7d2fe"
+    context.fillStyle = "#0b1020"
+    context.fillRect(0, 0, canvas.width, canvas.height)
+
+    if (formData.signatureDataUrl) {
+      const image = new Image()
+      image.onload = () => {
+        context.drawImage(image, 0, 0, canvas.width, canvas.height)
+      }
+      image.src = formData.signatureDataUrl
+    }
+  }, [formData.signatureDataUrl])
+
+  function getCanvasPoint(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const canvas = canvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
+    }
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const context = canvasRef.current?.getContext("2d")
+    const point = getCanvasPoint(event)
+    if (!context || !point) return
+    drawingRef.current = true
+    context.beginPath()
+    context.moveTo(point.x, point.y)
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!drawingRef.current) return
+    const context = canvasRef.current?.getContext("2d")
+    const point = getCanvasPoint(event)
+    if (!context || !point) return
+    context.lineTo(point.x, point.y)
+    context.stroke()
+    const nextDataUrl = canvasRef.current?.toDataURL("image/png") || null
+    onChange("signatureDataUrl", nextDataUrl || "")
+  }
+
+  function handlePointerUp() {
+    drawingRef.current = false
+  }
+
+  function clearSignature() {
+    onChange("signatureDataUrl", null)
+  }
+
+  const typedSignatureValue = formData.typedSignature || contactName
 
   return (
     <div>
       <h2 className="section-title">Review the partner terms</h2>
       <p className="page-subtitle mt-2">
-        This is the onboarding acknowledgement for the agreement package you will later sign in the portal after approval.
+        Review the agreement summary, confirm the commercial terms, and sign here as the authorized representative.
       </p>
 
-      <div className="surface-card mt-8 max-h-[28rem] overflow-y-auto rounded-[1.75rem] p-6">
-        <h3 className="font-heading text-xl font-semibold text-white">
-          Finanshels {isChannel ? "Channel" : "Referral"} Partner Agreement
-        </h3>
+      <div className="surface-card mt-8 overflow-hidden rounded-[1.75rem] border border-white/8">
+        <div className="relative max-h-[36rem] overflow-y-auto px-6 py-6 sm:px-8">
+          <img
+            src="/brand-mark.png"
+            alt=""
+            className="pointer-events-none absolute bottom-0 right-0 w-[360px] opacity-[0.05] select-none"
+          />
 
-        <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
-          <p>
-            <strong className="text-white">1. Partnership terms.</strong> You agree to operate in
-            accordance with applicable UAE laws and any jurisdiction where you conduct business.
-          </p>
-
-          <p>
-            <strong className="text-white">Agreement workflow.</strong> This onboarding step confirms
-            that you reviewed the commercial model and conduct expectations. The final prefilled
-            agreement will be made available inside your partner profile for authorised in-app
-            signing after Finanshels approves the application.
-          </p>
-
-          <p>
-            <strong className="text-white">2. Commissions.</strong>{" "}
-            {isChannel
-              ? "Channel partner commissions are structured as outlined in the commission schedule below. Subsequent renewal commissions are payable only to Channel Partners who maintain active status and have not entered a Commercial Reset (Churn)."
-              : "Referral partner commissions are earned when referred clients convert to paying Finanshels customers. Subsequent renewal commissions are payable only to Referral Partners who maintain active status and have not entered a Commercial Reset (Churn)."}
-          </p>
-
-          {/* Commission structure card */}
-          {modelConfig && (
-            <div className="rounded-xl border border-indigo-400/15 bg-indigo-500/5 p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
-                Annexure II — {isChannel ? "Channel" : "Referral"} Partner Commission Structure
-              </p>
-
+          <div className="relative">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
               <div>
-                <p className="text-xs font-semibold text-white mb-1">Annual Packages</p>
-                <ul className="space-y-1 text-xs text-slate-300">
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
-                    Initial Commission: <strong className="text-white">{modelConfig.commission.annual}</strong>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
-                    Subsequent Annual Renewal: <strong className="text-white">{modelConfig.commission.renewal}</strong>
-                  </li>
-                </ul>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold text-white mb-1">Add-on Services (Annual)</p>
-                <ul className="space-y-1 text-xs text-slate-300">
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
-                    <strong className="text-white">{modelConfig.commission.addon}</strong> on all pre-approved add-on services
-                  </li>
-                </ul>
-              </div>
-
-              <div className="border-t border-white/8 pt-3">
-                <p className="text-xs font-semibold text-white mb-1">Alternative Payment Plan</p>
-                <p className="text-[10px] italic text-slate-500 mb-1.5">
-                  Applies to Monthly/Quarterly Packages &amp; Recurring Add-On Services
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300">
+                  Finanshels Partner Agreement
                 </p>
-                <ul className="space-y-1 text-xs text-slate-300">
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-indigo-400 flex-shrink-0" />
-                    {isChannel ? "Channel" : "Referral"} Partner receives <strong className="text-white">{modelConfig.commission.altRate}</strong>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-500 flex-shrink-0" />
-                    No commission on subsequent payments
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-500 flex-shrink-0" />
-                    No commission on any recurring add-on services
-                  </li>
+                <h3 className="mt-3 font-heading text-2xl font-semibold text-white">
+                  {isChannel ? "Channel Partner Agreement" : "Referral Partner Agreement"}
+                </h3>
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+                  This agreement governs the commercial relationship between Finanshels Accounting
+                  Technologies LLC and the {isChannel ? "Channel Partner" : "Referral Partner"}.
+                  By signing below, both parties confirm the particulars, commercial terms, and
+                  conduct obligations described here.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+                <div>Effective Date: Submission date</div>
+                <div className="mt-1">Jurisdiction: Dubai, UAE</div>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  First Party
+                </p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                  <p><span className="text-slate-500">Company:</span> Finanshels Accounting Technologies LLC</p>
+                  <p><span className="text-slate-500">Licensing Authority:</span> Sharjah Media City (Shams) Free Zone</p>
+                  <p><span className="text-slate-500">Trade License Number:</span> 2221700.01</p>
+                  <p><span className="text-slate-500">Registered Address:</span> Sharjah Media City, Sharjah, UAE</p>
+                  <p><span className="text-slate-500">Signatory:</span> Muhammed Shafeeq, CEO</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Second Party
+                </p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                  <p><span className="text-slate-500">Partner type:</span> {isChannel ? "Channel Partner" : "Referral Partner"}</p>
+                  <p><span className="text-slate-500">Company:</span> {formData.companyName || "Your company name"}</p>
+                  <p><span className="text-slate-500">Authorized signatory:</span> {contactName || "Your full name"}</p>
+                  <p><span className="text-slate-500">Email:</span> {contactEmail || "your@email.com"}</p>
+                  <p><span className="text-slate-500">Phone:</span> {formData.phone || "Add in company step"}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-5 text-sm leading-7 text-slate-300">
+              <div>
+                <h4 className="font-semibold text-white">1. Purpose</h4>
+                <p className="mt-2">
+                  Finanshels will provide the services listed in Annexure I, and the partner will
+                  introduce qualified prospects for those services under the terms of this agreement.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-white">2. Relationship of Parties</h4>
+                <p className="mt-2">
+                  This agreement does not create an agency, employment, or joint venture relationship.
+                  Neither party may bind the other without express written consent.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-white">3. Responsibilities</h4>
+                <ul className="mt-2 space-y-2 list-disc pl-5">
+                  <li>The partner will share only legitimate prospects who have consented to be approached.</li>
+                  <li>Finanshels will manage service delivery, commercial discussions, onboarding, and client execution.</li>
+                  <li>The partner must present Finanshels accurately and may not make misleading service or pricing claims.</li>
                 </ul>
               </div>
 
-              <p className="text-[10px] italic text-slate-500 pt-1">
-                Actual package pricing and add-on service fees will be shared separately.
-              </p>
-            </div>
-          )}
+              {modelConfig && (
+                <div className="rounded-2xl border border-indigo-400/15 bg-indigo-500/5 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                    Annexure II • Commission Structure
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Initial commission</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.annual}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Renewals</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.renewal}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Add-on services</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.addon}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Alternative plan</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{modelConfig.commission.altRate}</p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-xs leading-6 text-slate-400">
+                    Renewal commissions apply only while the partner remains active. If no qualified lead is submitted for ninety consecutive days, the partner enters a commercial reset period and renewal commissions stop until active status is regained.
+                  </p>
+                </div>
+              )}
 
-          <p>
-            <strong className="text-white">3. Confidentiality.</strong> Client information, pricing,
-            and internal Finanshels processes must be treated as confidential at all times.
-          </p>
-          <p>
-            <strong className="text-white">4. Conduct.</strong> Partners may not make misleading claims
-            about services, pricing, timelines, or deliverables.
-          </p>
-          <p>
-            <strong className="text-white">5. Termination.</strong> Either party may end the relationship
-            with written notice, and Finanshels may suspend access for material breach.
-          </p>
-          <p>
-            <strong className="text-white">6. Governing law.</strong> This agreement is governed by the
-            laws of the UAE and subject to the jurisdiction of the Dubai courts.
-          </p>
+              <div>
+                <h4 className="font-semibold text-white">4. Term and Termination</h4>
+                <p className="mt-2">
+                  This agreement starts on the effective date and renews automatically each year unless either party gives thirty days written notice. Any commissions earned before termination remain payable under this agreement.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-white">5. Confidentiality and Non-Solicitation</h4>
+                <p className="mt-2">
+                  Both parties must keep client and commercial information confidential. During the term and for one year after termination, neither party may solicit the other party&apos;s clients, employees, or contractors away from the relationship.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold text-white">6. Liability and Governing Law</h4>
+                <p className="mt-2">
+                  Neither party is liable for indirect or consequential loss. Finanshels&apos; aggregate liability under this agreement is capped at the total commission payable to the partner. UAE law governs this agreement, and disputes will be handled in Dubai.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-5 lg:grid-cols-2">
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  First Party Signature
+                </p>
+                <div className="mt-4 flex items-start gap-4">
+                  <div className="rounded-xl border border-indigo-400/20 bg-indigo-500/8 px-4 py-3">
+                    <p className="text-4xl leading-none text-indigo-200 [font-family:cursive]">Shafeeq</p>
+                  </div>
+                  <div className="rounded-full border-2 border-indigo-300/40 px-4 py-4 text-center text-xs uppercase tracking-[0.18em] text-indigo-200">
+                    Finanshels
+                    <br />
+                    Registration No
+                    <br />
+                    2221700.01
+                  </div>
+                </div>
+                <div className="mt-4 text-sm leading-6 text-slate-300">
+                  <p>Muhammed Shafeeq</p>
+                  <p>CEO</p>
+                  <p>Authorized Signatory</p>
+                  <p>Finanshels Accounting Technologies LLC</p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                  Second Party Signature
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onChange("signatureMode", "typed")}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      formData.signatureMode === "typed"
+                        ? "bg-indigo-400 text-[#101426]"
+                        : "border border-white/10 bg-white/[0.03] text-slate-300"
+                    }`}
+                  >
+                    Type signature
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onChange("signatureMode", "draw")}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      formData.signatureMode === "draw"
+                        ? "bg-indigo-400 text-[#101426]"
+                        : "border border-white/10 bg-white/[0.03] text-slate-300"
+                    }`}
+                  >
+                    Draw signature
+                  </button>
+                </div>
+
+                {formData.signatureMode === "typed" ? (
+                  <div className="mt-4">
+                    <label className="field-label">Typed signature</label>
+                    <input
+                      type="text"
+                      value={typedSignatureValue}
+                      onChange={(event) => onChange("typedSignature", event.target.value)}
+                      className="field-input mt-2"
+                      placeholder="Type your full name"
+                    />
+                    <div className="mt-4 rounded-xl border border-dashed border-white/10 bg-[#0b1020] px-4 py-6 text-center">
+                      <p className="text-4xl leading-none text-indigo-200 [font-family:cursive]">
+                        {typedSignatureValue || "Your signature"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between">
+                      <label className="field-label">Draw signature</label>
+                      <button
+                        type="button"
+                        onClick={clearSignature}
+                        className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 transition hover:text-white"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <canvas
+                      ref={canvasRef}
+                      width={720}
+                      height={180}
+                      onPointerDown={handlePointerDown}
+                      onPointerMove={handlePointerMove}
+                      onPointerUp={handlePointerUp}
+                      onPointerLeave={handlePointerUp}
+                      className="mt-2 h-40 w-full rounded-2xl border border-dashed border-white/10 bg-[#0b1020] touch-none"
+                    />
+                  </div>
+                )}
+
+                <div className="mt-4 text-sm leading-6 text-slate-300">
+                  <p>{contactName || "Authorized signatory"}</p>
+                  <p>Authorized Signatory</p>
+                  <p>{formData.companyName || "Your company"}</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -408,14 +625,14 @@ function Step3Terms({
         type="button"
         onClick={onToggle}
         className={`mt-6 flex w-full items-start gap-3 rounded-[1.4rem] border px-4 py-4 text-left transition-all ${
-          agreed
+          formData.agreedToTerms
             ? "border-indigo-400/30 bg-indigo-500/10"
             : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
         }`}
       >
         <div
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
-            agreed
+            formData.agreedToTerms
               ? "border-indigo-400 bg-indigo-400 text-[#0f1027]"
               : "border-white/15 bg-transparent text-transparent"
           }`}
@@ -423,7 +640,7 @@ function Step3Terms({
           <Check className="h-3 w-3" />
         </div>
         <span className="text-sm leading-6 text-slate-200">
-          I have read and agree to the Finanshels Partner Agreement, commission structure, and Privacy Policy.
+          I have reviewed the agreement summary above, confirm that the signature is mine, and agree to the Finanshels Partner Agreement, commission structure, and Privacy Policy.
         </span>
       </button>
     </div>
@@ -451,8 +668,8 @@ function Step4Success({
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
         Your {typeLabel} partner application for {companyName} is now in review.
-        Complete any remaining profile details in the portal and wait for admin approval
-        before the revenue workspace unlocks.
+        Your agreement acknowledgement and signature were captured during onboarding, so the
+        remaining step is admin approval before the revenue workspace unlocks.
       </p>
 
       <div className="mt-6">
@@ -498,13 +715,24 @@ export default function OnboardingPage() {
     setStep((current) => (current === 1 ? 2 : current))
   }, [user?.partnerType])
 
+  useEffect(() => {
+    const defaultName =
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.email || ""
+
+    if (!defaultName) return
+
+    setFormData((prev) =>
+      prev.typedSignature ? prev : { ...prev, typedSignature: defaultName }
+    )
+  }, [user?.email, user?.firstName, user?.lastName])
+
   const lockedContact =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     user?.email ||
     ""
   const lockedEmail = user?.email || ""
 
-  function handleChange(field: keyof FormData, value: string | boolean) {
+  function handleChange(field: keyof FormData, value: string | boolean | null) {
     setFormData((prev) => ({ ...prev, [field]: value }))
     setError(null)
   }
@@ -516,6 +744,12 @@ export default function OnboardingPage() {
     }
     if (step === 3 && !formData.agreedToTerms) {
       return "You must confirm the agreement review to continue."
+    }
+    if (step === 3 && formData.signatureMode === "typed" && !formData.typedSignature.trim()) {
+      return "Please type your signature to continue."
+    }
+    if (step === 3 && formData.signatureMode === "draw" && !formData.signatureDataUrl) {
+      return "Please draw your signature to continue."
     }
 
     return null
@@ -543,6 +777,10 @@ export default function OnboardingPage() {
             email: lockedEmail,
             phone: formData.phone,
             agreedToTerms: formData.agreedToTerms,
+            signatureType: formData.signatureMode === "draw" ? "drawn" : "typed",
+            signatureName: formData.typedSignature.trim() || lockedContact,
+            signatureDataUrl:
+              formData.signatureMode === "draw" ? formData.signatureDataUrl : null,
           }),
         })
 
@@ -619,9 +857,9 @@ export default function OnboardingPage() {
                 What happens next
               </p>
               <div className="mt-3 space-y-2.5 text-sm leading-6 text-slate-300">
-                <p>1. Submit your company details and agreement acknowledgement.</p>
-                <p>2. Finanshels reviews the application and prepares your prefilled agreement.</p>
-                <p>3. Once approved and signed in the portal, the workspace unlocks.</p>
+                <p>1. Submit your company details and sign the partner agreement here.</p>
+                <p>2. Finanshels reviews the application and verifies the onboarding details.</p>
+                <p>3. Once approved, the workspace unlocks immediately.</p>
               </div>
             </div>
 
@@ -679,9 +917,12 @@ export default function OnboardingPage() {
 
             {step === 3 ? (
               <Step3Terms
-                agreed={formData.agreedToTerms}
+                formData={formData}
                 onToggle={() => handleChange("agreedToTerms", !formData.agreedToTerms)}
+                onChange={handleChange}
                 partnerType={formData.type}
+                contactName={lockedContact}
+                contactEmail={lockedEmail}
               />
             ) : null}
 

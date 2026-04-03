@@ -17,6 +17,7 @@ export type PartnerOnboardingStage =
 
 export function derivePartnerOperationalStatus(
   partner: {
+    status?: string | null
     contractStatus?: string | null
     contractSignedAt?: Date | string | null
     onboardedAt?: Date | string | null
@@ -24,13 +25,8 @@ export function derivePartnerOperationalStatus(
   leads: { status: string; createdAt: Date | string }[],
   now = new Date(),
 ): PartnerOperationalStatus {
-  const hasSignedContract =
-    partner.contractStatus === "signed" || Boolean(partner.contractSignedAt)
-  if (!hasSignedContract) {
-    return "yet_to_onboard"
-  }
-
-  if (!partner.onboardedAt) {
+  const hasWorkspaceApproval = partner.status === "approved" || Boolean(partner.onboardedAt)
+  if (!hasWorkspaceApproval) {
     return "yet_to_onboard"
   }
 
@@ -63,13 +59,14 @@ export function derivePartnerOperationalStatus(
 
 export function derivePartnerOnboardingStage(
   partner: {
+    status?: string | null
     meetingCompletedAt?: Date | string | null
     onboardedAt?: Date | string | null
     nurturingStartedAt?: Date | string | null
   },
   leads: { createdAt: Date | string }[],
 ): PartnerOnboardingStage {
-  if (partner.onboardedAt && leads.length > 0) {
+  if ((partner.onboardedAt || partner.status === "approved") && leads.length > 0) {
     return "activated"
   }
 
@@ -77,7 +74,7 @@ export function derivePartnerOnboardingStage(
     return "nurturing"
   }
 
-  if (partner.onboardedAt) {
+  if (partner.onboardedAt || partner.status === "approved") {
     return "onboarded"
   }
 

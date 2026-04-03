@@ -51,7 +51,7 @@ export async function getPartnerRecordForAuthenticatedUser(params: {
 export function hasApprovedWorkspaceAccess(
   partner: { status: string; onboardedAt?: Date | string | null } | null | undefined,
 ) {
-  return partner?.status === "approved" && Boolean(partner.onboardedAt)
+  return partner?.status === "approved"
 }
 
 export async function getPartnerPostAuthRoute(userId: string) {

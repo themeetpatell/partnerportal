@@ -30,7 +30,6 @@ const icons = {
 }
 
 export function PartnerActionButton({
-  partnerId,
   action,
   endpoint,
   label,
