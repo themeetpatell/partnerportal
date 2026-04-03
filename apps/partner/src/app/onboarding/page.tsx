@@ -42,7 +42,7 @@ const INITIAL_FORM: FormData = {
 const STEPS = [
   { number: 1, label: "Model" },
   { number: 2, label: "Company" },
-  { number: 3, label: "Terms" },
+  { number: 3, label: "Agreement" },
   { number: 4, label: "Done" },
 ]
 
@@ -299,7 +299,7 @@ function Step3Terms({
     <div>
       <h2 className="section-title">Review the partner terms</h2>
       <p className="page-subtitle mt-2">
-        This keeps expectations clear around conduct, commission handling, and client confidentiality.
+        This is the onboarding acknowledgement for the agreement package you will later sign in the portal after approval.
       </p>
 
       <div className="surface-card mt-8 max-h-[28rem] overflow-y-auto rounded-[1.75rem] p-6">
@@ -311,6 +311,13 @@ function Step3Terms({
           <p>
             <strong className="text-white">1. Partnership terms.</strong> You agree to operate in
             accordance with applicable UAE laws and any jurisdiction where you conduct business.
+          </p>
+
+          <p>
+            <strong className="text-white">Agreement workflow.</strong> This onboarding step confirms
+            that you reviewed the commercial model and conduct expectations. The final prefilled
+            agreement will be made available inside your partner profile for authorised in-app
+            signing after Finanshels approves the application.
           </p>
 
           <p>
@@ -508,7 +515,7 @@ export default function OnboardingPage() {
       if (!formData.companyName.trim()) return "Company name is required."
     }
     if (step === 3 && !formData.agreedToTerms) {
-      return "You must accept the terms and conditions to continue."
+      return "You must confirm the agreement review to continue."
     }
 
     return null
@@ -612,9 +619,9 @@ export default function OnboardingPage() {
                 What happens next
               </p>
               <div className="mt-3 space-y-2.5 text-sm leading-6 text-slate-300">
-                <p>1. Submit your company details and terms.</p>
-                <p>2. Finanshels reviews the partner application.</p>
-                <p>3. Once approved, leads, requests, clients, and commissions unlock.</p>
+                <p>1. Submit your company details and agreement acknowledgement.</p>
+                <p>2. Finanshels reviews the application and prepares your prefilled agreement.</p>
+                <p>3. Once approved and signed in the portal, the workspace unlocks.</p>
               </div>
             </div>
 

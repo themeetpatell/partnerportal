@@ -382,13 +382,13 @@ export default async function PartnerDetailPage({
                 <div>
                   <h2 className="text-white font-semibold">
                     {partner.contractStatus === "sent"
-                      ? "Contract awaiting partner signature"
+                      ? "Contract awaiting in-app signature"
                       : "Send contract for signature"}
                   </h2>
                   <p className="mt-1 text-sm text-slate-400">
                     {partner.contractStatus === "sent"
-                      ? "The agreement is already available through Zoho Sign. The partner must complete the signature before you can finish onboarding."
-                      : "Send the agreement after approval so the partner can review the prefilled terms and complete the legally binding signature flow."}
+                      ? "The agreement is already available in the partner portal. The partner must complete the in-app signature before you can finish onboarding."
+                      : "Send the agreement after approval so the partner can review the prefilled terms and complete the in-app signature flow."}
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />

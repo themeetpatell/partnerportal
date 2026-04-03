@@ -48,19 +48,19 @@ export function ContractSigningForm({
           <input
             type="file"
             name="signatureFile"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/png,image/jpeg"
             className="block w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-500/15 file:px-3 file:py-2 file:text-indigo-200"
           />
         </div>
       ) : (
         <div className="lg:col-span-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-          Typed signature uses your signer name inside the generated signed PDF. Review the
-          prefilled agreement first, then sign here to generate the final signed contract PDF.
+          Typed signature uses your authorised signatory name inside the generated signed PDF.
+          Review the prefilled agreement first, then sign here to finalize the in-app contract.
         </div>
       )}
 
       <button type="submit" className="primary-button w-full justify-center">
-        Sign agreement
+        Sign agreement in portal
       </button>
 
       <label className="lg:col-span-3 flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
@@ -72,8 +72,8 @@ export function ContractSigningForm({
           className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5"
         />
         <span>
-          I confirm that I have reviewed the agreement and I am signing on behalf of this
-          partner account.
+          I confirm that I have reviewed the agreement and I am authorized to sign on behalf of this
+          partner entity.
         </span>
       </label>
     </form>

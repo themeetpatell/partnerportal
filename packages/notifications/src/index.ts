@@ -173,7 +173,7 @@ export async function sendPartnerContractReadyEmail(
         body: `
           <p>Hi ${safePartnerName},</p>
           <p>Your partner agreement for <strong>${safeCompanyName}</strong> is now ready.</p>
-          <p>Open your profile to review the prefilled agreement and complete the legally binding signature flow through Zoho Sign.</p>
+          <p>Open your profile to review the prefilled agreement and complete the in-app signature flow.</p>
         `,
         ctaLabel: "Open agreement",
         ctaHref: profileUrl,

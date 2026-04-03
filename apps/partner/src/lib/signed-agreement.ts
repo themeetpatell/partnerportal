@@ -422,7 +422,7 @@ export async function createExternalAgreementPdf(
   })
 
   const introLines = [
-    "This agreement must be signed through Zoho Sign.",
+    "This agreement requires an authorised signature.",
     "By signing, the authorised representative confirms that they have reviewed the agreement and accept it on behalf of the partner entity.",
     `Partner company: ${input.partnerCompanyName}`,
     `Partner type: ${input.partnerTypeLabel}`,
@@ -467,7 +467,7 @@ export async function createExternalAgreementPdf(
     borderWidth: 1,
   })
 
-  page.drawText("Zoho Sign will place the legal signature here.", {
+  page.drawText("Authorised signature will be placed here.", {
     x: signatureX + 12,
     y: signatureY + signatureHeight / 2 - 4,
     size: 10,

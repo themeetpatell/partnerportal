@@ -27,7 +27,7 @@ function redirectToPartner(request: NextRequest, partnerId: string) {
 }
 
 function getPartnerAgreementUrl() {
-  return "/api/profile/contract/start-sign"
+  return "/dashboard/profile"
 }
 
 export async function POST(
@@ -132,7 +132,7 @@ export async function POST(
       updates.contractSentAt = now
       updates.contractStatus = "sent"
       updates.zohoSignRequestId = null
-      note = "Contract shared for external signing through Zoho Sign."
+      note = "Contract shared in the partner portal for in-app signing."
       emailAction = "contract_ready"
       logAction = "partner.contract.sent"
       break

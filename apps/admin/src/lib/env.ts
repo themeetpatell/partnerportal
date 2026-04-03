@@ -13,10 +13,6 @@ const envSchema = z.object({
   ZOHO_CLIENT_SECRET: z.string().optional(),
   ZOHO_REFRESH_TOKEN: z.string().optional(),
   ZOHO_ACCOUNTS_BASE_URL: z.string().url().optional(),
-  ZOHO_SIGN_CLIENT_ID: z.string().optional(),
-  ZOHO_SIGN_CLIENT_SECRET: z.string().optional(),
-  ZOHO_SIGN_REFRESH_TOKEN: z.string().optional(),
-  ZOHO_SIGN_BASE_URL: z.string().url().optional(),
 })
 
 export function validateEnv() {

@@ -24,10 +24,10 @@ import {
   ShieldCheck,
   User,
 } from "lucide-react"
+import { ContractSigningForm } from "@/components/contract-signing-form"
 import { ProfileEditForm } from "@/components/profile-edit-form"
 import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 import { getMissingAgreementFields } from "@/lib/signed-agreement"
-import { syncZohoSignedContract } from "@/lib/zoho-sign-contract"
 
 function LifecyclePill({
   label,
@@ -149,7 +149,7 @@ export default async function ProfilePage({
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner"
 
-  let partnerRecord = userId
+  const partnerRecord = userId
     ? await getPartnerRecordForAuthenticatedUser({
         userId,
         email: user?.email,
@@ -158,15 +158,6 @@ export default async function ProfilePage({
 
   if (!partnerRecord) {
     redirect("/onboarding")
-  }
-
-  if (
-    partnerRecord.contractStatus === "sent" &&
-    partnerRecord.zohoSignRequestId &&
-    !partnerRecord.contractSignedAt
-  ) {
-    const syncResult = await syncZohoSignedContract(partnerRecord)
-    partnerRecord = syncResult.partner
   }
 
   const partnerLeads = await db
@@ -209,9 +200,9 @@ export default async function ProfilePage({
     partnerRecord.onboardedAt
       ? "Your agreement has been accepted and onboarding is complete. Revenue features are now unlocked."
       : partnerRecord.contractStatus === "signed"
-        ? "Agreement signed. Finanshels will review the signed contract and unlock your workspace after final acceptance."
+      ? "Agreement signed. Finanshels will review the signed contract and unlock your workspace after final acceptance."
         : partnerRecord.contractStatus === "sent"
-          ? "Your agreement is ready through Zoho Sign. Review the prefilled agreement, then complete the legally binding signature flow there."
+          ? "Your agreement is ready in the portal. Review the prefilled agreement, then complete the in-app signing step below."
           : partnerRecord.status === "approved"
             ? "Your partner account is approved. Finanshels still needs to send the agreement here before revenue features can unlock."
             : partnerRecord.status === "rejected"
@@ -235,11 +226,13 @@ export default async function ProfilePage({
       : partnerRecord.contractStatus.replaceAll("_", " ")
   const contractFlashMessage =
     contractQuery === "signed"
-      ? "The Zoho Sign agreement has been completed and synced into your workspace."
+      ? "Your agreement has been signed successfully and the final PDF is now stored in your workspace."
       : contractQuery === "declined"
         ? "The signing flow was declined. You can reopen it whenever you are ready."
         : contractQuery === "later"
           ? "The signing flow was saved for later."
+        : contractQuery === "ready"
+          ? "Your agreement is ready. Review the preview and complete the in-app signing section below."
         : contractQuery === "missing-fields"
             ? contractReason || "Complete the required profile fields before you start signing."
             : contractQuery === "unavailable"
@@ -250,7 +243,7 @@ export default async function ProfilePage({
       ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
       : contractQuery === "declined" || contractQuery === "missing-fields" || contractQuery === "unavailable"
         ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
-        : contractQuery === "later"
+        : contractQuery === "later" || contractQuery === "ready"
           ? "border-indigo-400/20 bg-indigo-500/10 text-indigo-100"
           : ""
 
@@ -458,7 +451,7 @@ export default async function ProfilePage({
 
                 {partnerRecord.contractStatus !== "not_sent" ? (
                   <p className="mt-4 text-sm leading-6 text-slate-400">
-                    The agreement is prefilled from your current company and banking details. Once you open Zoho Sign, those details are locked into the signing packet, so update your profile first if anything looks outdated.
+                    The agreement is prefilled from your current company and banking details. Review it carefully before signing, because the final signed PDF is generated directly from the current profile data.
                   </p>
                 ) : null}
               </div>
@@ -480,21 +473,29 @@ export default async function ProfilePage({
             {partnerRecord.contractStatus === "sent" &&
               !partnerRecord.contractSignedAt &&
               agreementMissingFields.length === 0 && (
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <a
-                    href="/api/profile/contract/start-sign"
-                    className="primary-button"
-                  >
-                    Open Zoho Sign
-                  </a>
-                  <a
-                    href="/api/profile/contract/agreement"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="secondary-button"
-                  >
-                    Preview agreement
-                  </a>
+                <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-white">Sign the agreement in portal</h3>
+                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+                        Review the agreement preview, confirm the authorised signatory details,
+                        and sign directly here. Finanshels will review the signed PDF before
+                        unlocking the workspace.
+                      </p>
+                    </div>
+                    <a
+                      href="/api/profile/contract/agreement"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="secondary-button"
+                    >
+                      Preview agreement
+                    </a>
+                  </div>
+                  <ContractSigningForm
+                    contactName={partnerRecord.contactName}
+                    designation={partnerRecord.designation}
+                  />
                 </div>
               )}
           </section>

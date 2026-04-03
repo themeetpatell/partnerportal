@@ -49,6 +49,7 @@ export async function GET() {
       companyName: partner.companyName,
       contactName: partner.contactName,
       email: partner.email,
+      designation: partner.designation,
       partnerAddress: partner.partnerAddress,
       emirateIdPassport: partner.emirateIdPassport,
       tradeLicense: partner.tradeLicense,

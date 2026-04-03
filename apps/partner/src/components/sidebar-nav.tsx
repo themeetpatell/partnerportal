@@ -267,7 +267,7 @@ function SidebarContent({
             : contractStatus === "signed"
               ? "Waiting for Finanshels to accept the signed contract."
               : contractStatus === "sent"
-                ? "Sign the contract to continue."
+                ? "Sign the agreement in your profile to continue."
                 : "Waiting for Finanshels to send the contract."
 
   return (

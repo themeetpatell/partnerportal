@@ -50,7 +50,7 @@ const registerSchema = z.object({
   phone: z.string().optional().default(""),
   type: z.enum(["referral", "channel"]),
   agreedToTerms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms and conditions." }),
+    errorMap: () => ({ message: "You must confirm the agreement review." }),
   }),
 })
 
