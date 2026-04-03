@@ -387,8 +387,8 @@ export default async function PartnerDetailPage({
                   </h2>
                   <p className="mt-1 text-sm text-slate-400">
                     {partner.contractStatus === "sent"
-                      ? "The agreement is already available in the partner portal. The partner must sign it before you can complete onboarding."
-                      : "Share the agreement in the partner portal after approval so the partner can fill the required signer details and sign it."}
+                      ? "The agreement is already available through Zoho Sign. The partner must complete the signature before you can finish onboarding."
+                      : "Send the agreement after approval so the partner can review the prefilled terms and complete the legally binding signature flow."}
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />

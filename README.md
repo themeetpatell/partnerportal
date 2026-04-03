@@ -101,9 +101,14 @@ Optional integrations, only needed if you are working on those flows:
 - `ZOHO_CLIENT_ID`
 - `ZOHO_CLIENT_SECRET`
 - `ZOHO_REFRESH_TOKEN`
+- `ZOHO_ACCOUNTS_BASE_URL`
 - `ZOHO_BASE_URL`
 - `ZOHO_DEAL_PIPELINE`
 - `ZOHO_DEAL_QUALIFICATION_STAGE`
+- `ZOHO_SIGN_CLIENT_ID`
+- `ZOHO_SIGN_CLIENT_SECRET`
+- `ZOHO_SIGN_REFRESH_TOKEN`
+- `ZOHO_SIGN_BASE_URL`
 - `ZOHO_WORKDRIVE_ACCESS_TOKEN`
 - `ZOHO_WORKDRIVE_BASE_URL`
 - `ZOHO_WORKDRIVE_ROOT_FOLDER_ID`
@@ -288,6 +293,33 @@ The scripts will kill stale `node` processes automatically. They will not kill n
 ## Deployment
 
 The partner app and admin app are intended to be deployed separately. They share the same database and auth provider, but each deployment needs its own public URL configuration.
+
+Recommended production structure:
+
+- partner portal: `https://partner.finanshels.com`
+- internal portal: `https://collab.finanshels.com`
+
+Why this structure:
+
+- it keeps external and internal surfaces clearly separated
+- it avoids conflict with any existing `admin.finanshels.com` app
+- it still aligns with the current env split: `NEXT_PUBLIC_PARTNER_APP_URL` and `NEXT_PUBLIC_ADMIN_APP_URL`
+
+Suggested production env values:
+
+```bash
+NEXT_PUBLIC_PARTNER_APP_URL=https://partner.finanshels.com
+NEXT_PUBLIC_ADMIN_APP_URL=https://collab.finanshels.com
+```
+
+Deployment checklist:
+
+- create two separate Vercel projects, one for `apps/partner` and one for `apps/admin`
+- point the partner custom domain at `partner.finanshels.com`
+- point the internal custom domain at `collab.finanshels.com`
+- set `NEXT_PUBLIC_PARTNER_APP_URL` and `NEXT_PUBLIC_ADMIN_APP_URL` in both deployments
+- add both production domains to Supabase Auth allowed URLs / redirect configuration
+- verify any outbound emails and contract links resolve to the partner domain
 
 ## Security
 

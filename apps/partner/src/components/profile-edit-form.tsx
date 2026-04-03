@@ -168,7 +168,7 @@ function SectionEditButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+      className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:w-auto ${
         editing
           ? "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
           : "bg-white/6 text-slate-400 hover:text-white hover:bg-white/10"
@@ -183,12 +183,20 @@ function SectionEditButton({
 /* ── Main form component ──────────────────────────────── */
 
 interface ProfileEditFormProps {
-  section: "primary" | "secondary" | "financial"
+  section: "contact" | "company" | "financial"
+  title: string
+  description?: string
   partner: PartnerData
   children: React.ReactNode
 }
 
-export function ProfileEditForm({ section, partner, children }: ProfileEditFormProps) {
+export function ProfileEditForm({
+  section,
+  title,
+  description,
+  partner,
+  children,
+}: ProfileEditFormProps) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -258,9 +266,17 @@ export function ProfileEditForm({ section, partner, children }: ProfileEditFormP
 
   if (!isEditing) {
     return (
-      <div className="relative">
-        <div className="absolute top-0 right-0">
-          <SectionEditButton editing={false} onToggle={() => setIsEditing(true)} />
+      <div className="space-y-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
+            {description ? (
+              <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+            ) : null}
+          </div>
+          <div className="w-full sm:w-auto">
+            <SectionEditButton editing={false} onToggle={() => setIsEditing(true)} />
+          </div>
         </div>
         {children}
       </div>
@@ -269,15 +285,21 @@ export function ProfileEditForm({ section, partner, children }: ProfileEditFormP
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-indigo-400 font-medium">Editing — make changes below</p>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
+          {description ? (
+            <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+          ) : null}
+          <p className="mt-2 text-xs font-medium text-indigo-400">Editing — make changes below</p>
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <SectionEditButton editing onToggle={handleCancel} />
           <button
             type="button"
             onClick={handleSave}
             disabled={isPending}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white transition-colors disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 sm:w-auto"
           >
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Save
@@ -292,22 +314,23 @@ export function ProfileEditForm({ section, partner, children }: ProfileEditFormP
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {section === "primary" && (
+        {section === "contact" && (
           <>
-            <TextField label="Company name" name="companyName" value={val("companyName")} onChange={handleChange} />
             <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} />
             <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} />
             <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} />
             <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} placeholder="e.g. 1990-01-15" />
             <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" />
+            <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
+            <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
+            <TextField label="Nationality" name="nationality" value={val("nationality")} onChange={handleChange} />
+            <TextField label="Registered address" name="partnerAddress" value={val("partnerAddress")} onChange={handleChange} placeholder="e.g. Unit 301, Business Bay, Dubai, UAE" />
           </>
         )}
 
-        {section === "secondary" && (
+        {section === "company" && (
           <>
-            <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
-            <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
-            <TextField label="Nationality" name="nationality" value={val("nationality")} onChange={handleChange} />
+            <TextField label="Company name" name="companyName" value={val("companyName")} onChange={handleChange} />
             <SelectField
               label="Business size"
               name="businessSize"
@@ -321,8 +344,6 @@ export function ProfileEditForm({ section, partner, children }: ProfileEditFormP
               ]}
             />
             <TextField label="Industry" name="partnerIndustry" value={val("partnerIndustry")} onChange={handleChange} />
-            <TextField label="Address" name="partnerAddress" value={val("partnerAddress")} onChange={handleChange} />
-            <CheckboxField label="Opt out of marketing emails" name="emailOptOut" checked={boolVal("emailOptOut")} onChange={handleChange} />
             <TextareaField label="Overview / Bio" name="overview" value={val("overview")} onChange={handleChange} placeholder="Brief description of your business…" />
           </>
         )}
@@ -338,17 +359,6 @@ export function ProfileEditForm({ section, partner, children }: ProfileEditFormP
             <TextField label="Bank country" name="bankCountry" value={val("bankCountry")} onChange={handleChange} />
             <TextField label="Account No / IBAN" name="accountNoIban" value={val("accountNoIban")} onChange={handleChange} />
             <TextField label="SWIFT / BIC code" name="swiftBicCode" value={val("swiftBicCode")} onChange={handleChange} />
-            <SelectField
-              label="Payment frequency"
-              name="paymentFrequency"
-              value={val("paymentFrequency")}
-              onChange={handleChange}
-              options={[
-                { label: "Monthly", value: "monthly" },
-                { label: "Quarterly", value: "quarterly" },
-                { label: "On request", value: "on-request" },
-              ]}
-            />
           </>
         )}
       </div>

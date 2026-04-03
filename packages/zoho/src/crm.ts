@@ -12,6 +12,8 @@ export interface ZohoLead {
   Services_List?: string[]
   Converted_Deal?: { id: string } | null
   Related_Deal?: { id: string } | null
+  Industry?: string
+  [key: string]: unknown
 }
 
 export interface ZohoDeal {
@@ -20,16 +22,21 @@ export interface ZohoDeal {
   Stage: string
   Amount?: string | number
   Expected_Revenue?: string | number
+  Closing_Date?: string
+  Industry?: string
   Contact_Name?: { id: string }
+  [key: string]: unknown
 }
 
 const ZOHO_BASE_URL =
   process.env.ZOHO_BASE_URL || "https://www.zohoapis.com/crm/v3"
+const ZOHO_ACCOUNTS_BASE_URL =
+  process.env.ZOHO_ACCOUNTS_BASE_URL || "https://accounts.zoho.com"
 const ZOHO_DEAL_PIPELINE =
   process.env.ZOHO_DEAL_PIPELINE || "General Sales"
 const ZOHO_DEAL_QUALIFICATION_STAGE =
   process.env.ZOHO_DEAL_QUALIFICATION_STAGE || "Qualification"
-const ZOHO_LEAD_SERVICE_PICKLIST_VALUES = [
+export const ZOHO_LEAD_SERVICE_PICKLIST_VALUES = [
   "Corporate Tax Registration",
   "Corporate Tax Filing - Essential",
   "Corporate Tax Filing - Growth",
@@ -71,6 +78,81 @@ const zohoLeadServiceAliases = new Map<string, (typeof ZOHO_LEAD_SERVICE_PICKLIS
   ["audit services", "Auditing"],
 ])
 
+function extractPicklistValues(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return []
+    }
+
+    const record = item as Record<string, unknown>
+    const candidate =
+      (typeof record.actual_value === "string" && record.actual_value.trim()) ||
+      (typeof record.display_value === "string" && record.display_value.trim()) ||
+      (typeof record.reference_value === "string" && record.reference_value.trim()) ||
+      (typeof record.value === "string" && record.value.trim()) ||
+      (typeof record.name === "string" && record.name.trim())
+
+    return candidate ? [candidate] : []
+  })
+}
+
+export async function fetchZohoLeadServiceOptions(): Promise<string[]> {
+  try {
+    const token = await getZohoAccessToken()
+
+    const res = await fetch(`${ZOHO_BASE_URL}/settings/fields?module=Leads`, {
+      method: "GET",
+      headers: {
+        Authorization: `Zoho-oauthtoken ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!res.ok) {
+      const text = await res.text()
+      console.error("[zoho/crm] fetchZohoLeadServiceOptions failed", {
+        status: res.status,
+        body: text,
+      })
+      return []
+    }
+
+    const data = (await res.json()) as {
+      fields?: Array<Record<string, unknown>>
+    }
+
+    const fields = data.fields ?? []
+    const field = fields.find((candidate) => {
+      const apiName = typeof candidate.api_name === "string" ? candidate.api_name : ""
+      const fieldLabel = typeof candidate.field_label === "string" ? candidate.field_label : ""
+
+      return [
+        "Services_List",
+        "List_of_Services",
+        "Service_List",
+        "Services",
+      ].includes(apiName) || [
+        "services list",
+        "list of services",
+        "service list",
+        "services",
+      ].includes(fieldLabel.trim().toLowerCase())
+    })
+
+    const values = extractPicklistValues(field?.pick_list_values)
+    return [...new Set(values)]
+  } catch (error) {
+    console.error("[zoho/crm] fetchZohoLeadServiceOptions error", {
+      error: String(error),
+    })
+    return []
+  }
+}
+
 export function normalizeZohoLeadServices(serviceInterest: string[] | null | undefined) {
   const normalized = new Set<string>()
 
@@ -93,6 +175,278 @@ export function normalizeZohoLeadServices(serviceInterest: string[] | null | und
   }
 
   return [...normalized]
+}
+
+function getFirstDefinedField(
+  record: Record<string, unknown> | null | undefined,
+  fieldNames: string[],
+) {
+  if (!record) {
+    return null
+  }
+
+  for (const fieldName of fieldNames) {
+    const value = record[fieldName]
+    if (value !== undefined && value !== null && value !== "") {
+      return value
+    }
+  }
+
+  return null
+}
+
+function normalizeFieldName(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "")
+}
+
+function getFirstMatchingNormalizedField(
+  record: Record<string, unknown> | null | undefined,
+  normalizedFieldNames: string[],
+) {
+  if (!record) {
+    return null
+  }
+
+  const targetNames = new Set(normalizedFieldNames.map(normalizeFieldName))
+
+  for (const [key, value] of Object.entries(record)) {
+    if (value === undefined || value === null || value === "") {
+      continue
+    }
+
+    if (targetNames.has(normalizeFieldName(key))) {
+      return value
+    }
+  }
+
+  return null
+}
+
+function toStringArray(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((item) => {
+        if (typeof item === "string") {
+          const trimmed = item.trim()
+          return trimmed ? [trimmed] : []
+        }
+
+        if (item && typeof item === "object") {
+          const record = item as Record<string, unknown>
+          const nestedListOfServices = record.List_of_Services
+
+          if (nestedListOfServices && typeof nestedListOfServices === "object") {
+            const nestedName = (nestedListOfServices as Record<string, unknown>).name
+            if (typeof nestedName === "string" && nestedName.trim()) {
+              return [nestedName.trim()]
+            }
+          }
+
+          const directName = record.name
+          if (typeof directName === "string" && directName.trim()) {
+            return [directName.trim()]
+          }
+        }
+
+        return []
+      })
+      .filter(Boolean)
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/[\n,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+
+  return []
+}
+
+function toOptionalString(value: unknown) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function toOptionalNumber(value: unknown) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.replace(/,/g, "").trim()
+    if (!normalized) {
+      return null
+    }
+
+    const parsed = Number(normalized)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
+export function getZohoDealServicesList(deal: ZohoDeal | null | undefined) {
+  return toStringArray(
+    getFirstDefinedField(deal, [
+      "List_of_Services",
+      "Services_List",
+      "Service_List",
+      "Services",
+    ]) ??
+      getFirstMatchingNormalizedField(deal, [
+        "List_of_Services",
+        "List_of_Service",
+        "Services_List",
+        "Service_List",
+      ]),
+  )
+}
+
+export function getZohoDealProposal(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, [
+      "Proposal",
+      "Proposal_Name",
+      "Proposal_Number",
+      "Proposal_Link",
+      "Proposal_URL",
+    ]) ??
+    getFirstMatchingNormalizedField(deal, [
+      "Proposal",
+      "Proposal_Name",
+      "Proposal_Number",
+      "Proposal_Link",
+      "Proposal_URL",
+    ])
+
+  return toOptionalString(value)
+}
+
+export function getZohoDealClosingDate(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Closing_Date", "Expected_Closing_Date"]) ??
+    getFirstMatchingNormalizedField(deal, ["Closing_Date", "Expected_Closing_Date"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealArAmount(deal: ZohoDeal | null | undefined) {
+  return toOptionalNumber(
+    getFirstDefinedField(deal, [
+      "ARR_Amount",
+      "AR_Amount",
+      "A_R_Amount",
+      "AR_Amount_AED",
+      "AR_Amount_in_AED",
+      "Budget_AED",
+    ]) ??
+      getFirstMatchingNormalizedField(deal, [
+        "ARR_Amount",
+        "AR_Amount",
+        "A_R_Amount",
+        "AR_Amount_AED",
+        "AR_Amount_in_AED",
+        "Budget_AED",
+      ]),
+  )
+}
+
+export function getZohoDealIndustry(
+  deal: ZohoDeal | null | undefined,
+  lead?: ZohoLead | null | undefined,
+) {
+  const value =
+    getFirstDefinedField(deal, ["Industry"]) ??
+    getFirstDefinedField(deal, ["Pick_List_2"]) ??
+    getFirstMatchingNormalizedField(deal, ["Industry", "Pick_List_2"]) ??
+    getFirstDefinedField(lead, ["Industry"]) ??
+    getFirstMatchingNormalizedField(lead, ["Industry"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealPaymentId(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Payment_ID", "Payment_Id"]) ??
+    getFirstMatchingNormalizedField(deal, ["Payment_ID", "Payment_Id"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealPaymentStatus(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Payment_Status"]) ??
+    getFirstMatchingNormalizedField(deal, ["Payment_Status"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealPaymentRecurring(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Payment_Recurring"]) ??
+    getFirstMatchingNormalizedField(deal, ["Payment_Recurring"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealCompanyName(
+  deal: ZohoDeal | null | undefined,
+  lead?: ZohoLead | null | undefined,
+) {
+  const value =
+    getFirstDefinedField(deal, ["Company_Name", "Company"]) ??
+    getFirstMatchingNormalizedField(deal, ["Company_Name", "Company"]) ??
+    getFirstDefinedField(lead, ["Company"]) ??
+    getFirstMatchingNormalizedField(lead, ["Company"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealServicePeriodStart(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, [
+      "Service_Period_Start_From",
+      "Payment_Period_Start_From",
+      "Service_Start_Date",
+      "Service_Period_Start",
+    ]) ??
+    getFirstMatchingNormalizedField(deal, [
+      "Service_Period_Start_From",
+      "Payment_Period_Start_From",
+      "Service_Start_Date",
+      "Service_Period_Start",
+    ])
+  return toOptionalString(value)
+}
+
+export function getZohoDealServicePeriodEnd(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, [
+      "Service_Period_Ends_On",
+      "Payment_Period_Ends_On",
+      "Service_End_Date",
+      "Service_Period_End",
+    ]) ??
+    getFirstMatchingNormalizedField(deal, [
+      "Service_Period_Ends_On",
+      "Payment_Period_Ends_On",
+      "Service_End_Date",
+      "Service_Period_End",
+    ])
+  return toOptionalString(value)
+}
+
+export function getZohoDealPaymentMethod(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Payment_Method"]) ??
+    getFirstMatchingNormalizedField(deal, ["Payment_Method"])
+  return toOptionalString(value)
+}
+
+export function getZohoDealServiceType(deal: ZohoDeal | null | undefined) {
+  const value =
+    getFirstDefinedField(deal, ["Service_Type"]) ??
+    getFirstMatchingNormalizedField(deal, ["Service_Type"])
+  return toOptionalString(value)
 }
 
 // Cache token in memory to avoid unnecessary refreshes
@@ -123,7 +477,7 @@ async function getZohoAccessToken(): Promise<string> {
   })
 
   const res = await fetch(
-    `https://accounts.zoho.com/oauth/v2/token?${params.toString()}`,
+    `${ZOHO_ACCOUNTS_BASE_URL}/oauth/v2/token?${params.toString()}`,
     { method: "POST" }
   )
 

@@ -41,7 +41,7 @@ export default function ServiceRequestsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="surface-card rounded-[2rem] px-6 py-7 sm:px-8">
+      <section className="surface-card rounded-[2rem] px-5 py-6 sm:px-8 sm:py-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="eyebrow">Delivery requests</div>
@@ -51,7 +51,7 @@ export default function ServiceRequestsPage() {
             </p>
           </div>
 
-          <Link href="/dashboard/service-requests/new" className="primary-button">
+          <Link href="/dashboard/service-requests/new" className="primary-button w-full justify-center sm:w-auto">
             <Plus className="h-4 w-4" />
             New request
           </Link>
@@ -105,50 +105,86 @@ export default function ServiceRequestsPage() {
             </Link>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/8 text-slate-500">
-                  <th className="px-6 py-4 font-medium">Client</th>
-                  <th className="px-6 py-4 font-medium">Contact</th>
-                  <th className="px-6 py-4 font-medium">Service</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((request) => (
-                  <tr
-                    key={request.id}
-                    className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
-                  >
-                    <td className="px-6 py-4 font-medium text-white">
-                      {request.customerCompany}
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-white">{request.customerContact}</p>
-                      <p className="text-xs text-slate-400">{request.customerEmail}</p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-300">{request.serviceName}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`status-pill ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
-                      >
-                        {request.status.replace(/_/g, " ")}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">
-                      {new Date(request.createdAt).toLocaleDateString("en-AE", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/8 text-slate-500">
+                    <th className="px-6 py-4 font-medium">Client</th>
+                    <th className="px-6 py-4 font-medium">Contact</th>
+                    <th className="px-6 py-4 font-medium">Service</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Submitted</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {requests.map((request) => (
+                    <tr
+                      key={request.id}
+                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-4 font-medium text-white">
+                        {request.customerCompany}
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-white">{request.customerContact}</p>
+                        <p className="text-xs text-slate-400">{request.customerEmail}</p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-300">{request.serviceName}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`status-pill ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                        >
+                          {request.status.replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400">
+                        {new Date(request.createdAt).toLocaleDateString("en-AE", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-4 p-4 md:hidden">
+              {requests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-heading text-lg font-semibold text-white">
+                        {request.customerCompany}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">{request.serviceName}</p>
+                    </div>
+                    <span
+                      className={`status-pill shrink-0 ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                    >
+                      {request.status.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <div className="mt-4 rounded-[1.15rem] border border-white/8 bg-black/10 p-3">
+                    <p className="text-sm text-white">{request.customerContact}</p>
+                    <p className="mt-1 text-sm text-slate-400">{request.customerEmail}</p>
+                  </div>
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                    {new Date(request.createdAt).toLocaleDateString("en-AE", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>

@@ -4,8 +4,10 @@ import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 import {
   sendPartnerApprovedEmail,
+  sendPartnerContractReadyEmail,
   sendPartnerReactivatedEmail,
   sendPartnerSuspendedEmail,
+  sendPartnerWorkspaceUnlockedEmail,
 } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
@@ -28,7 +30,7 @@ function getPartnerAgreementUrl() {
   const partnerAppUrl =
     process.env.NEXT_PUBLIC_PARTNER_APP_URL || "http://localhost:3000"
 
-  return `${partnerAppUrl}/api/profile/contract/agreement`
+  return `${partnerAppUrl}/api/profile/contract/start-sign`
 }
 
 export async function POST(
@@ -55,13 +57,22 @@ export async function POST(
     "Admin"
 
   const { id } = await params
-  const form = await request.formData()
-  const action = form.get("action")
-  const reasonField = form.get("reason")
-  const reason =
-    typeof reasonField === "string" && reasonField.trim().length > 0
-      ? reasonField.trim()
-      : null
+
+  let action: unknown
+  let reason: string | null = null
+
+  const contentType = request.headers.get("content-type") ?? ""
+  if (contentType.includes("application/json")) {
+    const body = await request.json().catch(() => ({}))
+    action = body.action
+    const r = body.reason
+    reason = typeof r === "string" && r.trim().length > 0 ? r.trim() : null
+  } else {
+    const form = await request.formData()
+    action = form.get("action")
+    const reasonField = form.get("reason")
+    reason = typeof reasonField === "string" && reasonField.trim().length > 0 ? reasonField.trim() : null
+  }
 
   if (typeof action !== "string") {
     return NextResponse.json({ error: "Missing lifecycle action" }, { status: 400 })
@@ -82,7 +93,7 @@ export async function POST(
     updatedAt: now,
   }
   let note = ""
-  let emailAction: "approved" | "reactivated" | "suspended" | null = null
+  let emailAction: "approved" | "contract_ready" | "reactivated" | "suspended" | "workspace_unlocked" | null = null
   let logAction = "partner.lifecycle.updated"
   let logMetadata: Record<string, string> | undefined
 
@@ -123,7 +134,9 @@ export async function POST(
       updates.agreementUrl = getPartnerAgreementUrl()
       updates.contractSentAt = now
       updates.contractStatus = "sent"
-      note = "Contract shared for in-portal signing."
+      updates.zohoSignRequestId = null
+      note = "Contract shared for external signing through Zoho Sign."
+      emailAction = "contract_ready"
       logAction = "partner.contract.sent"
       break
     }
@@ -142,6 +155,7 @@ export async function POST(
       }
       updates.onboardedAt = now
       note = "Signed contract accepted. Partner marked as onboarded and workspace unlocked."
+      emailAction = "workspace_unlocked"
       logAction = "partner.onboarded"
       break
     case "start_nurturing":
@@ -191,6 +205,22 @@ export async function POST(
       updated.email,
       updated.contactName,
       updated.suspensionReason,
+    )
+  }
+
+  if (emailAction === "contract_ready") {
+    await sendPartnerContractReadyEmail(
+      updated.email,
+      updated.contactName,
+      updated.companyName,
+    )
+  }
+
+  if (emailAction === "workspace_unlocked") {
+    await sendPartnerWorkspaceUnlockedEmail(
+      updated.email,
+      updated.contactName,
+      updated.companyName,
     )
   }
 

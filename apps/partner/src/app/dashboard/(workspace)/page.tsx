@@ -53,7 +53,6 @@ export default async function DashboardPage() {
 
   let totalClients = 0
   let unlinkedClientActivity = 0
-  let activeLeads = 0
   let activeRequests = 0
   let totalEarned = 0
   let pendingPayout = 0
@@ -86,6 +85,8 @@ export default async function DashboardPage() {
                 contactName: partnerClients.contactName,
                 email: partnerClients.email,
                 phone: partnerClients.phone,
+                nationality: partnerClients.nationality,
+                tradeLicenseNumber: partnerClients.tradeLicenseNumber,
                 city: partnerClients.city,
                 country: partnerClients.country,
                 status: partnerClients.status,
@@ -142,9 +143,6 @@ export default async function DashboardPage() {
             ),
           ])
 
-        activeLeads = leadRows.filter(
-          (lead) => !["deal_won", "deal_lost"].includes(lead.status),
-        ).length
         activeRequests = requestRows.filter(
           (request) => !["completed", "cancelled"].includes(request.status),
         ).length
@@ -239,16 +237,16 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Link href="/dashboard/leads/new" className="primary-button">
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap">
+          <Link href="/dashboard/leads/new" className="primary-button w-full justify-center sm:w-auto">
             <Plus className="h-4 w-4" />
             New lead
           </Link>
-          <Link href="/dashboard/service-requests/new" className="secondary-button">
+          <Link href="/dashboard/service-requests/new" className="secondary-button w-full justify-center sm:w-auto">
             <ClipboardList className="h-4 w-4" />
             New request
           </Link>
-          <Link href="/dashboard/commissions" className="secondary-button">
+          <Link href="/dashboard/commissions" className="secondary-button w-full justify-center sm:w-auto">
             <CircleDollarSign className="h-4 w-4" />
             Commissions
           </Link>
@@ -272,7 +270,7 @@ export default async function DashboardPage() {
       </section>
 
       {accountNotice ? (
-        <section className="surface-card rounded-[1.75rem] border border-indigo-400/16 bg-indigo-500/8 px-5 py-4">
+        <section className="surface-card rounded-[1.5rem] border border-indigo-400/16 bg-indigo-500/8 px-4 py-4 sm:rounded-[1.75rem] sm:px-5">
           <p className="text-xs uppercase tracking-[0.2em] text-indigo-200">Account notice</p>
           <p className="mt-2 text-sm leading-6 text-slate-200">{accountNotice}</p>
         </section>
@@ -280,7 +278,7 @@ export default async function DashboardPage() {
 
       <section className="grid gap-6 xl:grid-cols-2">
         <div className="table-shell">
-          <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+          <div className="flex flex-col gap-3 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-heading text-xl font-semibold text-white">Recent clients</p>
               <p className="mt-1 text-sm text-slate-400">
@@ -347,7 +345,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="table-shell">
-          <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+          <div className="flex flex-col gap-3 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-heading text-xl font-semibold text-white">Recent service requests</p>
               <p className="mt-1 text-sm text-slate-400">

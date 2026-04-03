@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ArrowRight, Check, Handshake, ShieldCheck, Users } from "lucide-react"
 import { useAuth } from "@repo/auth/client"
+import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 const models = [
   {
@@ -41,7 +42,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isLoaded && userId) {
-      router.replace("/dashboard")
+      router.replace(buildAuthContinueHref())
     }
   }, [isLoaded, router, userId])
 
@@ -50,9 +51,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="page-wrap min-h-screen px-5 py-6 sm:px-8 lg:px-10">
+    <div className="page-wrap min-h-screen px-4 py-4 sm:px-8 sm:py-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
@@ -60,7 +61,7 @@ export default function RegisterPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to home
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3 sm:justify-start">
             <Link
               href="/sign-in"
               className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
@@ -71,7 +72,7 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        <section className="surface-card-strong rounded-[2.2rem] p-6 sm:p-8 lg:p-10">
+        <section className="surface-card-strong rounded-[1.8rem] p-5 sm:rounded-[2.2rem] sm:p-8 lg:p-10">
           <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr]">
             <div>
               <div className="eyebrow">

@@ -4,11 +4,7 @@ import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Loader2, ArrowRight, Eye, EyeOff } from "lucide-react"
 import { getAuthBrowserClient } from "@repo/auth/client"
-
-function getRedirectTarget(candidate: string | null, fallback: string) {
-  if (!candidate || !candidate.startsWith("/")) return fallback
-  return candidate
-}
+import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 export function PartnerSignInForm() {
   const searchParams = useSearchParams()
@@ -28,7 +24,7 @@ export function PartnerSignInForm() {
         password,
       })
       if (signInError) throw signInError
-      window.location.assign(getRedirectTarget(searchParams.get("next"), "/dashboard"))
+      window.location.assign(buildAuthContinueHref(searchParams.get("next")))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to sign in right now.")
       setLoading(false)

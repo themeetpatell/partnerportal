@@ -52,6 +52,39 @@ function splitCustomerName(fullName: string) {
   }
 }
 
+function toNullableString(value: unknown) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+function buildAdminZohoLeadDescription(params: {
+  actorName: string
+  partnerName: string
+  partnerCompany: string
+  source: string
+  serviceInterest: string[]
+  notes: string | null
+}) {
+  const lines = [
+    `Created by ${params.actorName} on behalf of ${params.partnerName} (${params.partnerCompany}).`,
+    `Lead source: ${params.source}`,
+  ]
+
+  if (params.serviceInterest.length > 0) {
+    lines.push(`Services interested: ${params.serviceInterest.join(", ")}`)
+  }
+
+  if (params.notes?.trim()) {
+    lines.push(`Notes: ${params.notes.trim()}`)
+  }
+
+  return lines.join("\n")
+}
+
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -77,25 +110,13 @@ export async function POST(req: NextRequest) {
     customerCompany,
     serviceInterest = [],
     notes,
-    source = "manual",
-    channel,
-    region,
-    country,
-    city,
-    assignedTo,
-    onBehalfNote,
   } = body
+
+  const source = "partner_portal"
 
   if (!partnerId || !customerName || !customerEmail) {
     return NextResponse.json(
       { error: "partnerId, customerName, customerEmail are required" },
-      { status: 400 }
-    )
-  }
-
-  if (!onBehalfNote?.trim()) {
-    return NextResponse.json(
-      { error: "onBehalfNote is required when creating a lead on behalf of a partner" },
       { status: 400 }
     )
   }
@@ -144,25 +165,24 @@ export async function POST(req: NextRequest) {
   )
   const { firstName, lastName } = splitCustomerName(customerName)
   const zohoServices = normalizeZohoLeadServices(serviceInterestNames)
+  const normalizedNotes = toNullableString(notes)
   const zohoLeadId = await createZohoLead({
     First_Name: firstName,
     Last_Name: lastName,
     Email: customerEmail,
     Phone: customerPhone || undefined,
     Company: customerCompany || customerName,
-    Lead_Source: "Manually Added",
+    Lead_Source: source === "partner_portal" ? "Partner Portal" : "Manually Added",
     Lead_Status: "New (Incoming)",
     Services_List: zohoServices.length > 0 ? zohoServices : undefined,
-    Description: [
-      `Created by ${actorName} on behalf of ${partner.contactName} (${partner.companyName}).`,
-      `Partner note: ${onBehalfNote.trim()}`,
-      serviceInterestNames.length > 0
-        ? `Services interested: ${serviceInterestNames.join(", ")}`
-        : null,
-      notes?.trim() ? `Notes: ${notes.trim()}` : null,
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    Description: buildAdminZohoLeadDescription({
+      actorName,
+      partnerName: partner.contactName,
+      partnerCompany: partner.companyName,
+      source,
+      serviceInterest: serviceInterestNames,
+      notes: normalizedNotes,
+    }),
   })
 
   if (!zohoLeadId) {
@@ -182,16 +202,11 @@ export async function POST(req: NextRequest) {
       customerPhone: customerPhone || null,
       customerCompany: customerCompany || null,
       serviceInterest: JSON.stringify(serviceInterestNames),
-      notes: notes || null,
+      notes: normalizedNotes,
       status: "submitted",
       source,
-      channel: channel || null,
-      region: region || null,
-      country: country || null,
-      city: city || null,
-      assignedTo: assignedTo || null,
+      channel: source,
       createdBy: userId,
-      onBehalfNote: onBehalfNote.trim(),
       zohoLeadId,
     })
     .returning()
@@ -203,8 +218,8 @@ export async function POST(req: NextRequest) {
     actorId: userId,
     actorName,
     action: "created",
-    note: `Created by ${actorName} on behalf of partner. Note: ${onBehalfNote.trim()}`,
-    metadata: { source, channel },
+    note: `Created by ${actorName} on behalf of partner.`,
+    metadata: { source },
   })
 
   return NextResponse.json(created, { status: 201 })

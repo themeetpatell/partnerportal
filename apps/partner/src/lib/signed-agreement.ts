@@ -64,6 +64,14 @@ type CreatePrefilledAgreementPdfInput = AgreementPdfBaseInput & {
   generatedAt?: Date
 }
 
+export type AgreementExternalSignaturePlacement = {
+  pageNo: number
+  xCoord: number
+  yCoord: number
+  width: number
+  height: number
+}
+
 const PAGE_SIZE = { width: 595, height: 842 }
 const MARGIN_X = 50
 const TOP_Y = 792
@@ -387,6 +395,108 @@ export async function createPrefilledAgreementPdf(
 
   const bytes = await pdf.save()
   return Buffer.from(bytes)
+}
+
+export async function createExternalAgreementPdf(
+  input: CreatePrefilledAgreementPdfInput
+): Promise<{
+  pdfBytes: Buffer
+  signaturePlacement: AgreementExternalSignaturePlacement
+}> {
+  const previewBytes = await createPrefilledAgreementPdf(input)
+  const pdf = await PDFDocument.load(previewBytes)
+  const headingFont = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const bodyFont = await pdf.embedFont(StandardFonts.Helvetica)
+  const page = addNewPage(pdf)
+
+  page.drawText("Signature Page", {
+    x: MARGIN_X,
+    y: TOP_Y,
+    size: 22,
+    font: headingFont,
+    color: rgb(0.09, 0.11, 0.15),
+  })
+
+  const introLines = [
+    "This agreement must be signed through Zoho Sign.",
+    "By signing, the authorised representative confirms that they have reviewed the agreement and accept it on behalf of the partner entity.",
+    `Partner company: ${input.partnerCompanyName}`,
+    `Partner type: ${input.partnerTypeLabel}`,
+  ]
+
+  let y = TOP_Y - 38
+  const maxWidth = PAGE_SIZE.width - MARGIN_X * 2
+
+  for (const line of introLines) {
+    for (const wrappedLine of wrapText(line, bodyFont, 11, maxWidth)) {
+      page.drawText(wrappedLine, {
+        x: MARGIN_X,
+        y,
+        size: 11,
+        font: bodyFont,
+        color: rgb(0.22, 0.24, 0.28),
+      })
+      y -= 16
+    }
+    y -= 4
+  }
+
+  const signatureX = 70
+  const signatureY = 350
+  const signatureWidth = 220
+  const signatureHeight = 64
+
+  page.drawText("Authorised signature", {
+    x: signatureX,
+    y: signatureY + signatureHeight + 24,
+    size: 11,
+    font: headingFont,
+    color: rgb(0.09, 0.11, 0.15),
+  })
+
+  page.drawRectangle({
+    x: signatureX,
+    y: signatureY,
+    width: signatureWidth,
+    height: signatureHeight,
+    borderColor: rgb(0.55, 0.58, 0.64),
+    borderWidth: 1,
+  })
+
+  page.drawText("Zoho Sign will place the legal signature here.", {
+    x: signatureX + 12,
+    y: signatureY + signatureHeight / 2 - 4,
+    size: 10,
+    font: bodyFont,
+    color: rgb(0.45, 0.48, 0.53),
+  })
+
+  page.drawText("Date", {
+    x: signatureX,
+    y: signatureY - 54,
+    size: 11,
+    font: headingFont,
+    color: rgb(0.09, 0.11, 0.15),
+  })
+
+  page.drawLine({
+    start: { x: signatureX, y: signatureY - 60 },
+    end: { x: signatureX + 220, y: signatureY - 60 },
+    thickness: 1,
+    color: rgb(0.55, 0.58, 0.64),
+  })
+
+  const bytes = await pdf.save()
+  return {
+    pdfBytes: Buffer.from(bytes),
+    signaturePlacement: {
+      pageNo: pdf.getPageCount() - 1,
+      xCoord: signatureX,
+      yCoord: PAGE_SIZE.height - signatureY - signatureHeight,
+      width: signatureWidth,
+      height: signatureHeight,
+    },
+  }
 }
 
 export async function createSignedAgreementPdf(

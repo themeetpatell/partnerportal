@@ -21,7 +21,8 @@ export const serviceRequests = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     partnerId: uuid("partner_id").notNull().references(() => partners.id),
-    serviceId: uuid("service_id").notNull().references(() => services.id),
+    serviceId: uuid("service_id").references(() => services.id), // nullable — replaced by servicesList
+    servicesList: text("services_list"), // JSON array of selected service names
     leadId: uuid("lead_id").references(() => leads.id), // optional link to lead
     customerCompany: text("customer_company").notNull(),
     customerContact: text("customer_contact").notNull(),

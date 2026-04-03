@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 import { tenants } from "./tenants"
 import { partners } from "./partners"
 
@@ -26,6 +26,20 @@ export const leads = pgTable(
     onBehalfNote: text("on_behalf_note"), // mandatory note when created by admin
     zohoLeadId: text("zoho_lead_id"),
     zohoDealId: text("zoho_deal_id"),
+    crmServicesList: text("crm_services_list").notNull().default("[]"), // JSON array from Zoho CRM deal
+    crmProposal: text("crm_proposal"),
+    crmAmount: numeric("crm_amount", { precision: 12, scale: 2 }),
+    crmClosingDate: text("crm_closing_date"), // ISO date string (YYYY-MM-DD) from Zoho CRM
+    crmArAmount: numeric("crm_ar_amount", { precision: 12, scale: 2 }),
+    crmIndustry: text("crm_industry"),
+    crmPaymentId: text("crm_payment_id"),
+    crmPaymentStatus: text("crm_payment_status"),
+    crmPaymentRecurring: text("crm_payment_recurring"),
+    crmCompanyName: text("crm_company_name"),
+    crmServicePeriodStart: text("crm_service_period_start"),
+    crmServicePeriodEnd: text("crm_service_period_end"),
+    crmPaymentMethod: text("crm_payment_method"),
+    crmServiceType: text("crm_service_type"),
     convertedAt: timestamp("converted_at"),
     rejectionReason: text("rejection_reason"),
     deletedAt: timestamp("deleted_at"), // soft delete

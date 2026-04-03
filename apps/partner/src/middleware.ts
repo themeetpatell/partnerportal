@@ -14,8 +14,18 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (user && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))) {
-    return NextResponse.redirect(new URL("/dashboard", req.url))
+  if (
+    user &&
+    (pathname.startsWith("/sign-in") ||
+      pathname.startsWith("/sign-up") ||
+      pathname.startsWith("/register"))
+  ) {
+    const continueUrl = new URL("/auth/continue", req.url)
+    const next = req.nextUrl.searchParams.get("next")
+    if (next?.startsWith("/")) {
+      continueUrl.searchParams.set("next", next)
+    }
+    return NextResponse.redirect(continueUrl)
   }
 
   return response

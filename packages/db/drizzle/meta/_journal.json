@@ -71,6 +71,41 @@
       "when": 1775154600000,
       "tag": "0009_partner_clients",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775181979343,
+      "tag": "0010_previous_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775182533701,
+      "tag": "0011_minor_valkyrie",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1775183560617,
+      "tag": "0012_shiny_lizard",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1775192400000,
+      "tag": "0013_bold_warbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1775196000000,
+      "tag": "0014_quick_riptide",
+      "breakpoints": true
     }
   ]
 }

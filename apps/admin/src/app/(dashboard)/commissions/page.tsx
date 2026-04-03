@@ -1,21 +1,40 @@
 import Link from "next/link"
 import { db, commissions, partners } from "@repo/db"
 import { eq, sum } from "drizzle-orm"
-import { DollarSign, ArrowRight, CheckCircle2, Clock, Banknote } from "lucide-react"
+import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    pending: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
-    approved: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
-    processing: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    paid: "bg-green-950/60 border-green-800/40 text-green-400",
-    disputed: "bg-red-950/60 border-red-800/40 text-red-400",
+  const map: Record<string, { className: string; label: string }> = {
+    pending: {
+      className: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
+      label: "Pending",
+    },
+    approved: {
+      className: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
+      label: "Approved",
+    },
+    processing: {
+      className: "bg-blue-950/60 border-blue-800/40 text-blue-400",
+      label: "Processing",
+    },
+    paid: {
+      className: "bg-green-950/60 border-green-800/40 text-green-400",
+      label: "Paid",
+    },
+    disputed: {
+      className: "bg-red-950/60 border-red-800/40 text-red-400",
+      label: "Rejected",
+    },
+  }
+  const config = map[status] ?? {
+    className: "bg-white/6 border-white/10 text-slate-400",
+    label: status,
   }
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border capitalize ${map[status] ?? "bg-white/6 border-white/10 text-slate-400"}`}
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${config.className}`}
     >
-      {status}
+      {config.label}
     </span>
   )
 }
@@ -23,7 +42,9 @@ function StatusBadge({ status }: { status: string }) {
 const tabs = [
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
+  { label: "Processing", value: "processing" },
   { label: "Paid", value: "paid" },
+  { label: "Rejected", value: "disputed" },
 ] as const
 
 export default async function CommissionsPage({
@@ -34,7 +55,7 @@ export default async function CommissionsPage({
   const { status } = await searchParams
   const activeStatus = status ?? "pending"
 
-  const [rows, pendingSum, approvedSum, paidSum] = await Promise.all([
+  const [rows, pendingSum, approvedSum, processingSum, paidSum] = await Promise.all([
     db
       .select({
         id: commissions.id,
@@ -66,6 +87,10 @@ export default async function CommissionsPage({
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
+      .where(eq(commissions.status, "processing")),
+    db
+      .select({ total: sum(commissions.amount) })
+      .from(commissions)
       .where(eq(commissions.status, "paid")),
   ])
 
@@ -85,11 +110,18 @@ export default async function CommissionsPage({
       bg: "bg-yellow-950/40 border-yellow-800/30",
     },
     {
-      label: "Total Approved",
+      label: "Ready For Payout",
       value: `AED ${fmt(approvedSum[0]?.total)}`,
       icon: CheckCircle2,
       color: "text-indigo-400",
       bg: "bg-indigo-950/40 border-indigo-800/30",
+    },
+    {
+      label: "In Payout",
+      value: `AED ${fmt(processingSum[0]?.total)}`,
+      icon: Banknote,
+      color: "text-sky-300",
+      bg: "bg-sky-950/40 border-sky-800/30",
     },
     {
       label: "Total Paid",
@@ -111,7 +143,7 @@ export default async function CommissionsPage({
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {summaryCards.map((card) => (
           <div
             key={card.label}
@@ -235,31 +267,64 @@ export default async function CommissionsPage({
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         {commission.status === "pending" && (
+                          <>
+                            <form
+                              action={`/api/commissions/${commission.id}/reject`}
+                              method="POST"
+                            >
+                              <button
+                                type="submit"
+                                className="text-xs bg-red-500/15 hover:bg-red-500/25 text-red-300 border border-red-500/30 px-3 py-1.5 rounded-md font-medium transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </form>
+                            <form
+                              action={`/api/commissions/${commission.id}/approve`}
+                              method="POST"
+                            >
+                              <button
+                                type="submit"
+                                className="text-xs bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                              >
+                                Approve
+                              </button>
+                            </form>
+                          </>
+                        )}
+                        {commission.status === "approved" && (
                           <form
-                            action={`/api/commissions/${commission.id}/approve`}
+                            action={`/api/commissions/${commission.id}/process`}
                             method="POST"
                           >
                             <button
                               type="submit"
-                              className="text-xs bg-indigo-400 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                              className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
                             >
-                              Approve
+                              Start Payout
                             </button>
                           </form>
                         )}
-                        {commission.status === "approved" && (
-                          <button
-                            type="button"
-                            className="text-xs bg-green-700 hover:bg-green-600 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                        {commission.status === "processing" && (
+                          <form
+                            action={`/api/commissions/${commission.id}/paid`}
+                            method="POST"
                           >
-                            Process Payout
-                          </button>
+                            <button
+                              type="submit"
+                              className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-md font-medium transition-colors"
+                            >
+                              Mark as Paid
+                            </button>
+                          </form>
                         )}
                         <Link
                           href={`/leads/${commission.sourceId}`}
-                          className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-white transition-colors"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-slate-400 transition-colors hover:border-white/20 hover:text-white"
+                          aria-label="View lead details"
+                          title="View lead details"
                         >
-                          <ArrowRight className="w-3 h-3" />
+                          <Eye className="w-4 h-4" />
                         </Link>
                       </div>
                     </td>

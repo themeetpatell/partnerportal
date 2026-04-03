@@ -16,6 +16,8 @@ export const partnerClients = pgTable(
     contactName: text("contact_name").notNull(),
     email: text("email"),
     phone: text("phone"),
+    nationality: text("nationality"),
+    tradeLicenseNumber: text("trade_license_number"),
     country: text("country"),
     city: text("city"),
     status: text("status").notNull().default("active"),

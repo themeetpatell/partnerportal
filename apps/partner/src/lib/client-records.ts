@@ -4,6 +4,8 @@ type SavedClientInput = {
   contactName: string
   email: string | null
   phone: string | null
+  nationality: string | null
+  tradeLicenseNumber: string | null
   city: string | null
   country: string | null
   status: string
@@ -38,6 +40,8 @@ export type ClientRecord = {
   contactName: string | null
   email: string | null
   phone: string | null
+  nationality: string | null
+  tradeLicenseNumber: string | null
   city: string | null
   country: string | null
   status: string | null
@@ -54,19 +58,19 @@ export type ClientRecord = {
   lastActivity: Date | null
 }
 
-function normalize(value: string | null | undefined) {
+export function normalizeClientValue(value: string | null | undefined) {
   return value?.trim() || null
 }
 
-function buildClientKey(
+export function buildClientKey(
   email: string | null | undefined,
   company: string | null | undefined,
   fallback: string | null | undefined
 ) {
   return (
-    normalize(email)?.toLowerCase() ||
-    normalize(company)?.toLowerCase() ||
-    normalize(fallback)?.toLowerCase() ||
+    normalizeClientValue(email)?.toLowerCase() ||
+    normalizeClientValue(company)?.toLowerCase() ||
+    normalizeClientValue(fallback)?.toLowerCase() ||
     "unknown-client"
   )
 }
@@ -123,12 +127,14 @@ export function buildClientRecords(
       key,
       clientId: client.id,
       source: "saved",
-      displayName: normalize(client.companyName) || "Unnamed client",
-      contactName: normalize(client.contactName),
-      email: normalize(client.email),
-      phone: normalize(client.phone),
-      city: normalize(client.city),
-      country: normalize(client.country),
+      displayName: normalizeClientValue(client.companyName) || "Unnamed client",
+      contactName: normalizeClientValue(client.contactName),
+      email: normalizeClientValue(client.email),
+      phone: normalizeClientValue(client.phone),
+      nationality: normalizeClientValue(client.nationality),
+      tradeLicenseNumber: normalizeClientValue(client.tradeLicenseNumber),
+      city: normalizeClientValue(client.city),
+      country: normalizeClientValue(client.country),
       status: client.status,
       renewalDate: client.renewalDate,
       renewalState: getRenewalState(client.renewalDate),
@@ -157,13 +163,15 @@ export function buildClientRecords(
       clientId: null,
       source: "activity_only" as const,
       displayName:
-        normalize(lead.customerCompany) ||
-        normalize(lead.customerName) ||
-        normalize(lead.customerEmail) ||
+        normalizeClientValue(lead.customerCompany) ||
+        normalizeClientValue(lead.customerName) ||
+        normalizeClientValue(lead.customerEmail) ||
         "Unnamed client",
-      contactName: normalize(lead.customerName),
-      email: normalize(lead.customerEmail),
+      contactName: normalizeClientValue(lead.customerName),
+      email: normalizeClientValue(lead.customerEmail),
       phone: null,
+      nationality: null,
+      tradeLicenseNumber: null,
       city: null,
       country: null,
       status: null,
@@ -184,12 +192,12 @@ export function buildClientRecords(
 
     existing.displayName =
       existing.displayName ||
-      normalize(lead.customerCompany) ||
-      normalize(lead.customerName) ||
-      normalize(lead.customerEmail) ||
+      normalizeClientValue(lead.customerCompany) ||
+      normalizeClientValue(lead.customerName) ||
+      normalizeClientValue(lead.customerEmail) ||
       "Unnamed client"
-    existing.contactName = existing.contactName || normalize(lead.customerName)
-    existing.email = existing.email || normalize(lead.customerEmail)
+    existing.contactName = existing.contactName || normalizeClientValue(lead.customerName)
+    existing.email = existing.email || normalizeClientValue(lead.customerEmail)
     existing.leadCount += 1
     existing.hasOpenLead =
       existing.hasOpenLead || !["deal_won", "deal_lost"].includes(lead.status)
@@ -217,13 +225,15 @@ export function buildClientRecords(
       clientId: null,
       source: "activity_only" as const,
       displayName:
-        normalize(request.customerCompany) ||
-        normalize(request.customerContact) ||
-        normalize(request.customerEmail) ||
+        normalizeClientValue(request.customerCompany) ||
+        normalizeClientValue(request.customerContact) ||
+        normalizeClientValue(request.customerEmail) ||
         "Unnamed client",
-      contactName: normalize(request.customerContact),
-      email: normalize(request.customerEmail),
+      contactName: normalizeClientValue(request.customerContact),
+      email: normalizeClientValue(request.customerEmail),
       phone: null,
+      nationality: null,
+      tradeLicenseNumber: null,
       city: null,
       country: null,
       status: null,
@@ -244,13 +254,13 @@ export function buildClientRecords(
 
     existing.displayName =
       existing.displayName ||
-      normalize(request.customerCompany) ||
-      normalize(request.customerContact) ||
-      normalize(request.customerEmail) ||
+      normalizeClientValue(request.customerCompany) ||
+      normalizeClientValue(request.customerContact) ||
+      normalizeClientValue(request.customerEmail) ||
       "Unnamed client"
     existing.contactName =
-      existing.contactName || normalize(request.customerContact)
-    existing.email = existing.email || normalize(request.customerEmail)
+      existing.contactName || normalizeClientValue(request.customerContact)
+    existing.email = existing.email || normalizeClientValue(request.customerEmail)
     existing.requestCount += 1
     existing.hasActiveRequest =
       existing.hasActiveRequest ||

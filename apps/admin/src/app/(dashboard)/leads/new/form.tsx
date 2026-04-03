@@ -6,16 +6,12 @@ import { toast } from "sonner"
 import { ArrowLeft, AlertCircle } from "lucide-react"
 import Link from "next/link"
 
-const SOURCES = ["manual", "website", "referral", "campaign"] as const
-const CHANNELS = ["manual", "website", "referral", "campaign"] as const
-
 interface Props {
   partners: { id: string; companyName: string }[]
-  teamMembers: { authUserId: string; name: string }[]
   services: { id: string; name: string }[]
 }
 
-export function NewLeadForm({ partners, teamMembers, services }: Props) {
+export function NewLeadForm({ partners, services }: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [duplicate, setDuplicate] = useState<{ id: string } | null>(null)
@@ -27,13 +23,6 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
     customerCompany: "",
     serviceInterest: [] as string[],
     notes: "",
-    source: "manual" as (typeof SOURCES)[number],
-    channel: "manual",
-    region: "",
-    country: "",
-    city: "",
-    assignedTo: "",
-    onBehalfNote: "",
   })
 
   const set =
@@ -87,7 +76,7 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
         <div>
           <h1 className="text-2xl font-bold text-white">New Lead</h1>
           <p className="text-zinc-400 text-sm mt-0.5">
-            Create a lead on behalf of a partner. A note is required.
+            Create a lead on behalf of a partner.
           </p>
         </div>
       </div>
@@ -142,7 +131,7 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
 
         {/* Services */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-zinc-100 font-semibold text-sm">Service Interest</h2>
+          <h2 className="text-zinc-100 font-semibold text-sm">Service List</h2>
           <div className="flex flex-wrap gap-2">
             {services.map((s) => {
               const active = form.serviceInterest.includes(s.name)
@@ -164,35 +153,6 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
           </div>
         </section>
 
-        {/* Attribution */}
-        <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-          <h2 className="text-zinc-100 font-semibold text-sm">Attribution &amp; Assignment</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Source">
-              <select value={form.source} onChange={set("source")} className={selectCls}>
-                {SOURCES.map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-              </select>
-            </Field>
-            <Field label="Channel">
-              <select value={form.channel} onChange={set("channel")} className={selectCls}>
-                {CHANNELS.map((c) => <option key={c} value={c} className="capitalize">{c}</option>)}
-              </select>
-            </Field>
-            <Field label="Region">
-              <input value={form.region} onChange={set("region")} placeholder="UAE" className={inputCls} />
-            </Field>
-            <Field label="Assign To">
-              <select value={form.assignedTo} onChange={set("assignedTo")} className={selectCls}>
-                <option value="">Unassigned</option>
-                {teamMembers.map((m) => (
-                  <option key={m.authUserId} value={m.authUserId}>{m.name}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-        </section>
-
-        {/* Notes + mandatory on-behalf note */}
         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
           <h2 className="text-zinc-100 font-semibold text-sm">Notes</h2>
           <Field label="Internal Notes">
@@ -202,16 +162,6 @@ export function NewLeadForm({ partners, teamMembers, services }: Props) {
               rows={3}
               placeholder="Background context…"
               className={inputCls + " resize-none"}
-            />
-          </Field>
-          <Field label="On-Behalf Note * (mandatory — explain why admin is creating this)">
-            <textarea
-              required
-              value={form.onBehalfNote}
-              onChange={set("onBehalfNote")}
-              rows={2}
-              placeholder="e.g. Partner called in — requested manual entry while they don't have portal access"
-              className={inputCls + " resize-none border-yellow-800/40 focus:border-yellow-500"}
             />
           </Field>
         </section>

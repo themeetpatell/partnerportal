@@ -41,8 +41,8 @@ export default async function DashboardLayout({
     "P"
 
   return (
-    <div className="page-wrap min-h-screen px-4 py-4 sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-[1600px] gap-4 lg:gap-5">
+    <div className="page-wrap min-h-screen px-3 pt-3 pb-24 sm:px-6 sm:pt-4 sm:pb-6 lg:px-8 lg:py-4">
+      <div className="mx-auto flex min-h-[calc(100vh-1.5rem)] max-w-[1600px] flex-col gap-3 sm:min-h-[calc(100vh-2rem)] lg:flex-row lg:gap-5">
         <SidebarNav
           userName={userName}
           userEmail={userEmail}
@@ -54,7 +54,7 @@ export default async function DashboardLayout({
         />
 
         <main className="flex min-w-0 flex-1 flex-col">
-          <div className="surface-card-strong flex-1 rounded-[2rem] px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="surface-card-strong flex-1 rounded-[1.5rem] px-4 py-4 sm:rounded-[2rem] sm:px-6 sm:py-6 lg:px-8">
             <Suspense fallback={<PageSkeleton />}>
               {children}
             </Suspense>

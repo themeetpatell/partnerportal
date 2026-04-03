@@ -2,10 +2,11 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { FolderKanban, BellRing, ShieldCheck } from "lucide-react"
 import { PartnerSignInForm } from "@/components/auth/partner-sign-in-form"
 import { useAuth } from "@repo/auth/client"
+import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 const workspacePoints = [
   {
@@ -30,20 +31,21 @@ const workspacePoints = [
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { userId, isLoaded } = useAuth()
 
   useEffect(() => {
     if (isLoaded && userId) {
-      router.replace("/dashboard")
+      router.replace(buildAuthContinueHref(searchParams.get("next")))
     }
-  }, [isLoaded, router, userId])
+  }, [isLoaded, router, searchParams, userId])
 
   if (isLoaded && userId) {
     return null
   }
 
   return (
-    <div className="min-h-screen flex bg-[#080810]">
+    <div className="flex min-h-screen flex-col bg-[#080810] lg:flex-row">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex w-[54%] relative overflow-hidden flex-col p-14 xl:p-16">
         {/* Background treatment */}
@@ -160,11 +162,11 @@ export default function SignInPage() {
 
       {/* ── Right form panel ── */}
       <div
-        className="flex-1 flex flex-col items-center justify-center px-6 py-14 lg:px-14"
+        className="flex flex-1 flex-col items-center justify-start px-5 py-8 sm:px-6 sm:py-10 lg:justify-center lg:px-14 lg:py-14"
         style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
       >
         {/* Mobile logo */}
-        <div className="lg:hidden mb-10 flex items-center gap-3">
+        <div className="mb-8 flex items-center gap-3 lg:hidden">
           <div
             className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
             style={{ background: "linear-gradient(135deg,#818cf8,#4f46e5)", boxShadow: "0 4px 16px rgba(99,102,241,0.3)" }}
@@ -189,7 +191,7 @@ export default function SignInPage() {
           <PartnerSignInForm />
 
           <div
-            className="mt-8 pt-8 text-center space-y-3"
+            className="mt-8 space-y-3 pt-8 text-center"
             style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
           >
             <p className="text-sm text-zinc-600">

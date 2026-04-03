@@ -12,6 +12,8 @@ type PartnerClient = {
   contactName: string
   email: string | null
   phone: string | null
+  nationality: string | null
+  tradeLicenseNumber: string | null
   city: string | null
   country: string | null
   status: string
@@ -44,6 +46,8 @@ export default function NewClientPage() {
     contactName: "",
     email: "",
     phone: "",
+    nationality: "",
+    tradeLicenseNumber: "",
     city: "",
     country: "",
     status: "active",
@@ -95,6 +99,8 @@ export default function NewClientPage() {
         contactName: "",
         email: "",
         phone: "",
+        nationality: "",
+        tradeLicenseNumber: "",
         city: "",
         country: "",
         status: "active",
@@ -123,7 +129,7 @@ export default function NewClientPage() {
               Save partner-owned clients independently of Finanshels lead and request activity.
             </p>
           </div>
-          <Link href="/dashboard/clients" className="tag-pill">
+          <Link href="/dashboard/clients" className="tag-pill w-full justify-center sm:w-auto">
             View clients
           </Link>
         </div>
@@ -165,6 +171,22 @@ export default function NewClientPage() {
                 type: "text",
                 required: false,
                 icon: Phone,
+              },
+              {
+                label: "Nationality",
+                key: "nationality",
+                placeholder: "Indian",
+                type: "text",
+                required: false,
+                icon: UserRound,
+              },
+              {
+                label: "Trade license number",
+                key: "tradeLicenseNumber",
+                placeholder: "TL-123456",
+                type: "text",
+                required: false,
+                icon: Building2,
               },
               {
                 label: "City",
@@ -272,7 +294,7 @@ export default function NewClientPage() {
       </section>
 
       <section className="table-shell">
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+        <div className="flex flex-col gap-3 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-heading text-xl font-semibold text-white">Recent clients</p>
             <p className="mt-1 text-sm text-slate-400">
@@ -293,45 +315,79 @@ export default function NewClientPage() {
             No saved clients yet.
           </div>
         ) : (
-          <div className="hidden overflow-x-auto md:block">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/8 text-slate-500">
-                  <th className="px-6 py-4 font-medium">Company</th>
-                  <th className="px-6 py-4 font-medium">Contact</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Renewal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentClients.map((client) => (
-                  <tr
-                    key={client.id}
-                    className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-white">{client.companyName}</p>
-                      <p className="mt-1 text-xs text-slate-400">
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-white/8 text-slate-500">
+                    <th className="px-6 py-4 font-medium">Company</th>
+                    <th className="px-6 py-4 font-medium">Contact</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Renewal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentClients.map((client) => (
+                    <tr
+                      key={client.id}
+                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-white">{client.companyName}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {[client.city, client.country, client.nationality].filter(Boolean).join(", ") || "No location"}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-300">
+                        <p>{client.contactName}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {client.email || client.phone || "No contact details"}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-300 capitalize">
+                        {client.status.replace(/_/g, " ")}
+                      </td>
+                      <td className="px-6 py-4 text-slate-400">
+                        {toDateInputValue(client.renewalDate)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid gap-4 p-4 md:hidden">
+              {recentClients.map((client) => (
+                <div
+                  key={client.id}
+                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-heading text-lg font-semibold text-white">
+                        {client.companyName}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">
                         {client.city || client.country || "No location"}
                       </p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-300">
-                      <p>{client.contactName}</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        {client.email || client.phone || "No contact details"}
-                      </p>
-                    </td>
-                    <td className="px-6 py-4 text-slate-300 capitalize">
+                    </div>
+                    <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-300">
                       {client.status.replace(/_/g, " ")}
-                    </td>
-                    <td className="px-6 py-4 text-slate-400">
-                      {toDateInputValue(client.renewalDate)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </span>
+                  </div>
+                  <div className="mt-4 rounded-[1.15rem] border border-white/8 bg-black/10 p-3">
+                    <p className="text-sm text-white">{client.contactName}</p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      {client.email || client.phone || "No contact details"}
+                    </p>
+                  </div>
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Renewal {toDateInputValue(client.renewalDate) || "not set"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>

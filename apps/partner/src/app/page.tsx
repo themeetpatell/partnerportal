@@ -26,6 +26,8 @@ import {
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
+export const dynamic = "force-dynamic"
+
 /* ── Data ─────────────────────────────────────────────── */
 
 const stats = [

@@ -6,6 +6,7 @@ import { leads, partners } from "@repo/db"
 import { and, eq, isNull, or } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { createZohoLead, normalizeZohoLeadServices } from "@repo/zoho"
+import { sendLeadSubmittedEmail } from "@repo/notifications"
 
 function splitCustomerName(fullName: string) {
   const trimmed = fullName.trim()
@@ -212,6 +213,14 @@ export async function POST(request: NextRequest) {
         zohoLeadId,
       })
       .returning()
+
+    // Fire-and-forget confirmation email — never block the response
+    sendLeadSubmittedEmail(
+      partner.email,
+      partner.contactName,
+      customerName,
+      serviceInterest
+    ).catch((err) => console.error("[POST /api/leads] Confirmation email failed:", err))
 
     return NextResponse.json(
       {

@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Loader2, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react"
 import { getAuthBrowserClient } from "@repo/auth/client"
+import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 type PartnerType = "referral" | "channel"
 
@@ -52,7 +53,7 @@ export function PartnerSignUpForm({
       })
       if (signUpError) throw signUpError
       if (data.session) {
-        window.location.assign("/onboarding")
+        window.location.assign(buildAuthContinueHref())
         return
       }
       setSuccess("Account created. Verify your email, then sign in to complete your partner onboarding.")

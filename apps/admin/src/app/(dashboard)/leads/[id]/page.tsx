@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { auth } from "@repo/auth/server"
 import { db, leads, partners, documents } from "@repo/db"
 import { eq, and, isNull } from "drizzle-orm"
 import {
@@ -14,6 +15,8 @@ import {
   User,
   Tag,
 } from "lucide-react"
+import { getActiveTeamMember } from "@/lib/admin-auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -32,12 +35,74 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function ZohoSyncForm({ leadId }: { leadId: string }) {
+function parseJsonArray(value: string | null | undefined) {
+  if (!value) {
+    return []
+  }
+
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+      : []
+  } catch {
+    return []
+  }
+}
+
+function formatCurrencyAmount(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return value
+  }
+
+  return new Intl.NumberFormat("en-AE", {
+    style: "currency",
+    currency: "AED",
+    maximumFractionDigits: 2,
+  }).format(parsed)
+}
+
+function formatIsoDate(value: string | null | undefined) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return value
+  }
+
+  return parsed.toLocaleDateString("en-AE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+}
+
+function ZohoSyncForm({
+  leadId,
+  canSync,
+}: {
+  leadId: string
+  canSync: boolean
+}) {
   return (
     <form action={`/api/leads/${leadId}/sync?redirectTo=/leads/${leadId}`} method="POST">
       <button
         type="submit"
-        className="inline-flex items-center gap-2 rounded-lg bg-indigo-400 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+        disabled={!canSync}
+        aria-disabled={!canSync}
+        title={!canSync ? "Only Admin, Partnership Manager, and SDR roles can sync from CRM." : undefined}
+        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+          canSync
+            ? "bg-indigo-400 hover:bg-indigo-500"
+            : "cursor-not-allowed bg-slate-700/70 text-slate-300"
+        }`}
       >
         <RefreshCw className="h-4 w-4" />
         Sync from CRM
@@ -60,10 +125,9 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ sync?: string; reason?: string; status?: string }>
 }) {
-  const { id } = await params
-  const query = await searchParams
+  const [{ id }, query, { userId }] = await Promise.all([params, searchParams, auth()])
 
-  const [[leadRow], leadDocs] = await Promise.all([
+  const [[leadRow], leadDocs, member] = await Promise.all([
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
@@ -74,6 +138,7 @@ export default async function LeadDetailPage({
       .select()
       .from(documents)
       .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id))),
+    userId ? getActiveTeamMember(userId) : Promise.resolve(null),
   ])
 
   if (!leadRow) notFound()
@@ -88,8 +153,32 @@ export default async function LeadDetailPage({
       return [lead.serviceInterest]
     }
   })()
+  const crmServicesList = parseJsonArray(lead.crmServicesList)
+  const crmAmount = formatCurrencyAmount(lead.crmAmount)
+  const crmArAmount = formatCurrencyAmount(lead.crmArAmount)
+  const crmClosingDate = formatIsoDate(lead.crmClosingDate)
+  const crmServicePeriodStart = formatIsoDate(lead.crmServicePeriodStart)
+  const crmServicePeriodEnd = formatIsoDate(lead.crmServicePeriodEnd)
+  const hasCrmSnapshot =
+    crmServicesList.length > 0 ||
+    Boolean(lead.crmProposal) ||
+    Boolean(crmAmount) ||
+    Boolean(crmClosingDate) ||
+    Boolean(crmArAmount) ||
+    Boolean(lead.crmIndustry) ||
+    Boolean(lead.crmPaymentId) ||
+    Boolean(lead.crmPaymentStatus) ||
+    Boolean(lead.crmPaymentRecurring) ||
+    Boolean(lead.crmCompanyName) ||
+    Boolean(crmServicePeriodStart) ||
+    Boolean(crmServicePeriodEnd) ||
+    Boolean(lead.crmPaymentMethod) ||
+    Boolean(lead.crmServiceType)
 
   const currentStep = statusTimeline.indexOf(lead.status)
+  const canSyncFromCrm = Boolean(
+    member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"]),
+  )
   const syncBanner =
     query.sync === "ok"
       ? {
@@ -117,6 +206,8 @@ export default async function LeadDetailPage({
                         ? "The Zoho lead could not be fetched."
                         : query.reason === "missing_deal_amount"
                           ? "Zoho deal amount is missing, so commission could not be calculated."
+                          : query.reason === "forbidden"
+                            ? "Your team role does not have permission to sync leads from Zoho CRM."
                           : "Lead sync from Zoho CRM failed.",
             }
           : null
@@ -144,10 +235,15 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <ZohoSyncForm leadId={lead.id} />
+        <ZohoSyncForm leadId={lead.id} canSync={canSyncFromCrm} />
         <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
           Status is read-only here and syncs from Zoho CRM.
         </div>
+        {!canSyncFromCrm ? (
+          <div className="rounded-lg border border-amber-400/16 bg-amber-500/8 px-4 py-2 text-sm text-amber-100">
+            CRM sync is limited to Admin, Partnership Manager, and SDR roles.
+          </div>
+        ) : null}
       </div>
 
       {syncBanner ? (
@@ -301,7 +397,7 @@ export default async function LeadDetailPage({
               )}
               <div className="sm:col-span-2">
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Services of Interest
+                  Service List (Initial Inquiry For)
                 </dt>
                 <dd className="flex flex-wrap gap-1.5 mt-1">
                   {services.map((s) => (
@@ -315,6 +411,139 @@ export default async function LeadDetailPage({
                   ))}
                 </dd>
               </div>
+              {hasCrmSnapshot ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">
+                    CRM Deal Snapshot
+                  </dt>
+                  <dd className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {crmServicesList.length > 0 ? (
+                        <div className="sm:col-span-2">
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            List of Services (Proposal Scope)
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {crmServicesList.map((service) => (
+                              <span
+                                key={service}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/6 border border-white/8 rounded text-xs text-zinc-300"
+                              >
+                                <Tag className="w-3 h-3 text-slate-500" />
+                                {service}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {lead.crmProposal ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Proposal
+                          </p>
+                          <p className="text-white text-sm break-words">{lead.crmProposal}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmPaymentId ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Payment ID
+                          </p>
+                          <p className="text-white text-sm break-words">{lead.crmPaymentId}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmPaymentStatus ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Payment Status
+                          </p>
+                          <p className="text-white text-sm">{lead.crmPaymentStatus}</p>
+                        </div>
+                      ) : null}
+                      {crmAmount ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Amount
+                          </p>
+                          <p className="text-white text-sm">{crmAmount}</p>
+                        </div>
+                      ) : null}
+                      {crmClosingDate ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Closing Date
+                          </p>
+                          <p className="text-white text-sm">{crmClosingDate}</p>
+                        </div>
+                      ) : null}
+                      {crmArAmount ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            AR Amount
+                          </p>
+                          <p className="text-white text-sm">{crmArAmount}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmPaymentRecurring ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Payment Recurring
+                          </p>
+                          <p className="text-white text-sm">{lead.crmPaymentRecurring}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmCompanyName ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Company Name
+                          </p>
+                          <p className="text-white text-sm">{lead.crmCompanyName}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmIndustry ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Industry
+                          </p>
+                          <p className="text-white text-sm">{lead.crmIndustry}</p>
+                        </div>
+                      ) : null}
+                      {crmServicePeriodStart ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Service Start
+                          </p>
+                          <p className="text-white text-sm">{crmServicePeriodStart}</p>
+                        </div>
+                      ) : null}
+                      {crmServicePeriodEnd ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Service End
+                          </p>
+                          <p className="text-white text-sm">{crmServicePeriodEnd}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmPaymentMethod ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Payment Method
+                          </p>
+                          <p className="text-white text-sm">{lead.crmPaymentMethod}</p>
+                        </div>
+                      ) : null}
+                      {lead.crmServiceType ? (
+                        <div>
+                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                            Service Type
+                          </p>
+                          <p className="text-white text-sm">{lead.crmServiceType}</p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </dd>
+                </div>
+              ) : null}
               {lead.notes && (
                 <div className="sm:col-span-2">
                   <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

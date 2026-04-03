@@ -1,19 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Building2, Mail, Phone, Send, UserRound } from "lucide-react"
+import { Building2, Check, ChevronDown, Mail, Phone, Send, UserRound, X } from "lucide-react"
 import { toast } from "sonner"
-
-const SERVICES = [
-  "Tax Registration",
-  "VAT Filing",
-  "Bookkeeping",
-  "Company Formation",
-  "Audit & Assurance",
-  "CFO Services",
-]
 
 type Lead = {
   id: string
@@ -21,6 +12,11 @@ type Lead = {
   customerEmail: string
   status: string
   createdAt: string
+}
+
+type LeadOptionsResponse = {
+  serviceOptions: string[]
+  source: "crm" | "db-fallback" | "crm-fallback"
 }
 
 const statusStyles: Record<string, string> = {
@@ -34,9 +30,15 @@ const statusStyles: Record<string, string> = {
 export default function NewLeadPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const serviceDropdownRef = useRef<HTMLDivElement | null>(null)
   const [loading, setLoading] = useState(false)
   const [recentLeads, setRecentLeads] = useState<Lead[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
+  const [serviceOptions, setServiceOptions] = useState<string[]>([])
+  const [serviceOptionsSource, setServiceOptionsSource] =
+    useState<LeadOptionsResponse["source"]>("crm-fallback")
+  const [loadingServiceOptions, setLoadingServiceOptions] = useState(true)
+  const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false)
   const [form, setForm] = useState({
     customerName: "",
     customerEmail: "",
@@ -64,6 +66,35 @@ export default function NewLeadPage() {
         setLoadingRecent(false)
       })
       .catch(() => setLoadingRecent(false))
+  }, [])
+
+  useEffect(() => {
+    fetch("/api/leads/options")
+      .then((response) => response.json())
+      .then((data: LeadOptionsResponse) => {
+        setServiceOptions(data.serviceOptions || [])
+        setServiceOptionsSource(data.source || "crm-fallback")
+        setLoadingServiceOptions(false)
+      })
+      .catch(() => {
+        setLoadingServiceOptions(false)
+        toast.error("Unable to load service options.")
+      })
+  }, [])
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (!serviceDropdownRef.current) {
+        return
+      }
+
+      if (!serviceDropdownRef.current.contains(event.target as Node)) {
+        setServiceDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick)
+    return () => document.removeEventListener("mousedown", handleOutsideClick)
   }, [])
 
   function toggle(service: string) {
@@ -196,26 +227,83 @@ export default function NewLeadPage() {
 
           <div className="mt-6">
             <label className="field-label">Services interested in</label>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {SERVICES.map((service) => {
-                const active = form.serviceInterests.includes(service)
+            <div ref={serviceDropdownRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setServiceDropdownOpen((current) => !current)}
+                className="field-input flex min-h-[52px] w-full items-center justify-between gap-3 text-left"
+              >
+                <span
+                  className={
+                    form.serviceInterests.length > 0 ? "text-white" : "text-slate-500"
+                  }
+                >
+                  {loadingServiceOptions
+                    ? "Loading services from CRM..."
+                    : form.serviceInterests.length > 0
+                      ? `${form.serviceInterests.length} service${form.serviceInterests.length === 1 ? "" : "s"} selected`
+                      : "Select services from CRM"}
+                </span>
+                <ChevronDown
+                  className={`h-4 w-4 text-slate-500 transition-transform ${
+                    serviceDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-                return (
-                  <button
-                    key={service}
-                    type="button"
-                    onClick={() => toggle(service)}
-                    className={`rounded-[1.15rem] border px-4 py-3 text-left text-sm font-medium transition-all ${
-                      active
-                        ? "border-indigo-400/30 bg-indigo-500/10 text-white"
-                        : "border-white/8 bg-white/[0.03] text-slate-400 hover:bg-white/[0.05] hover:text-white"
-                    }`}
-                  >
-                    {service}
-                  </button>
-                )
-              })}
+              {serviceDropdownOpen ? (
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-[1.2rem] border border-white/10 bg-[#111117] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+                  {serviceOptions.length === 0 ? (
+                    <div className="px-3 py-3 text-sm text-slate-400">
+                      No CRM services available.
+                    </div>
+                  ) : (
+                    serviceOptions.map((service) => {
+                      const active = form.serviceInterests.includes(service)
+
+                      return (
+                        <button
+                          key={service}
+                          type="button"
+                          onClick={() => toggle(service)}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
+                            active
+                              ? "bg-indigo-500/14 text-white"
+                              : "text-slate-300 hover:bg-white/[0.05]"
+                          }`}
+                        >
+                          <span>{service}</span>
+                          {active ? <Check className="h-4 w-4 text-indigo-300" /> : null}
+                        </button>
+                      )
+                    })
+                  )}
+                </div>
+              ) : null}
             </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {form.serviceInterests.map((service) => (
+                <button
+                  key={service}
+                  type="button"
+                  onClick={() => toggle(service)}
+                  className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-100"
+                >
+                  {service}
+                  <X className="h-3.5 w-3.5 text-indigo-300" />
+                </button>
+              ))}
+            </div>
+
+            <p className="mt-3 text-xs text-slate-500">
+              Source:{" "}
+              {serviceOptionsSource === "crm"
+                ? "Zoho CRM picklist"
+                : serviceOptionsSource === "db-fallback"
+                  ? "workspace services fallback"
+                  : "default CRM fallback"}
+            </p>
           </div>
 
           <div className="mt-6">

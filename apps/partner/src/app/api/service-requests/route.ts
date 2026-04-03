@@ -2,14 +2,15 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
-import { db, partners, serviceRequests, services } from "@repo/db"
+import { db, leads, partners, serviceRequests, services } from "@repo/db"
 import { rateLimit } from "@repo/auth"
+import { createZohoDeal, normalizeZohoLeadServices } from "@repo/zoho"
 
 const createServiceRequestSchema = z.object({
-  clientCompany: z.string().min(1, "Client company is required").max(255),
-  clientContact: z.string().min(1, "Client contact is required").max(255),
-  clientEmail: z.string().email("Valid client email required"),
-  serviceType: z.string().min(1, "Select a service"),
+  leadId: z.string().uuid("Select an existing client"),
+  serviceInterest: z
+    .array(z.string().min(1))
+    .min(1, "Select at least one service."),
   description: z.string().optional().default(""),
 })
 
@@ -114,43 +115,75 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { clientCompany, clientContact, clientEmail, serviceType, description } =
-      parsed.data
+    const { leadId, serviceInterest, description } = parsed.data
 
-    let [service] = await db
-      .select()
-      .from(services)
+    const lead = await db
+      .select({
+        id: leads.id,
+        customerCompany: leads.customerCompany,
+        customerName: leads.customerName,
+        customerEmail: leads.customerEmail,
+      })
+      .from(leads)
       .where(
-        and(eq(services.tenantId, partner.tenantId), eq(services.name, serviceType)),
+        and(
+          eq(leads.id, leadId),
+          eq(leads.partnerId, partner.id),
+          eq(leads.status, "deal_won"),
+          isNull(leads.deletedAt),
+        ),
       )
       .limit(1)
+      .then((rows) => rows[0] ?? null)
 
-    if (!service) {
-      ;[service] = await db
-        .insert(services)
-        .values({
-          tenantId: partner.tenantId,
-          name: serviceType,
-          category: "partner-request",
-          description: `Autocreated from partner service request intake for ${serviceType}.`,
-          basePrice: "0",
-          requiredDocuments: "[]",
-          isActive: true,
-        })
-        .returning()
+    if (!lead) {
+      return NextResponse.json(
+        { error: "Select an existing client from your won leads." },
+        { status: 422 },
+      )
     }
+
+    const customerCompany =
+      lead.customerCompany?.trim() || lead.customerName.trim() || lead.customerEmail.trim()
+    const customerContact = lead.customerName.trim()
+    const customerEmail = lead.customerEmail.trim()
+
+    // Closing date: 30 days from today
+    const closingDate = new Date()
+    closingDate.setDate(closingDate.getDate() + 30)
+    const closingDateStr = closingDate.toISOString().slice(0, 10)
+
+    // Create deal in Zoho Cross-selling Pipeline
+    const zohoServices = normalizeZohoLeadServices(serviceInterest)
+    const zohoDealId = await createZohoDeal({
+      Deal_Name: `${customerCompany} - Cross-sell`,
+      Stage: "Opportunity Screening",
+      Pipeline: "Cross Selling Pipeline",
+      Account_Name: customerCompany,
+      Description: `Contact: ${customerContact} (${customerEmail})\nServices: ${serviceInterest.join(", ")}\nSubmitted via Partner Portal by ${partner.contactName} (${partner.companyName})${description ? `\n\n${description}` : ""}`,
+      Closing_Date: closingDateStr,
+      Lead_Source: "Partner Portal",
+      ...(zohoServices.length > 0 ? { List_of_Services: zohoServices } : {}),
+    })
 
     const [newRequest] = await db
       .insert(serviceRequests)
       .values({
         tenantId: partner.tenantId,
         partnerId: partner.id,
-        serviceId: service.id,
-        customerCompany: clientCompany,
-        customerContact: clientContact,
-        customerEmail: clientEmail,
+        serviceId: null,
+        servicesList: JSON.stringify(serviceInterest),
+        leadId: lead.id,
+        customerCompany,
+        customerContact,
+        customerEmail,
         status: "pending",
-        notes: description || null,
+        notes: [
+          description || null,
+          zohoDealId ? `zoho_deal_id:${zohoDealId}` : null,
+        ]
+          .filter(Boolean)
+          .join("\n") || null,
       })
       .returning()
 
@@ -161,6 +194,7 @@ export async function POST(request: NextRequest) {
           customerCompany: newRequest.customerCompany,
           customerContact: newRequest.customerContact,
           customerEmail: newRequest.customerEmail,
+          serviceName: serviceInterest.join(", "),
           status: newRequest.status,
           createdAt: newRequest.createdAt,
         },

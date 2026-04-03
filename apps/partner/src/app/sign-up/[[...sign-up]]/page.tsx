@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { ClipboardList, FileCheck2, Handshake } from "lucide-react"
 import { PartnerSignUpForm } from "@/components/auth/partner-sign-up-form"
 import { useAuth } from "@repo/auth/client"
+import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 const highlights = [
   { icon: ClipboardList, label: "Structured onboarding", sub: "Create an account, then complete the registration flow" },
@@ -26,7 +27,7 @@ export default function SignUpPage() {
     }
 
     if (isLoaded && userId) {
-      router.replace("/dashboard")
+      router.replace(buildAuthContinueHref())
     }
   }, [isLoaded, router, type, userId])
 
@@ -41,7 +42,7 @@ export default function SignUpPage() {
   const selectedTypeLabel = type === "channel" ? "Channel Partner" : "Referral Partner"
 
   return (
-    <div className="min-h-screen flex bg-[#080810]">
+    <div className="flex min-h-screen flex-col bg-[#080810] lg:flex-row">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex w-[54%] relative overflow-hidden flex-col p-14 xl:p-16">
         {/* Background */}
@@ -136,10 +137,10 @@ export default function SignUpPage() {
 
       {/* ── Right form panel ── */}
       <div
-        className="flex-1 flex flex-col items-center justify-center px-6 py-14 lg:px-14"
+        className="flex flex-1 flex-col items-center justify-start px-5 py-8 sm:px-6 sm:py-10 lg:justify-center lg:px-14 lg:py-14"
         style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
       >
-        <div className="mb-8 flex w-full max-w-[400px] justify-end">
+        <div className="mb-6 flex w-full max-w-[400px] justify-start sm:mb-8 sm:justify-end">
           <Link
             href="/sign-in"
             className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
@@ -149,7 +150,7 @@ export default function SignUpPage() {
         </div>
 
         {/* Mobile logo */}
-        <div className="lg:hidden mb-10 flex items-center gap-3">
+        <div className="mb-8 flex items-center gap-3 lg:hidden">
           <div
             className="h-9 w-9 rounded-xl flex items-center justify-center text-white font-black text-base"
             style={{ background: "linear-gradient(135deg,#818cf8,#4f46e5)", boxShadow: "0 4px 16px rgba(99,102,241,0.3)" }}

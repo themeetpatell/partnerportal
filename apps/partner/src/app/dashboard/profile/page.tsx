@@ -2,67 +2,32 @@ import { auth, currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import {
   db,
-  derivePartnerOnboardingStage,
   derivePartnerOperationalStatus,
-  formatPartnerOnboardingStage,
   formatPartnerOperationalStatus,
   leads,
   partners,
 } from "@repo/db"
 import { eq } from "drizzle-orm"
 import {
-  BadgeCheck,
-  Banknote,
+  ArrowUpRight,
   Briefcase,
   Building2,
   Calendar,
   CreditCard,
   FileText,
   Globe,
-  GraduationCap,
   Hash,
   Landmark,
   Link2,
   Mail,
   MapPin,
   Phone,
-  Shield,
   ShieldCheck,
   User,
-  Users,
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
-import { ContractSigningForm } from "@/components/contract-signing-form"
 import { getMissingAgreementFields } from "@/lib/signed-agreement"
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    approved: {
-      label: "Approved",
-      cls: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-    },
-    pending: {
-      label: "Pending review",
-      cls: "border-indigo-400/20 bg-indigo-500/12 text-indigo-200",
-    },
-    rejected: {
-      label: "Rejected",
-      cls: "border-rose-400/20 bg-rose-400/10 text-rose-300",
-    },
-    suspended: {
-      label: "Suspended",
-      cls: "border-white/10 bg-white/5 text-slate-400",
-    },
-  }
-  const entry = map[status] ?? map.suspended
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${entry!.cls}`}
-    >
-      {entry!.label}
-    </span>
-  )
-}
+import { syncZohoSignedContract } from "@/lib/zoho-sign-contract"
 
 function LifecyclePill({
   label,
@@ -91,59 +56,100 @@ function FieldRow({
   icon: Icon,
   label,
   value,
+  href,
 }: {
   icon: React.ElementType
   label: string
   value: string | null | undefined
+  href?: string | null
 }) {
+  const hasValue = Boolean(value)
   return (
-    <div className="flex items-start gap-4 rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-5 py-4">
-      <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/6 text-slate-400">
-        <Icon className="h-4 w-4" />
+    <div className="border-b border-white/8 py-4 last:border-b-0">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+        <Icon className="h-3.5 w-3.5" />
+        <span>{label}</span>
       </div>
-      <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
-          {label}
-        </p>
-        <p className="mt-1 text-sm font-medium text-white break-all">
+      {href && hasValue ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-white transition-colors hover:text-indigo-200"
+        >
+          <span className="break-all">{value}</span>
+          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+        </a>
+      ) : (
+        <p className="mt-2 text-sm font-medium leading-6 text-white break-words">
           {value || <span className="text-slate-600">—</span>}
         </p>
-      </div>
+      )}
     </div>
   )
 }
 
 function SectionHeader({
-  icon: Icon,
   title,
   description,
 }: {
-  icon: React.ElementType
   title: string
   description?: string
 }) {
   return (
-    <div className="mb-6 flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/6 text-white">
-        <Icon className="h-5 w-5" />
-      </div>
-      <div>
-        <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
-        {description && (
-          <p className="mt-0.5 text-sm text-slate-400">{description}</p>
-        )}
-      </div>
+    <div className="mb-6">
+      <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
+      {description && (
+        <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+      )}
     </div>
   )
 }
 
-export default async function ProfilePage() {
+function StatCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string
+  value: string
+  accent: string
+}) {
+  return (
+    <div className="min-w-[150px] border-t border-white/10 pt-4 first:border-t-0 first:pt-0 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-4 sm:first:border-l-0 sm:first:pl-0">
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+        {label}
+      </p>
+      <p className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</p>
+    </div>
+  )
+}
+
+function normalizeUrl(value: string | null | undefined) {
+  if (!value) return null
+  if (/^https?:\/\//i.test(value)) return value
+  return `https://${value}`
+}
+
+function normalizeLinkedInUrl(value: string | null | undefined) {
+  if (!value) return null
+  if (/^https?:\/\//i.test(value)) return value
+  if (value.includes("linkedin.com/")) return `https://${value}`
+  return `https://www.linkedin.com/in/${value.replace(/^@/, "")}`
+}
+
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ contract?: string; reason?: string }>
+}) {
+  const { contract: contractQuery, reason: contractReason } = await searchParams
   const [user, { userId }] = await Promise.all([currentUser(), auth()])
 
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner"
 
-  const partnerRecord = userId
+  let partnerRecord = userId
     ? await db
         .select()
         .from(partners)
@@ -156,18 +162,25 @@ export default async function ProfilePage() {
     redirect("/onboarding")
   }
 
-  const partnerLeads = partnerRecord
-    ? await db
-        .select({
-          status: leads.status,
-          createdAt: leads.createdAt,
-        })
-        .from(leads)
-        .where(eq(leads.partnerId, partnerRecord.id))
-    : []
+  if (
+    partnerRecord.contractStatus === "sent" &&
+    partnerRecord.zohoSignRequestId &&
+    !partnerRecord.contractSignedAt
+  ) {
+    const syncResult = await syncZohoSignedContract(partnerRecord)
+    partnerRecord = syncResult.partner
+  }
+
+  const partnerLeads = await db
+    .select({
+      status: leads.status,
+      createdAt: leads.createdAt,
+    })
+    .from(leads)
+    .where(eq(leads.partnerId, partnerRecord.id))
 
   const partnerTypeLabel =
-    partnerRecord?.type === "channel" ? "Channel Partner" : "Referral Partner"
+    partnerRecord.type === "channel" ? "Channel Partner" : "Referral Partner"
 
   const formatDate = (d: Date | null | undefined) =>
     d
@@ -178,27 +191,14 @@ export default async function ProfilePage() {
         })
       : null
 
-  const operationalStatus = partnerRecord
-    ? derivePartnerOperationalStatus(
-        {
-          contractStatus: partnerRecord.contractStatus,
-          contractSignedAt: partnerRecord.contractSignedAt,
-          onboardedAt: partnerRecord.onboardedAt,
-        },
-        partnerLeads
-      )
-    : null
-
-  const onboardingStage = partnerRecord
-    ? derivePartnerOnboardingStage(
-        {
-          meetingCompletedAt: partnerRecord.meetingCompletedAt,
-          onboardedAt: partnerRecord.onboardedAt,
-          nurturingStartedAt: partnerRecord.nurturingStartedAt,
-        },
-        partnerLeads
-      )
-    : null
+  const operationalStatus = derivePartnerOperationalStatus(
+    {
+      contractStatus: partnerRecord.contractStatus,
+      contractSignedAt: partnerRecord.contractSignedAt,
+      onboardedAt: partnerRecord.onboardedAt,
+    },
+    partnerLeads
+  )
 
   const operationalTone =
     operationalStatus === "active_partner"
@@ -207,68 +207,81 @@ export default async function ProfilePage() {
         ? "slate"
         : "amber"
 
-  const onboardingTone =
-    onboardingStage === "activated"
-      ? "emerald"
-      : onboardingStage === "yet_to_onboard"
-        ? "amber"
-        : "indigo"
-
   const onboardingBannerMessage =
     partnerRecord.onboardedAt
       ? "Your agreement has been accepted and onboarding is complete. Revenue features are now unlocked."
       : partnerRecord.contractStatus === "signed"
         ? "Agreement signed. Finanshels will review the signed contract and unlock your workspace after final acceptance."
-      : partnerRecord.contractStatus === "sent"
-        ? "Your agreement is ready in the portal. Review it and complete the signature to move the application forward."
-        : partnerRecord.status === "approved"
-          ? "Your partner account is approved. Finanshels still needs to send the agreement here before revenue features can unlock."
-          : partnerRecord.status === "rejected"
-            ? `Your application was rejected${partnerRecord.rejectionReason ? `: ${partnerRecord.rejectionReason}` : "."}`
-            : partnerRecord.status === "suspended"
-              ? `Your account is currently suspended${partnerRecord.suspensionReason ? `: ${partnerRecord.suspensionReason}` : "."}`
-              : "Your application is under review. Finanshels will share the agreement here when the next onboarding step is ready."
+        : partnerRecord.contractStatus === "sent"
+          ? "Your agreement is ready through Zoho Sign. Review the prefilled agreement, then complete the legally binding signature flow there."
+          : partnerRecord.status === "approved"
+            ? "Your partner account is approved. Finanshels still needs to send the agreement here before revenue features can unlock."
+            : partnerRecord.status === "rejected"
+              ? `Your application was rejected${partnerRecord.rejectionReason ? `: ${partnerRecord.rejectionReason}` : "."}`
+              : partnerRecord.status === "suspended"
+                ? `Your account is currently suspended${partnerRecord.suspensionReason ? `: ${partnerRecord.suspensionReason}` : "."}`
+                : "Your application is under review. Finanshels will share the agreement here when the next onboarding step is ready."
 
-  const operationalLabel = operationalStatus
-    ? formatPartnerOperationalStatus(operationalStatus)
-    : null
-  const onboardingLabel = onboardingStage
-    ? formatPartnerOnboardingStage(onboardingStage)
-    : null
-  const showOnboardingPill = Boolean(
-    onboardingLabel &&
-      onboardingLabel !== operationalLabel &&
-      onboardingStage !== "activated"
-  )
+  const operationalLabelMap: Record<string, string> = {
+    active_partner: "Active",
+    inactive_partner: "Inactive",
+    yet_to_onboard: "Yet to onboard",
+    yet_to_activate: "Yet to activate",
+  }
+  const operationalLabel =
+    operationalLabelMap[operationalStatus] ?? formatPartnerOperationalStatus(operationalStatus)
+  const agreementStatusLabel = partnerRecord.onboardedAt
+    ? "Agreement completed"
+    : partnerRecord.contractStatus === "signed"
+      ? "Agreement signed"
+      : partnerRecord.contractStatus.replaceAll("_", " ")
+  const contractFlashMessage =
+    contractQuery === "signed"
+      ? "The Zoho Sign agreement has been completed and synced into your workspace."
+      : contractQuery === "declined"
+        ? "The signing flow was declined. You can reopen it whenever you are ready."
+        : contractQuery === "later"
+          ? "The signing flow was saved for later."
+          : contractQuery === "missing-fields"
+            ? contractReason || "Complete the required profile fields before you start signing."
+            : contractQuery === "unavailable"
+              ? "The signing link could not be prepared. Please try again."
+              : null
+  const contractFlashTone =
+    contractQuery === "signed"
+      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+      : contractQuery === "declined" || contractQuery === "missing-fields" || contractQuery === "unavailable"
+        ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
+        : contractQuery === "later"
+          ? "border-indigo-400/20 bg-indigo-500/10 text-indigo-100"
+          : ""
 
-  const editablePartnerData = partnerRecord
-    ? {
-        companyName: partnerRecord.companyName,
-        contactName: partnerRecord.contactName,
-        phone: partnerRecord.phone,
-        designation: partnerRecord.designation,
-        dateOfBirth: partnerRecord.dateOfBirth,
-        secondaryEmail: partnerRecord.secondaryEmail,
-        website: partnerRecord.website,
-        linkedinId: partnerRecord.linkedinId,
-        nationality: partnerRecord.nationality,
-        businessSize: partnerRecord.businessSize,
-        partnerIndustry: partnerRecord.partnerIndustry,
-        overview: partnerRecord.overview,
-        partnerAddress: partnerRecord.partnerAddress,
-        emailOptOut: partnerRecord.emailOptOut,
-        vatRegistered: partnerRecord.vatRegistered,
-        vatNumber: partnerRecord.vatNumber,
-        tradeLicense: partnerRecord.tradeLicense,
-        emirateIdPassport: partnerRecord.emirateIdPassport,
-        beneficiaryName: partnerRecord.beneficiaryName,
-        bankName: partnerRecord.bankName,
-        bankCountry: partnerRecord.bankCountry,
-        accountNoIban: partnerRecord.accountNoIban,
-        swiftBicCode: partnerRecord.swiftBicCode,
-        paymentFrequency: partnerRecord.paymentFrequency,
-      }
-    : null
+  const editablePartnerData = {
+    companyName: partnerRecord.companyName,
+    contactName: partnerRecord.contactName,
+    phone: partnerRecord.phone,
+    designation: partnerRecord.designation,
+    dateOfBirth: partnerRecord.dateOfBirth,
+    secondaryEmail: partnerRecord.secondaryEmail,
+    website: partnerRecord.website,
+    linkedinId: partnerRecord.linkedinId,
+    nationality: partnerRecord.nationality,
+    businessSize: partnerRecord.businessSize,
+    partnerIndustry: partnerRecord.partnerIndustry,
+    overview: partnerRecord.overview,
+    partnerAddress: partnerRecord.partnerAddress,
+    emailOptOut: partnerRecord.emailOptOut,
+    vatRegistered: partnerRecord.vatRegistered,
+    vatNumber: partnerRecord.vatNumber,
+    tradeLicense: partnerRecord.tradeLicense,
+    emirateIdPassport: partnerRecord.emirateIdPassport,
+    beneficiaryName: partnerRecord.beneficiaryName,
+    bankName: partnerRecord.bankName,
+    bankCountry: partnerRecord.bankCountry,
+    accountNoIban: partnerRecord.accountNoIban,
+    swiftBicCode: partnerRecord.swiftBicCode,
+    paymentFrequency: partnerRecord.paymentFrequency,
+  }
 
   const agreementMissingFields = getMissingAgreementFields({
     type: partnerRecord.type as "referral" | "channel",
@@ -286,71 +299,112 @@ export default async function ProfilePage() {
     contractSentAt: partnerRecord.contractSentAt,
   })
 
+  const websiteHref = normalizeUrl(partnerRecord.website)
+  const linkedInHref = normalizeLinkedInUrl(partnerRecord.linkedinId)
+  const memberSince = formatDate(partnerRecord.createdAt) || "—"
+  const profileCompletenessFields = [
+    partnerRecord.companyName,
+    partnerRecord.contactName,
+    partnerRecord.phone,
+    partnerRecord.designation,
+    partnerRecord.secondaryEmail,
+    partnerRecord.website,
+    partnerRecord.linkedinId,
+    partnerRecord.nationality,
+    partnerRecord.businessSize,
+    partnerRecord.partnerIndustry,
+    partnerRecord.overview,
+    partnerRecord.partnerAddress,
+    partnerRecord.tradeLicense,
+    partnerRecord.beneficiaryName,
+    partnerRecord.bankName,
+    partnerRecord.bankCountry,
+    partnerRecord.accountNoIban,
+    partnerRecord.swiftBicCode,
+  ]
+  const profileStrength = Math.round(
+    (profileCompletenessFields.filter((value) => Boolean(value)).length /
+      profileCompletenessFields.length) *
+      100
+  )
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="page-title">Profile</h1>
       </div>
 
-      <section>
-        <div className="surface-card rounded-[2rem] p-6 sm:p-7">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.8rem] bg-gradient-to-br from-white/20 to-white/8 text-white">
-              <User className="h-9 w-9" />
-            </div>
-            <div>
-              <h2 className="font-heading text-3xl font-semibold text-white">{fullName}</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                {user?.email || "No email available"}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <span className="tag-pill">
-                  <BadgeCheck className="h-4 w-4 text-white" />
-                  Authenticated account
-                </span>
-                <StatusBadge status={partnerRecord.status} />
-                {operationalStatus && (
+      <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#060b18] shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+        <div className="h-28 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.38),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.2),transparent_28%),linear-gradient(135deg,#121a31_0%,#0a1020_55%,#05070f_100%)] sm:h-40" />
+        <div className="px-5 pb-5 sm:px-8 sm:pb-8">
+          <div className="-mt-12 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.65rem] border border-white/15 bg-gradient-to-br from-white/18 via-white/10 to-white/5 text-white shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
+                <User className="h-8 w-8 sm:h-10 sm:w-10" />
+              </div>
+              <div className="max-w-3xl">
+                <div className="flex flex-wrap items-center gap-2">
                   <LifecyclePill
-                    label={operationalLabel!}
+                    label={operationalLabel}
                     tone={operationalTone}
                   />
-                )}
-                {showOnboardingPill && (
-                  <LifecyclePill
-                    label={onboardingLabel!}
-                    tone={onboardingTone}
-                  />
-                )}
+                </div>
+                <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+                  {fullName}
+                </h2>
+                <p className="mt-2 text-base text-slate-300 sm:text-lg">
+                  {[partnerRecord.designation, partnerRecord.companyName].filter(Boolean).join(" at ") ||
+                    partnerTypeLabel}
+                </p>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
+                  Partnership workspace for managing your company profile, agreement status, and finance details.
+                </p>
               </div>
+            </div>
+
+            <div className="flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-6 xl:w-auto xl:justify-end">
+              <StatCard
+                label="Profile strength"
+                value={`${profileStrength}%`}
+                accent="text-white"
+              />
+              <StatCard
+                label="Member since"
+                value={memberSince}
+                accent="text-sky-300"
+              />
             </div>
           </div>
 
-          <div className="mt-7 grid gap-3 sm:grid-cols-2">
-            <FieldRow
-              icon={Mail}
-              label="Email"
-              value={user?.email}
-            />
-            <FieldRow
-              icon={Hash}
-              label="Account ID"
-              value={user?.id}
-            />
-          </div>
         </div>
       </section>
 
-      <>
-        <>
-          <section className="surface-card rounded-[2rem] p-5 sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_420px]">
+        <div className="space-y-6">
+          <section className="surface-card rounded-[2rem] p-6 sm:p-7">
+            <SectionHeader
+              title="Agreement and Onboarding"
+              description="Track your contract status, signing progress, and the next action needed from your side."
+            />
+
+            <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
+              <FieldRow
+                icon={ShieldCheck}
+                label="Partner type"
+                value={partnerTypeLabel}
+              />
+              <FieldRow
+                icon={Calendar}
+                label="Activation date"
+                value={formatDate(partnerRecord.activationDate)}
+              />
+            </div>
+
+            {!partnerRecord.onboardedAt && (
+              <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
-                    Onboarding
-                  </p>
                   <LifecyclePill
-                    label={partnerRecord.contractStatus.replaceAll("_", " ")}
+                    label={agreementStatusLabel}
                     tone={
                       partnerRecord.contractStatus === "signed"
                         ? "emerald"
@@ -359,30 +413,32 @@ export default async function ProfilePage() {
                           : "amber"
                     }
                   />
-                  {onboardingStage && (
-                    <LifecyclePill
-                      label={formatPartnerOnboardingStage(onboardingStage)}
-                      tone={onboardingTone}
-                    />
-                  )}
                 </div>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
+
+                <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
                   {onboardingBannerMessage}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400">
+
+                {contractFlashMessage ? (
+                  <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm leading-6 ${contractFlashTone}`}>
+                    {contractFlashMessage}
+                  </div>
+                ) : null}
+
+                <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
                   <span>
                     Agreement:{" "}
-                    {partnerRecord.agreementUrl ? (
+                    {partnerRecord.contractStatus !== "not_sent" ? (
                       <a
-                        href={partnerRecord.agreementUrl}
+                        href="/api/profile/contract/agreement"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-indigo-300 hover:text-indigo-200"
+                        className="text-indigo-300 transition-colors hover:text-indigo-200"
                       >
-                        View prefilled agreement
+                        Preview prefilled agreement
                       </a>
                     ) : (
-                      "Not shared yet"
+                      "Not available yet"
                     )}
                   </span>
                   <span>
@@ -394,34 +450,30 @@ export default async function ProfilePage() {
                   {partnerRecord.contractSignedAt ? (
                     <a
                       href="/api/profile/contract/download"
-                      className="text-indigo-300 hover:text-indigo-200"
+                      className="text-indigo-300 transition-colors hover:text-indigo-200"
                     >
-                      Download signed PDF
+                      Download signed agreement
                     </a>
                   ) : null}
                 </div>
-                {partnerRecord.agreementUrl ? (
-                  <p className="mt-3 text-sm text-slate-400">
-                    The agreement link opens a prefilled PDF generated from your profile details.
-                    Update your profile first if any company or bank particulars are incorrect.
+
+                {partnerRecord.contractStatus !== "not_sent" ? (
+                  <p className="mt-4 text-sm leading-6 text-slate-400">
+                    The agreement is prefilled from your current company and banking details. Once you open Zoho Sign, those details are locked into the signing packet, so update your profile first if anything looks outdated.
                   </p>
                 ) : null}
               </div>
-            </div>
+            )}
 
             {partnerRecord.contractStatus === "sent" &&
               !partnerRecord.contractSignedAt &&
               agreementMissingFields.length > 0 && (
-                <div className="mt-5 rounded-2xl border border-amber-400/20 bg-amber-400/10 px-4 py-4 text-sm text-amber-100">
+                <div className="mt-5 rounded-[1.5rem] border border-amber-400/20 bg-amber-400/10 px-5 py-4 text-sm text-amber-100">
                   <p className="font-medium text-amber-200">
-                    Complete these profile details before you can sign the agreement:
+                    Complete these profile details before signing:
                   </p>
                   <p className="mt-2 leading-6 text-amber-100/90">
                     {agreementMissingFields.map((field) => field.label).join(", ")}.
-                  </p>
-                  <p className="mt-2 text-amber-100/80">
-                    Update the Secondary Information and Financial Information sections below,
-                    then reopen the agreement preview and sign it here.
                   </p>
                 </div>
               )}
@@ -429,50 +481,37 @@ export default async function ProfilePage() {
             {partnerRecord.contractStatus === "sent" &&
               !partnerRecord.contractSignedAt &&
               agreementMissingFields.length === 0 && (
-                <ContractSigningForm
-                  contactName={partnerRecord.contactName}
-                  designation={partnerRecord.designation}
-                />
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <a
+                    href={partnerRecord.agreementUrl || "/api/profile/contract/start-sign"}
+                    className="primary-button"
+                  >
+                    Open Zoho Sign
+                  </a>
+                  <a
+                    href="/api/profile/contract/agreement"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="secondary-button"
+                  >
+                    Preview agreement
+                  </a>
+                </div>
               )}
           </section>
 
-          {/* Primary Information */}
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <SectionHeader
-                icon={Building2}
-                title="Primary Information"
-                description="Your commercial profile as registered with Finanshels."
-              />
-              <StatusBadge status={partnerRecord.status} />
-            </div>
-
-            <ProfileEditForm section="primary" partner={editablePartnerData!}>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <FieldRow
-                  icon={Building2}
-                  label="Partner organisation"
-                  value={partnerRecord.companyName}
-                />
+            <ProfileEditForm
+              section="contact"
+              title="Contact and Reach"
+              description="The main contact details and public-facing channels tied to your partner workspace."
+              partner={editablePartnerData}
+            >
+              <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
                 <FieldRow
                   icon={User}
-                  label="Partner name"
+                  label="Primary contact"
                   value={partnerRecord.contactName}
-                />
-                <FieldRow
-                  icon={ShieldCheck}
-                  label="Partner type"
-                  value={partnerTypeLabel}
-                />
-                <FieldRow
-                  icon={Mail}
-                  label="Email"
-                  value={partnerRecord.email}
-                />
-                <FieldRow
-                  icon={Phone}
-                  label="Phone"
-                  value={partnerRecord.phone}
                 />
                 <FieldRow
                   icon={Briefcase}
@@ -480,136 +519,39 @@ export default async function ProfilePage() {
                   value={partnerRecord.designation}
                 />
                 <FieldRow
-                  icon={Calendar}
-                  label="Date of birth"
-                  value={partnerRecord.dateOfBirth}
+                  icon={Mail}
+                  label="Primary email"
+                  value={partnerRecord.email}
+                  href={partnerRecord.email ? `mailto:${partnerRecord.email}` : null}
+                />
+                <FieldRow
+                  icon={Phone}
+                  label="Phone / mobile number"
+                  value={partnerRecord.phone}
+                  href={partnerRecord.phone ? `tel:${partnerRecord.phone}` : null}
                 />
                 <FieldRow
                   icon={Mail}
                   label="Secondary email"
                   value={partnerRecord.secondaryEmail}
+                  href={partnerRecord.secondaryEmail ? `mailto:${partnerRecord.secondaryEmail}` : null}
                 />
-              </div>
-            </ProfileEditForm>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <FieldRow
-                icon={Users}
-                label="Partner owner"
-                value={partnerRecord.partnershipManager || "Partnership Team"}
-              />
-              <FieldRow
-                icon={Users}
-                label="Partnership manager"
-                value={partnerRecord.partnershipManager}
-              />
-              <FieldRow
-                icon={Users}
-                label="Appointments setter"
-                value={partnerRecord.appointmentsSetter}
-              />
-              <FieldRow
-                icon={Hash}
-                label="Partners ID"
-                value={partnerRecord.partnersId}
-              />
-              <FieldRow
-                icon={Shield}
-                label="Partner stage"
-                value={partnerRecord.strategicFunnelStage}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Last met on"
-                value={formatDate(partnerRecord.lastMetOn)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Meeting scheduled date (AS)"
-                value={formatDate(partnerRecord.meetingScheduledDateAS)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Meeting date (PM)"
-                value={formatDate(partnerRecord.meetingDatePM)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Onboarding date"
-                value={formatDate(partnerRecord.onboardedAt)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Activation date"
-                value={formatDate(partnerRecord.activationDate)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Registered on"
-                value={formatDate(partnerRecord.createdAt)}
-              />
-            </div>
-          </section>
-
-          {/* Secondary Information */}
-          <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <SectionHeader
-              icon={FileText}
-              title="Secondary Information"
-              description="Agreement details, profile, and additional information."
-            />
-
-            {/* Admin-managed fields (read-only for partner) */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-4">
-              <FieldRow
-                icon={FileText}
-                label="Agreement sent?"
-                value={partnerRecord.contractStatus !== "not_sent" ? "Yes" : "No"}
-              />
-              <FieldRow
-                icon={FileText}
-                label="Agreement signed"
-                value={partnerRecord.contractSignedAt ? "Yes" : "No"}
-              />
-              <FieldRow
-                icon={FileText}
-                label="Agreement"
-                value={partnerRecord.agreementUrl ? "View agreement" : null}
-              />
-              <FieldRow
-                icon={Shield}
-                label="Partnership level"
-                value={partnerRecord.partnershipLevel || partnerRecord.tier}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Agreement start date"
-                value={formatDate(partnerRecord.agreementStartDate)}
-              />
-              <FieldRow
-                icon={Calendar}
-                label="Agreement end date"
-                value={formatDate(partnerRecord.agreementEndDate)}
-              />
-              <FieldRow
-                icon={GraduationCap}
-                label="Sales training done"
-                value={partnerRecord.salesTrainingDone ? "Yes" : "No"}
-              />
-            </div>
-
-            {/* Partner-editable fields */}
-            <ProfileEditForm section="secondary" partner={editablePartnerData!}>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <FieldRow
-                  icon={Link2}
-                  label="LinkedIn ID"
-                  value={partnerRecord.linkedinId}
+                  icon={Calendar}
+                  label="Date of birth"
+                  value={partnerRecord.dateOfBirth}
                 />
                 <FieldRow
                   icon={Globe}
-                  label="Partner website"
+                  label="Website"
                   value={partnerRecord.website}
+                  href={websiteHref}
+                />
+                <FieldRow
+                  icon={Link2}
+                  label="LinkedIn"
+                  value={partnerRecord.linkedinId}
+                  href={linkedInHref}
                 />
                 <FieldRow
                   icon={Globe}
@@ -617,68 +559,35 @@ export default async function ProfilePage() {
                   value={partnerRecord.nationality}
                 />
                 <FieldRow
-                  icon={Users}
-                  label="Business size"
-                  value={partnerRecord.businessSize}
-                />
-                <FieldRow
-                  icon={Briefcase}
-                  label="Partner industry"
-                  value={partnerRecord.partnerIndustry}
-                />
-                <FieldRow
                   icon={MapPin}
-                  label="Address"
+                  label="Registered address"
                   value={partnerRecord.partnerAddress}
                 />
-                <FieldRow
-                  icon={Mail}
-                  label="Secondary email"
-                  value={partnerRecord.secondaryEmail}
-                />
-                <FieldRow
-                  icon={Mail}
-                  label="Email opt out"
-                  value={partnerRecord.emailOptOut ? "Yes" : "No"}
-                />
-                {partnerRecord.overview && (
-                  <div className="sm:col-span-2 lg:col-span-3">
-                    <FieldRow
-                      icon={FileText}
-                      label="Overview"
-                      value={partnerRecord.overview}
-                    />
-                  </div>
-                )}
               </div>
             </ProfileEditForm>
           </section>
 
-          {/* Financial Information */}
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <SectionHeader
-              icon={CreditCard}
-              title="Financial Information"
-              description="Commission, tax, and banking details."
-            />
+            <ProfileEditForm
+              section="financial"
+              title="Financial Details"
+              description="These details drive agreement generation, payouts, and finance review."
+              partner={editablePartnerData}
+            >
+              <div className="mb-4 grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
+                <FieldRow
+                  icon={CreditCard}
+                  label="Commission type"
+                  value={partnerRecord.commissionType}
+                />
+                <FieldRow
+                  icon={CreditCard}
+                  label="Commission rate"
+                  value={partnerRecord.commissionRate ? `${partnerRecord.commissionRate}%` : null}
+                />
+              </div>
 
-            {/* Admin-managed fields (read-only for partner) */}
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-4">
-              <FieldRow
-                icon={CreditCard}
-                label="Commission type"
-                value={partnerRecord.commissionType}
-              />
-              <FieldRow
-                icon={CreditCard}
-                label="Commission rate"
-                value={partnerRecord.commissionRate ? `${partnerRecord.commissionRate}%` : null}
-              />
-            </div>
-
-            {/* Partner-editable fields */}
-            <ProfileEditForm section="financial" partner={editablePartnerData!}>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
                 <FieldRow
                   icon={FileText}
                   label="VAT registered"
@@ -690,18 +599,13 @@ export default async function ProfilePage() {
                   value={partnerRecord.vatNumber}
                 />
                 <FieldRow
-                  icon={MapPin}
-                  label="Partner address"
-                  value={partnerRecord.partnerAddress}
-                />
-                <FieldRow
                   icon={FileText}
                   label="Trade license"
                   value={partnerRecord.tradeLicense}
                 />
                 <FieldRow
                   icon={User}
-                  label="Beneficiary name (as per bank)"
+                  label="Beneficiary name"
                   value={partnerRecord.beneficiaryName}
                 />
                 <FieldRow
@@ -716,44 +620,108 @@ export default async function ProfilePage() {
                 />
                 <FieldRow
                   icon={Hash}
-                  label="Account No / IBAN"
+                  label="Account / IBAN"
                   value={partnerRecord.accountNoIban}
                 />
                 <FieldRow
                   icon={Hash}
-                  label="SWIFT / BIC code"
+                  label="SWIFT / BIC"
                   value={partnerRecord.swiftBicCode}
                 />
                 <FieldRow
-                  icon={Banknote}
-                  label="Payment frequency"
-                  value={partnerRecord.paymentFrequency}
-                />
-                <FieldRow
                   icon={Hash}
-                  label="Emirate ID / Passport"
+                  label="Emirates ID / Passport"
                   value={partnerRecord.emirateIdPassport}
                 />
               </div>
             </ProfileEditForm>
           </section>
 
-          {/* Rejection reason */}
           {partnerRecord.rejectionReason && (
             <section className="surface-card rounded-[2rem] p-6 sm:p-7">
               <div className="rounded-[1.4rem] border border-rose-400/20 bg-rose-400/10 px-5 py-4">
                 <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-rose-400">
                   Rejection reason
                 </p>
-                <p className="mt-1 text-sm text-rose-200">
+                <p className="mt-2 text-sm leading-6 text-rose-200">
                   {partnerRecord.rejectionReason}
                 </p>
               </div>
             </section>
           )}
+        </div>
+
+        <aside className="space-y-6">
+          <section className="surface-card rounded-[2rem] p-6 sm:p-7">
+            <ProfileEditForm
+              section="company"
+              title="Company Info"
+              description="Your company profile, public presence, and the business details Finanshels works against."
+              partner={editablePartnerData}
+            >
+              <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-1">
+                <FieldRow
+                  icon={Building2}
+                  label="Company"
+                  value={partnerRecord.companyName}
+                />
+                <FieldRow
+                  icon={Briefcase}
+                  label="Industry"
+                  value={partnerRecord.partnerIndustry}
+                />
+                <FieldRow
+                  icon={Hash}
+                  label="Business size"
+                  value={partnerRecord.businessSize}
+                />
+                <FieldRow
+                  icon={MapPin}
+                  label="Registered address"
+                  value={partnerRecord.partnerAddress}
+                />
+                <FieldRow
+                  icon={Mail}
+                  label="Email opt out"
+                  value={partnerRecord.emailOptOut ? "Yes" : "No"}
+                />
+                <div className="border-b border-white/8 py-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+                    Overview
+                  </p>
+                  <p className="mt-3 text-sm leading-7 text-slate-200">
+                    {partnerRecord.overview?.trim() || "Add a short company overview to make your profile feel complete and credible."}
+                  </p>
+                </div>
+              </div>
+            </ProfileEditForm>
+          </section>
+
+          <section className="surface-card rounded-[2rem] p-6">
+            <SectionHeader
+              title="Quick Snapshot"
+              description="The essentials at a glance."
+            />
+            <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-1">
+              <FieldRow
+                icon={User}
+                label="Profile strength"
+                value={`${profileStrength}%`}
+              />
+              <FieldRow
+                icon={Calendar}
+                label="Onboarded on"
+                value={formatDate(partnerRecord.onboardedAt)}
+              />
+            </div>
+          </section>
 
           {partnerRecord.zohoContactId && (
-            <section className="surface-card rounded-[2rem] p-6 sm:p-7">
+            <section className="surface-card rounded-[2rem] p-6">
+              <SectionHeader
+                title="CRM Reference"
+                description="Internal CRM reference used by the platform."
+              />
               <FieldRow
                 icon={Hash}
                 label="CRM contact ID"
@@ -761,8 +729,8 @@ export default async function ProfilePage() {
               />
             </section>
           )}
-        </>
-      </>
+        </aside>
+      </div>
     </div>
   )
 }
