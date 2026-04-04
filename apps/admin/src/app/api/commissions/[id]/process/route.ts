@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { db, commissions, logActivity, payoutRequests } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole } from "@/lib/rbac"
@@ -26,36 +26,36 @@ export async function POST(
 
   const { id } = await params
 
-  const [existing] = await db
-    .select()
-    .from(commissions)
-    .where(eq(commissions.id, id))
-    .limit(1)
-
-  if (!existing) {
-    return NextResponse.json({ error: "Commission not found" }, { status: 404 })
-  }
-
-  if (existing.status !== "approved") {
-    return NextResponse.json(
-      {
-        error: `Commission is already "${existing.status}". Only approved commissions can enter payout processing.`,
-      },
-      { status: 422 }
-    )
-  }
+  let responseOverride: Response | null = null
 
   await db.transaction(async (tx) => {
+    // Atomic: only update if still approved — prevents TOCTOU race
     const [updated] = await tx
       .update(commissions)
       .set({
         status: "processing",
         updatedAt: new Date(),
       })
-      .where(eq(commissions.id, id))
+      .where(and(eq(commissions.id, id), eq(commissions.status, "approved")))
       .returning()
 
-    if (!updated) return
+    if (!updated) {
+      const [existing] = await tx
+        .select({ status: commissions.status })
+        .from(commissions)
+        .where(eq(commissions.id, id))
+        .limit(1)
+
+      if (!existing) {
+        responseOverride = NextResponse.json({ error: "Commission not found" }, { status: 404 })
+        return
+      }
+      responseOverride = NextResponse.json(
+        { error: `Commission is already "${existing.status}". Only approved commissions can enter payout processing.` },
+        { status: 422 }
+      )
+      return
+    }
 
     const [payout] = await tx
       .insert(payoutRequests)
@@ -84,6 +84,8 @@ export async function POST(
       },
     })
   })
+
+  if (responseOverride) return responseOverride
 
   return NextResponse.redirect(new URL("/commissions?status=processing", _req.url))
 }
