@@ -12,6 +12,7 @@ import {
   FileText,
   ExternalLink,
   RefreshCw,
+  Upload,
   User,
   Tag,
 } from "lucide-react"
@@ -100,12 +101,50 @@ function ZohoSyncForm({
         title={!canSync ? "Only Admin, Partnership Manager, and SDR roles can sync from CRM." : undefined}
         className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
           canSync
-            ? "bg-indigo-400 hover:bg-indigo-500"
+            ? "bg-indigo-600 hover:bg-indigo-500"
             : "cursor-not-allowed bg-slate-700/70 text-slate-300"
         }`}
       >
         <RefreshCw className="h-4 w-4" />
         Sync from CRM
+      </button>
+    </form>
+  )
+}
+
+function PushToCrmForm({
+  leadId,
+  canSync,
+  zohoLeadId,
+}: {
+  leadId: string
+  canSync: boolean
+  zohoLeadId: string | null
+}) {
+  if (zohoLeadId) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-800/40 bg-emerald-950/60 px-4 py-2 text-sm font-medium text-emerald-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+        In CRM
+      </span>
+    )
+  }
+
+  return (
+    <form action={`/api/leads/${leadId}/push-to-crm?redirectTo=/leads/${leadId}`} method="POST">
+      <button
+        type="submit"
+        disabled={!canSync}
+        aria-disabled={!canSync}
+        title={!canSync ? "Only Admin, Partnership Manager, and SDR roles can push to CRM." : undefined}
+        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+          canSync
+            ? "border border-amber-800/40 bg-amber-950/60 text-amber-300 hover:bg-amber-900/60"
+            : "cursor-not-allowed bg-slate-700/70 text-slate-400"
+        }`}
+      >
+        <Upload className="h-4 w-4" />
+        Push to CRM
       </button>
     </form>
   )
@@ -123,7 +162,7 @@ export default async function LeadDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ sync?: string; reason?: string; status?: string }>
+  searchParams: Promise<{ sync?: string; reason?: string; status?: string; pushCrm?: string }>
 }) {
   const [{ id }, query, { userId }] = await Promise.all([params, searchParams, auth()])
 
@@ -176,9 +215,32 @@ export default async function LeadDetailPage({
     Boolean(lead.crmServiceType)
 
   const currentStep = statusTimeline.indexOf(lead.status)
-  const canSyncFromCrm = Boolean(
-    member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"]),
-  )
+
+  const canManageLeads = member
+    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])
+    : false
+  const canFinance = member
+    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
+    : false
+
+  // CRM sync actions require lead management permissions
+  const canSyncFromCrm = canManageLeads
+  const pushCrmBanner =
+    query.pushCrm === "ok"
+      ? { tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100", text: "Lead successfully pushed to Zoho CRM." }
+      : query.pushCrm === "already_synced"
+        ? { tone: "border-sky-400/16 bg-sky-500/8 text-sky-100", text: "This lead is already in Zoho CRM." }
+        : query.pushCrm === "error"
+          ? {
+              tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
+              text: query.reason === "crm_rejected"
+                ? "Zoho CRM rejected the push. Check CRM credentials and try again."
+                : query.reason === "forbidden"
+                  ? "Your role does not have permission to push leads to CRM."
+                  : "Failed to push lead to CRM.",
+            }
+          : null
+
   const syncBanner =
     query.sync === "ok"
       ? {
@@ -235,9 +297,10 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <ZohoSyncForm leadId={lead.id} canSync={canSyncFromCrm} />
+        <PushToCrmForm leadId={lead.id} canSync={canSyncFromCrm} zohoLeadId={lead.zohoLeadId} />
+        <ZohoSyncForm leadId={lead.id} canSync={canSyncFromCrm && Boolean(lead.zohoLeadId)} />
         <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
-          Status is read-only here and syncs from Zoho CRM.
+          Status syncs from Zoho CRM.
         </div>
         {!canSyncFromCrm ? (
           <div className="rounded-lg border border-amber-400/16 bg-amber-500/8 px-4 py-2 text-sm text-amber-100">
@@ -246,6 +309,11 @@ export default async function LeadDetailPage({
         ) : null}
       </div>
 
+      {pushCrmBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${pushCrmBanner.tone}`}>
+          {pushCrmBanner.text}
+        </div>
+      ) : null}
       {syncBanner ? (
         <div className={`rounded-xl border px-4 py-3 text-sm ${syncBanner.tone}`}>
           {syncBanner.text}
