@@ -31,6 +31,7 @@ import {
   Receipt,
 } from "lucide-react"
 import { auth } from "@repo/auth/server"
+import { getRequiredTenantId } from "@/lib/env"
 import {
   AnalyticsGlobalBar,
   PipelineFilters,
@@ -234,6 +235,7 @@ export default async function AnalyticsPage({
   searchParams: Promise<Record<string, string>>
 }) {
   const { userId } = await auth()
+  const tenantId = getRequiredTenantId()
   const sp = await searchParams
 
   const dateRange = getDateRange(sp.dateRange)
@@ -246,6 +248,7 @@ export default async function AnalyticsPage({
   const partnerTier = sp.partnerTier
 
   const leadConditions = [
+    eq(leads.tenantId, tenantId),
     isNull(leads.deletedAt),
     buildDateWhere(leads.createdAt, dateRange),
     partnerId ? eq(leads.partnerId, partnerId) : undefined,
@@ -256,6 +259,7 @@ export default async function AnalyticsPage({
   ].filter(Boolean) as Parameters<typeof and>
 
   const srConditions = [
+    eq(serviceRequests.tenantId, tenantId),
     isNull(serviceRequests.deletedAt),
     buildDateWhere(serviceRequests.createdAt, dateRange),
     partnerId ? eq(serviceRequests.partnerId, partnerId) : undefined,
@@ -265,6 +269,7 @@ export default async function AnalyticsPage({
   ].filter(Boolean) as Parameters<typeof and>
 
   const invoiceConditions = [
+    eq(invoices.tenantId, tenantId),
     isNull(invoices.deletedAt),
     buildDateWhere(invoices.createdAt, dateRange),
     partnerId ? eq(invoices.partnerId, partnerId) : undefined,
@@ -272,6 +277,7 @@ export default async function AnalyticsPage({
   ].filter(Boolean) as Parameters<typeof and>
 
   const partnerConditions = [
+    eq(partners.tenantId, tenantId),
     isNull(partners.deletedAt),
     buildDateWhere(partners.createdAt, dateRange),
     partnerId ? eq(partners.id, partnerId) : undefined,
@@ -280,6 +286,7 @@ export default async function AnalyticsPage({
   ].filter(Boolean) as Parameters<typeof and>
 
   const commissionConditions = [
+    eq(commissions.tenantId, tenantId),
     partnerId ? eq(commissions.partnerId, partnerId) : undefined,
     buildDateWhere(commissions.createdAt, dateRange),
   ].filter(Boolean) as Parameters<typeof and>
