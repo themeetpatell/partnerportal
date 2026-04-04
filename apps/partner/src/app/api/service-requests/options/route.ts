@@ -59,7 +59,7 @@ export async function GET() {
           customerName: leads.customerName,
           customerEmail: leads.customerEmail,
           customerCompany: leads.customerCompany,
-          createdAt: leads.createdAt,
+          wonAt: leads.updatedAt,
         })
         .from(leads)
         .where(
@@ -109,7 +109,7 @@ export async function GET() {
           lead.customerEmail.trim(),
         contactName: lead.customerName.trim(),
         email: lead.customerEmail.trim(),
-        wonAt: lead.createdAt,
+        wonAt: lead.wonAt,
       })
     }
 
