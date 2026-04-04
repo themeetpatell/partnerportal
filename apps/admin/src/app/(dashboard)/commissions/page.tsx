@@ -63,7 +63,7 @@ export default async function CommissionsPage({
 
   const { status, page } = await searchParams
   const activeStatus = status ?? "pending"
-  const pageNum = Math.max(1, parseInt(page ?? "1", 10))
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1)
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
 

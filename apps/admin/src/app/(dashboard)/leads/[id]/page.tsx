@@ -219,9 +219,6 @@ export default async function LeadDetailPage({
   const canManageLeads = member
     ? hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])
     : false
-  const canFinance = member
-    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
-    : false
 
   // CRM sync actions require lead management permissions
   const canSyncFromCrm = canManageLeads

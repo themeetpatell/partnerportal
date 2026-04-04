@@ -35,7 +35,7 @@ export default async function LeadsPage({
   searchParams: Promise<{ status?: string; page?: string }>
 }) {
   const { status, page } = await searchParams
-  const pageNum = Math.max(1, parseInt(page ?? "1", 10))
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1)
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
 
