@@ -318,7 +318,7 @@ export default async function AnalyticsPage({
     db
       .select({ id: partners.id, companyName: partners.companyName })
       .from(partners)
-      .where(isNull(partners.deletedAt))
+      .where(and(eq(partners.tenantId, tenantId), isNull(partners.deletedAt)))
       .orderBy(partners.companyName),
     db
       .select({
@@ -328,13 +328,17 @@ export default async function AnalyticsPage({
         authUserId: teamMembers.authUserId,
       })
       .from(teamMembers)
-      .where(eq(teamMembers.isActive, true)),
+      .where(and(eq(teamMembers.tenantId, tenantId), eq(teamMembers.isActive, true))),
     userId
       ? db
           .select()
           .from(savedFilters)
           .where(
-            and(eq(savedFilters.userId, userId), eq(savedFilters.context, "analytics"))
+            and(
+              eq(savedFilters.tenantId, tenantId),
+              eq(savedFilters.userId, userId),
+              eq(savedFilters.context, "analytics")
+            )
           )
       : Promise.resolve([]),
     db
