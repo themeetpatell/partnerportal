@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { db, partners, logActivity } from "@repo/db"
+import { and, eq, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -44,6 +45,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "companyName, contactName, email, type are required" },
       { status: 400 }
+    )
+  }
+
+  // Duplicate email check — prevent two active partner records for the same email
+  const [existingPartner] = await db
+    .select({ id: partners.id })
+    .from(partners)
+    .where(and(
+      eq(partners.email, email),
+      eq(partners.tenantId, tenantId),
+      isNull(partners.deletedAt)
+    ))
+    .limit(1)
+
+  if (existingPartner) {
+    return NextResponse.json(
+      { error: "A partner with this email already exists", duplicateId: existingPartner.id },
+      { status: 409 }
     )
   }
 
