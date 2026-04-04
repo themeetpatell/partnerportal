@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, leads, partners } from "@repo/db"
-import { and, eq, isNull } from "drizzle-orm"
+import { and, count, eq, isNull } from "drizzle-orm"
 import { Users, ArrowRight, Plus } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -32,28 +32,40 @@ const tabs = [
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; page?: string }>
 }) {
-  const { status } = await searchParams
+  const { status, page } = await searchParams
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10))
+  const pageSize = 50
+  const pageOffset = (pageNum - 1) * pageSize
 
-  const rows = await db
-    .select({
-      id: leads.id,
-      customerName: leads.customerName,
-      customerEmail: leads.customerEmail,
-      customerCompany: leads.customerCompany,
-      serviceInterest: leads.serviceInterest,
-      status: leads.status,
-      assignedTo: leads.assignedTo,
-      createdAt: leads.createdAt,
-      partnerId: leads.partnerId,
-      partnerCompanyName: partners.companyName,
-      partnerContactName: partners.contactName,
-    })
-    .from(leads)
-    .leftJoin(partners, eq(leads.partnerId, partners.id))
-    .where(and(isNull(leads.deletedAt), status ? eq(leads.status, status) : undefined))
-    .orderBy(leads.createdAt)
+  const whereClause = and(isNull(leads.deletedAt), status ? eq(leads.status, status) : undefined)
+
+  const [rows, [countResult]] = await Promise.all([
+    db
+      .select({
+        id: leads.id,
+        customerName: leads.customerName,
+        customerEmail: leads.customerEmail,
+        customerCompany: leads.customerCompany,
+        serviceInterest: leads.serviceInterest,
+        status: leads.status,
+        assignedTo: leads.assignedTo,
+        createdAt: leads.createdAt,
+        partnerId: leads.partnerId,
+        zohoLeadId: leads.zohoLeadId,
+        partnerCompanyName: partners.companyName,
+        partnerContactName: partners.contactName,
+      })
+      .from(leads)
+      .leftJoin(partners, eq(leads.partnerId, partners.id))
+      .where(whereClause)
+      .orderBy(leads.createdAt)
+      .limit(pageSize)
+      .offset(pageOffset),
+    db.select({ total: count() }).from(leads).where(whereClause),
+  ])
+  const total = countResult?.total ?? 0
 
   return (
     <div className="space-y-6">
@@ -126,6 +138,9 @@ export default async function LeadsPage({
                     Status
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                    CRM
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
                     Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 uppercase tracking-wider">
@@ -178,6 +193,20 @@ export default async function LeadsPage({
                         <StatusBadge status={lead.status} />
                       </td>
                       <td className="px-6 py-4">
+                        {lead.zohoLeadId ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-emerald-800/40 bg-emerald-950/60 text-emerald-400">
+                            In CRM
+                          </span>
+                        ) : (
+                          <Link
+                            href={`/leads/${lead.id}?pushCrm=1`}
+                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-amber-800/40 bg-amber-950/60 text-amber-400 hover:bg-amber-900/60 transition-colors"
+                          >
+                            Not synced
+                          </Link>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
                         <span className="text-zinc-500 text-sm">
                           {new Date(lead.createdAt).toLocaleDateString(
                             "en-AE",
@@ -214,6 +243,31 @@ export default async function LeadsPage({
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+        {total > pageSize && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-zinc-800">
+            <p className="text-zinc-500 text-sm">
+              Showing {pageOffset + 1}–{Math.min(pageOffset + pageSize, total)} of {total}
+            </p>
+            <div className="flex gap-2">
+              {pageNum > 1 && (
+                <Link
+                  href={`?${new URLSearchParams({ ...(status ? { status } : {}), page: String(pageNum - 1) })}`}
+                  className="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-600 transition-colors"
+                >
+                  Previous
+                </Link>
+              )}
+              {pageOffset + pageSize < total && (
+                <Link
+                  href={`?${new URLSearchParams({ ...(status ? { status } : {}), page: String(pageNum + 1) })}`}
+                  className="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-600 transition-colors"
+                >
+                  Next
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </div>

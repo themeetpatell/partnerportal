@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, commissions, partners } from "@repo/db"
-import { eq, sum } from "drizzle-orm"
+import { count, eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
 import { auth } from "@repo/auth/server"
 import { getActiveTeamMember } from "@/lib/admin-auth"
@@ -53,7 +53,7 @@ const tabs = [
 export default async function CommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; page?: string }>
 }) {
   const { userId } = await auth()
   const member = userId ? await getActiveTeamMember(userId) : null
@@ -61,10 +61,13 @@ export default async function CommissionsPage({
     ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
     : false
 
-  const { status } = await searchParams
+  const { status, page } = await searchParams
   const activeStatus = status ?? "pending"
+  const pageNum = Math.max(1, parseInt(page ?? "1", 10))
+  const pageSize = 50
+  const pageOffset = (pageNum - 1) * pageSize
 
-  const [rows, pendingSum, approvedSum, processingSum, paidSum] = await Promise.all([
+  const [rows, [countResult], pendingSum, approvedSum, processingSum, paidSum] = await Promise.all([
     db
       .select({
         id: commissions.id,
@@ -84,7 +87,10 @@ export default async function CommissionsPage({
       .from(commissions)
       .leftJoin(partners, eq(commissions.partnerId, partners.id))
       .where(eq(commissions.status, activeStatus))
-      .orderBy(commissions.calculatedAt),
+      .orderBy(commissions.calculatedAt)
+      .limit(pageSize)
+      .offset(pageOffset),
+    db.select({ total: count() }).from(commissions).where(eq(commissions.status, activeStatus)),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
@@ -102,6 +108,8 @@ export default async function CommissionsPage({
       .from(commissions)
       .where(eq(commissions.status, "paid")),
   ])
+
+  const total = countResult?.total ?? 0
 
   function fmt(val: string | null | undefined) {
     return Number(val ?? 0).toLocaleString("en-AE", {
@@ -341,6 +349,31 @@ export default async function CommissionsPage({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {total > pageSize && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-white/10">
+            <p className="text-slate-500 text-sm">
+              Showing {pageOffset + 1}–{Math.min(pageOffset + pageSize, total)} of {total}
+            </p>
+            <div className="flex gap-2">
+              {pageNum > 1 && (
+                <Link
+                  href={`?${new URLSearchParams({ status: activeStatus, page: String(pageNum - 1) })}`}
+                  className="px-3 py-1.5 rounded-md text-sm text-slate-400 hover:text-slate-200 border border-white/10 hover:border-white/20 transition-colors"
+                >
+                  Previous
+                </Link>
+              )}
+              {pageOffset + pageSize < total && (
+                <Link
+                  href={`?${new URLSearchParams({ status: activeStatus, page: String(pageNum + 1) })}`}
+                  className="px-3 py-1.5 rounded-md text-sm text-slate-400 hover:text-slate-200 border border-white/10 hover:border-white/20 transition-colors"
+                >
+                  Next
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </div>
