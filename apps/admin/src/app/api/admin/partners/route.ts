@@ -48,12 +48,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : ""
+
+  if (!normalizedEmail) {
+    return NextResponse.json({ error: "email is required" }, { status: 400 })
+  }
+
   // Duplicate email check — prevent two active partner records for the same email
   const [existingPartner] = await db
     .select({ id: partners.id })
     .from(partners)
     .where(and(
-      eq(partners.email, email),
+      eq(partners.email, normalizedEmail),
       eq(partners.tenantId, tenantId),
       isNull(partners.deletedAt)
     ))
@@ -76,7 +82,7 @@ export async function POST(req: NextRequest) {
       authUserId: placeholderAuthUserId,
       companyName,
       contactName,
-      email,
+      email: normalizedEmail,
       phone: phone || null,
       type,
       tier: tier || null,
