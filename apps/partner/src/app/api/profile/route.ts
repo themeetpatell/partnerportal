@@ -8,6 +8,7 @@ import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255).optional(),
+  contactName: z.string().min(1, "Contact name is required").max(255).optional(),
   phone: z.string().max(50).optional().nullable(),
   website: z.string().url("Invalid URL").max(500).optional().nullable().or(z.literal("")),
   linkedinId: z.string().max(255).optional().nullable(),
@@ -72,6 +73,7 @@ export async function PATCH(request: NextRequest) {
       .update(partners)
       .set({
         ...(data.companyName !== undefined && { companyName: data.companyName }),
+        ...(data.contactName !== undefined && { contactName: data.contactName }),
         ...(data.phone !== undefined && { phone: data.phone || null }),
         ...(data.website !== undefined && { website: data.website || null }),
         ...(data.linkedinId !== undefined && { linkedinId: data.linkedinId }),

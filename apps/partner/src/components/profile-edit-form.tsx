@@ -140,7 +140,7 @@ function TextareaField({
   placeholder?: string
 }) {
   return (
-    <div className="sm:col-span-2 lg:col-span-3">
+    <div className="sm:col-span-2">
       <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500 block mb-1.5">
         {label}
       </label>
@@ -269,9 +269,9 @@ export function ProfileEditForm({
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
+            <h2 className="text-base font-semibold text-white">{title}</h2>
             {description ? (
-              <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+              <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p>
             ) : null}
           </div>
           <div className="w-full sm:w-auto">
@@ -287,11 +287,8 @@ export function ProfileEditForm({
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
-          {description ? (
-            <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
-          ) : null}
-          <p className="mt-2 text-xs font-medium text-indigo-400">Editing — make changes below</p>
+          <h2 className="text-base font-semibold text-white">{title}</h2>
+          <p className="mt-1 text-xs font-medium text-indigo-400">Editing — make changes below</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <SectionEditButton editing onToggle={handleCancel} />
@@ -313,7 +310,7 @@ export function ProfileEditForm({
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {section === "contact" && (
           <>
             <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} />

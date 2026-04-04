@@ -163,9 +163,30 @@ export async function POST(req: NextRequest) {
     tenantId,
     serviceInterest
   )
+  const normalizedNotes = toNullableString(notes)
+
+  // Save locally first — Zoho sync is non-blocking
+  const [created] = await db
+    .insert(leads)
+    .values({
+      tenantId,
+      partnerId,
+      customerName,
+      customerEmail,
+      customerPhone: customerPhone || null,
+      customerCompany: customerCompany || null,
+      serviceInterest: JSON.stringify(serviceInterestNames),
+      notes: normalizedNotes,
+      status: "submitted",
+      source,
+      channel: source,
+      createdBy: userId,
+    })
+    .returning()
+
+  // Attempt Zoho sync — failure does not block the response
   const { firstName, lastName } = splitCustomerName(customerName)
   const zohoServices = normalizeZohoLeadServices(serviceInterestNames)
-  const normalizedNotes = toNullableString(notes)
   const zohoLeadId = await createZohoLead({
     First_Name: firstName,
     Last_Name: lastName,
@@ -185,31 +206,12 @@ export async function POST(req: NextRequest) {
     }),
   })
 
-  if (!zohoLeadId) {
-    return NextResponse.json(
-      { error: "Lead could not be created in Zoho CRM. Please try again." },
-      { status: 502 }
-    )
+  if (zohoLeadId) {
+    await db.update(leads).set({ zohoLeadId }).where(eq(leads.id, created!.id))
+    created!.zohoLeadId = zohoLeadId
+  } else {
+    console.warn("[admin/leads] Zoho sync failed for lead", created!.id)
   }
-
-  const [created] = await db
-    .insert(leads)
-    .values({
-      tenantId,
-      partnerId,
-      customerName,
-      customerEmail,
-      customerPhone: customerPhone || null,
-      customerCompany: customerCompany || null,
-      serviceInterest: JSON.stringify(serviceInterestNames),
-      notes: normalizedNotes,
-      status: "submitted",
-      source,
-      channel: source,
-      createdBy: userId,
-      zohoLeadId,
-    })
-    .returning()
 
   await logActivity({
     tenantId,

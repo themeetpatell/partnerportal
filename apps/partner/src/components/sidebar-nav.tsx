@@ -22,8 +22,8 @@ import { useAuthClient } from "@repo/auth/client"
 
 const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, createHref: undefined },
+  { label: "Clients", href: "/dashboard/clients", icon: ClipboardList, createHref: "/dashboard/clients/new" },
   { label: "Leads to Finanshels", href: "/dashboard/leads", icon: Users, createHref: "/dashboard/leads/new" },
-  { label: "Clients", href: "/dashboard/clients", icon: ClipboardList, createHref: undefined },
   { label: "Service Requests", href: "/dashboard/service-requests", icon: Wrench, createHref: "/dashboard/service-requests/new" },
   { label: "Commissions", href: "/dashboard/commissions", icon: DollarSign, createHref: undefined },
 ]

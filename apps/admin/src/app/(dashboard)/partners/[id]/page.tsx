@@ -29,6 +29,7 @@ import {
   RotateCcw,
   ExternalLink,
   CreditCard,
+  User,
 } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -235,7 +236,19 @@ export default async function PartnerDetailPage({
           Back to Partners
         </Link>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 text-white">
+              {partner.profileImageUrl ? (
+                <img
+                  src={partner.profileImageUrl}
+                  alt={partner.companyName}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <User className="h-6 w-6 text-slate-400" />
+              )}
+            </div>
+            <div>
             <h1 className="text-2xl font-bold text-white">
               {partner.companyName}
             </h1>
@@ -253,6 +266,7 @@ export default async function PartnerDetailPage({
                   tone={onboardingTone}
                 />
               )}
+            </div>
             </div>
           </div>
           <StatusBadge status={partner.status} />
@@ -427,11 +441,11 @@ export default async function PartnerDetailPage({
         <div className="lg:col-span-2 space-y-6">
           {/* Primary Information */}
           <div className="surface-card rounded-2xl p-6">
-            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-slate-400" />
-              Primary Information
-            </h2>
-            <AdminPartnerEditForm section="primary" partner={editablePartner}>
+            <AdminPartnerEditForm
+              section="primary"
+              partner={editablePartner}
+              title={<h2 className="text-white font-semibold flex items-center gap-2"><Building2 className="w-4 h-4 text-slate-400" />Primary Information</h2>}
+            >
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -480,6 +494,12 @@ export default async function PartnerDetailPage({
                   Designation
                 </dt>
                 <dd className="text-white text-sm">{partner.designation || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Registered Address
+                </dt>
+                <dd className="text-white text-sm">{partner.partnerAddress || "—"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -568,11 +588,11 @@ export default async function PartnerDetailPage({
 
           {/* Secondary Information */}
           <div className="surface-card rounded-2xl p-6">
-            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-slate-400" />
-              Secondary Information
-            </h2>
-            <AdminPartnerEditForm section="secondary" partner={editablePartner}>
+            <AdminPartnerEditForm
+              section="secondary"
+              partner={editablePartner}
+              title={<h2 className="text-white font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-slate-400" />Secondary Information</h2>}
+            >
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -684,11 +704,11 @@ export default async function PartnerDetailPage({
 
           {/* Financial Information */}
           <div className="surface-card rounded-2xl p-6">
-            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-slate-400" />
-              Financial Information
-            </h2>
-            <AdminPartnerEditForm section="financial" partner={editablePartner}>
+            <AdminPartnerEditForm
+              section="financial"
+              partner={editablePartner}
+              title={<h2 className="text-white font-semibold flex items-center gap-2"><CreditCard className="w-4 h-4 text-slate-400" />Financial Information</h2>}
+            >
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -713,12 +733,6 @@ export default async function PartnerDetailPage({
                   VAT Number
                 </dt>
                 <dd className="text-white text-sm">{partner.vatNumber || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Partner Address
-                </dt>
-                <dd className="text-white text-sm">{partner.partnerAddress || "—"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

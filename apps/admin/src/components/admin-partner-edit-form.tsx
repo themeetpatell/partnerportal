@@ -205,12 +205,14 @@ function SectionEditButton({
 
 interface AdminPartnerEditFormProps {
   section: "primary" | "secondary" | "financial"
+  title: React.ReactNode
   partner: PartnerData
   children: React.ReactNode
 }
 
 export function AdminPartnerEditForm({
   section,
+  title,
   partner,
   children,
 }: AdminPartnerEditFormProps) {
@@ -282,8 +284,9 @@ export function AdminPartnerEditForm({
 
   if (!isEditing) {
     return (
-      <div className="relative">
-        <div className="absolute top-0 right-0">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          {title}
           <SectionEditButton editing={false} onToggle={() => setIsEditing(true)} />
         </div>
         {children}
@@ -294,7 +297,10 @@ export function AdminPartnerEditForm({
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-indigo-400 font-medium">Editing — make changes below</p>
+        <div className="flex flex-col gap-0.5">
+          {title}
+          <p className="text-xs text-indigo-400 font-medium">Editing — make changes below</p>
+        </div>
         <div className="flex items-center gap-2">
           <SectionEditButton editing onToggle={handleCancel} />
           <button

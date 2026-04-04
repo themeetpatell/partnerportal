@@ -167,6 +167,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Save locally first — Zoho sync is non-blocking
+    const [newLead] = await db
+      .insert(leads)
+      .values({
+        tenantId: partner.tenantId,
+        partnerId: partner.id,
+        customerName,
+        customerEmail,
+        customerPhone: customerPhone || null,
+        customerCompany: customerCompany || null,
+        serviceInterest: JSON.stringify(serviceInterest),
+        notes: notes || null,
+        status: "submitted",
+        source: "partner_portal",
+        channel: "partner_portal",
+      })
+      .returning()
+
+    // Attempt Zoho sync — failure does not block the response
     const { firstName, lastName } = splitCustomerName(customerName)
     const zohoServices = normalizeZohoLeadServices(serviceInterest)
     const zohoLeadId = await createZohoLead({
@@ -186,33 +205,15 @@ export async function POST(request: NextRequest) {
       }),
     })
 
-    if (!zohoLeadId) {
-      return NextResponse.json(
-        {
-          error:
-            "Lead could not be created in Zoho CRM. Please try again or contact support.",
-        },
-        { status: 502 },
-      )
+    if (zohoLeadId) {
+      await db
+        .update(leads)
+        .set({ zohoLeadId })
+        .where(eq(leads.id, newLead.id))
+      newLead.zohoLeadId = zohoLeadId
+    } else {
+      console.warn("[POST /api/leads] Zoho sync failed for lead", newLead.id)
     }
-
-    const [newLead] = await db
-      .insert(leads)
-      .values({
-        tenantId: partner.tenantId,
-        partnerId: partner.id,
-        customerName,
-        customerEmail,
-        customerPhone: customerPhone || null,
-        customerCompany: customerCompany || null,
-        serviceInterest: JSON.stringify(serviceInterest),
-        notes: notes || null,
-        status: "submitted",
-        source: "partner_portal",
-        channel: "partner_portal",
-        zohoLeadId,
-      })
-      .returning()
 
     // Fire-and-forget confirmation email — never block the response
     sendLeadSubmittedEmail(

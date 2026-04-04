@@ -147,6 +147,7 @@ export default async function LeadsPage() {
                     <th className="px-6 py-4 font-medium">Customer</th>
                     <th className="px-6 py-4 font-medium">Services</th>
                     <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">CRM</th>
                     <th className="px-6 py-4 font-medium">Submitted</th>
                   </tr>
                 </thead>
@@ -197,6 +198,17 @@ export default async function LeadsPage() {
                             {formatLabel(lead.status)}
                           </span>
                         </td>
+                        <td className="px-6 py-4">
+                          {lead.zohoLeadId ? (
+                            <span className="status-pill border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                              In CRM
+                            </span>
+                          ) : (
+                            <span className="status-pill border border-amber-400/20 bg-amber-400/10 text-amber-300">
+                              Not synced
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 text-slate-400">
                           {formatDate(lead.createdAt)}
                         </td>
@@ -244,9 +256,20 @@ export default async function LeadsPage() {
                         ))}
                       </div>
                     ) : null}
-                    <p className="mt-3 text-xs text-slate-500">
-                      Submitted {formatDate(lead.createdAt)}
-                    </p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-xs text-slate-500">
+                        Submitted {formatDate(lead.createdAt)}
+                      </p>
+                      {lead.zohoLeadId ? (
+                        <span className="status-pill border border-emerald-400/20 bg-emerald-400/10 text-emerald-300">
+                          In CRM
+                        </span>
+                      ) : (
+                        <span className="status-pill border border-amber-400/20 bg-amber-400/10 text-amber-300">
+                          Not synced
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 )
               })}

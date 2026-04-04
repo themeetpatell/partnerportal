@@ -90,6 +90,9 @@ export const partners = pgTable("partners", {
   swiftBicCode: text("swift_bic_code"),
   paymentFrequency: text("payment_frequency"), // monthly | quarterly | on-request
 
+  // Profile
+  profileImageUrl: text("profile_image_url"),
+
   // CRM / system
   zohoContactId: text("zoho_contact_id"),
   rejectionReason: text("rejection_reason"),

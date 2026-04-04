@@ -25,6 +25,7 @@ import {
   User,
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
+import { AvatarUploadWrapper } from "@/components/avatar-upload-wrapper"
 import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 function LifecyclePill({
@@ -95,10 +96,10 @@ function SectionHeader({
   description?: string
 }) {
   return (
-    <div className="mb-6">
-      <h2 className="font-heading text-2xl font-semibold text-white">{title}</h2>
+    <div className="mb-5">
+      <h2 className="text-base font-semibold text-white">{title}</h2>
       {description && (
-        <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
       )}
     </div>
   )
@@ -307,9 +308,7 @@ export default async function ProfilePage({
         <div className="px-5 pb-5 sm:px-8 sm:pb-8">
           <div className="-mt-12 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-[1.65rem] border border-white/15 bg-gradient-to-br from-white/18 via-white/10 to-white/5 text-white shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
-                <User className="h-8 w-8 sm:h-10 sm:w-10" />
-              </div>
+              <AvatarUploadWrapper profileImageUrl={partnerRecord.profileImageUrl} />
               <div className="max-w-3xl">
                 <div className="flex flex-wrap items-center gap-2">
                   <LifecyclePill
@@ -350,10 +349,7 @@ export default async function ProfilePage({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_420px]">
         <div className="space-y-6">
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <SectionHeader
-              title="Partner Agreement"
-              description="Your partner agreement is signed during the onboarding process. Track approval and workspace access here."
-            />
+            <SectionHeader title="Partner Agreement" />
 
             <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
               <FieldRow
@@ -408,7 +404,6 @@ export default async function ProfilePage({
             <ProfileEditForm
               section="contact"
               title="Contact and Reach"
-              description="The main contact details and public-facing channels tied to your partner workspace."
               partner={editablePartnerData}
             >
               <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
@@ -475,7 +470,6 @@ export default async function ProfilePage({
             <ProfileEditForm
               section="financial"
               title="Financial Details"
-              description="These details drive agreement generation, payouts, and finance review."
               partner={editablePartnerData}
             >
               <div className="mb-4 grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
@@ -560,7 +554,6 @@ export default async function ProfilePage({
             <ProfileEditForm
               section="company"
               title="Company Info"
-              description="Your company profile, public presence, and the business details Finanshels works against."
               partner={editablePartnerData}
             >
               <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-1">
@@ -580,11 +573,6 @@ export default async function ProfilePage({
                   value={partnerRecord.businessSize}
                 />
                 <FieldRow
-                  icon={MapPin}
-                  label="Registered address"
-                  value={partnerRecord.partnerAddress}
-                />
-                <FieldRow
                   icon={Mail}
                   label="Email opt out"
                   value={partnerRecord.emailOptOut ? "Yes" : "No"}
@@ -602,10 +590,7 @@ export default async function ProfilePage({
           </section>
 
           <section className="surface-card rounded-[2rem] p-6">
-            <SectionHeader
-              title="Quick Snapshot"
-              description="The essentials at a glance."
-            />
+            <SectionHeader title="Quick Snapshot" />
             <div className="grid gap-x-8 md:grid-cols-2 xl:grid-cols-1">
               <FieldRow
                 icon={User}
@@ -622,10 +607,7 @@ export default async function ProfilePage({
 
           {partnerRecord.zohoContactId && (
             <section className="surface-card rounded-[2rem] p-6">
-              <SectionHeader
-                title="CRM Reference"
-                description="Internal CRM reference used by the platform."
-              />
+              <SectionHeader title="CRM Reference" />
               <FieldRow
                 icon={Hash}
                 label="CRM contact ID"
