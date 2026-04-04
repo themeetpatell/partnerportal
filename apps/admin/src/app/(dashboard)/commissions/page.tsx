@@ -2,6 +2,9 @@ import Link from "next/link"
 import { db, commissions, partners } from "@repo/db"
 import { eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
+import { auth } from "@repo/auth/server"
+import { getActiveTeamMember } from "@/lib/admin-auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { className: string; label: string }> = {
@@ -52,6 +55,12 @@ export default async function CommissionsPage({
 }: {
   searchParams: Promise<{ status?: string }>
 }) {
+  const { userId } = await auth()
+  const member = userId ? await getActiveTeamMember(userId) : null
+  const canManageCommissions = member
+    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
+    : false
+
   const { status } = await searchParams
   const activeStatus = status ?? "pending"
 
@@ -266,7 +275,7 @@ export default async function CommissionsPage({
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {commission.status === "pending" && (
+                        {canManageCommissions && commission.status === "pending" && (
                           <>
                             <form
                               action={`/api/commissions/${commission.id}/reject`}
@@ -292,7 +301,7 @@ export default async function CommissionsPage({
                             </form>
                           </>
                         )}
-                        {commission.status === "approved" && (
+                        {canManageCommissions && commission.status === "approved" && (
                           <form
                             action={`/api/commissions/${commission.id}/process`}
                             method="POST"
@@ -305,7 +314,7 @@ export default async function CommissionsPage({
                             </button>
                           </form>
                         )}
-                        {commission.status === "processing" && (
+                        {canManageCommissions && commission.status === "processing" && (
                           <form
                             action={`/api/commissions/${commission.id}/paid`}
                             method="POST"
