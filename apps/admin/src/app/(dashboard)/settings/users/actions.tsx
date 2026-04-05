@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { MoreHorizontal } from "lucide-react"
@@ -17,6 +18,17 @@ export function UserActionsMenu({
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+
+  useEffect(() => {
+    if (!open || !btnRef.current) return
+    const rect = btnRef.current.getBoundingClientRect()
+    setMenuPos({
+      top: rect.bottom + 4,
+      left: rect.right - 192, // 192 = w-48
+    })
+  }, [open])
 
   async function toggle() {
     setLoading(true)
@@ -80,50 +92,56 @@ export function UserActionsMenu({
   }
 
   return (
-    <div className="relative inline-block">
+    <>
       <button
+        ref={btnRef}
         onClick={() => setOpen((o) => !o)}
         disabled={loading}
         className="p-1.5 rounded-lg hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
-            <button
-              onClick={() => {
-                setOpen(false)
-                router.push(`/settings/users/${memberId}/edit`)
-              }}
-              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+      {open &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-50" onClick={() => setOpen(false)} />
+            <div
+              className="fixed z-50 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden"
+              style={{ top: menuPos.top, left: menuPos.left }}
             >
-              Edit permissions
-            </button>
-            <div className="h-px bg-zinc-700" />
-            <button
-              onClick={resetPassword}
-              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
-            >
-              Reset password
-            </button>
-            <button
-              onClick={resendInvite}
-              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
-            >
-              Resend invite
-            </button>
-            <div className="h-px bg-zinc-700" />
-            <button
-              onClick={toggle}
-              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
-            >
-              {isActive ? "Deactivate" : "Activate"}
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+              <button
+                onClick={() => {
+                  setOpen(false)
+                  router.push(`/settings/users/${memberId}/edit`)
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                Edit permissions
+              </button>
+              <div className="h-px bg-zinc-700" />
+              <button
+                onClick={resetPassword}
+                className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                Reset password
+              </button>
+              <button
+                onClick={resendInvite}
+                className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                Resend invite
+              </button>
+              <div className="h-px bg-zinc-700" />
+              <button
+                onClick={toggle}
+                className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+              >
+                {isActive ? "Deactivate" : "Activate"}
+              </button>
+            </div>
+          </>,
+          document.body,
+        )}
+    </>
   )
 }

@@ -170,7 +170,7 @@ export default async function LeadDetailPage({
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
-      .innerJoin(partners, eq(partners.id, leads.partnerId))
+      .leftJoin(partners, eq(partners.id, leads.partnerId))
       .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
       .limit(1),
     db

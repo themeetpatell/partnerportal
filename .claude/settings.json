@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -r \"SITE_URL\\\\|AUTH_CALLBACK\\\\|AUTH_CONFIRM\" /Users/themeetpatel/Startups/\"Partner Portal\"/.env*)"
+      "Bash(grep -r \"SITE_URL\\\\|AUTH_CALLBACK\\\\|AUTH_CONFIRM\" /Users/themeetpatel/Startups/\"Partner Portal\"/.env*)",
+      "Bash(vercel list:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel --prod)",
+      "Bash(vercel --prod --scope biggbizz --yes -A apps/admin/.vercel/project.json)",
+      "Bash(vercel deploy:*)",
+      "Bash(VERCEL_PROJECT_ID=prj_kRaZVLnRLbzYyaTsHrcHhRltdSHv VERCEL_ORG_ID=team_DATfVAKScDj2eGtkEsINsQur vercel --prod --yes)",
+      "Bash(vercel --prod --yes)"
     ]
   }
 }

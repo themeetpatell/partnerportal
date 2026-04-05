@@ -53,11 +53,32 @@ export function PartnerSignUpForm({
         },
       })
       if (signUpError) throw signUpError
+
+      // Auto-confirm email so user can sign in immediately
+      await fetch("/api/auth/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      }).catch(() => {})
+
       if (data.session) {
         window.location.assign(buildAuthContinueHref())
         return
       }
-      setSuccess("Account created. Verify your email, then sign in to complete your partner onboarding.")
+
+      // Sign in automatically now that email is confirmed
+      const { error: signInError } = await client.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+
+      if (!signInError) {
+        window.location.assign(buildAuthContinueHref())
+        return
+      }
+
+      // Fallback: show success and let them sign in manually
+      setSuccess("Account created. Sign in to complete your partner onboarding.")
       setLoading(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create your account right now.")

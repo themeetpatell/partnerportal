@@ -94,22 +94,26 @@ export async function POST(req: NextRequest) {
   const resolvedPermissions =
     permissions ?? getDefaultPermissionsForRole(normalizedRole) ?? {}
 
-  // Create Supabase auth account and get invite link
+  // Create Supabase auth account (no Supabase email — we use SendGrid)
   const supabaseAdmin = getSupabaseAdminClient()
   const adminPortalUrl =
     process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || "http://localhost:3001"
 
-  const { data: inviteData, error: inviteError } =
-    await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: name },
-      redirectTo: `${adminPortalUrl}/sign-in`,
+  let authUserId: string
+
+  // Try to create a new auth user
+  const { data: createData, error: createError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { full_name: name },
     })
 
-  if (inviteError) {
-    // If user already exists in Supabase, use their existing ID
+  if (createError) {
+    // If user already exists in Supabase, find and link them
     if (
-      inviteError.message?.includes("already been registered") ||
-      inviteError.message?.includes("already exists")
+      createError.message?.includes("already been registered") ||
+      createError.message?.includes("already exists")
     ) {
       const { data: existingUsers } =
         await supabaseAdmin.auth.admin.listUsers()
@@ -124,66 +128,17 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      // Generate a password recovery link so they can set a new password
-      const { data: linkData } =
-        await supabaseAdmin.auth.admin.generateLink({
-          type: "recovery",
-          email,
-          options: { redirectTo: `${adminPortalUrl}/sign-in` },
-        })
-
-      const [created] = await db
-        .insert(teamMembers)
-        .values({
-          tenantId,
-          authUserId: existingUser.id,
-          name,
-          email,
-          phone: phone || null,
-          designation: designation || null,
-          role: normalizedRole,
-          rowScope,
-          permissions: JSON.stringify(resolvedPermissions),
-          isActive: true,
-        })
-        .returning()
-
-      const roleMeta = getTeamRoleMeta(normalizedRole)
-      if (linkData?.properties?.action_link) {
-        await sendTeamMemberInviteEmail(
-          email,
-          name,
-          roleMeta.label,
-          linkData.properties.action_link
-        )
-      }
-
-      await logActivity({
-        tenantId,
-        entityType: "team_member",
-        entityId: created!.id,
-        actorId: userId,
-        actorName,
-        action: "created",
-        note: `User ${name} (${role}) created by ${actorName} — existing auth account linked`,
-        metadata: {
-          designation: designation || null,
-          phone: phone || null,
-          identitySource: "supabase_existing",
-        },
-      })
-
-      return NextResponse.json(created, { status: 201 })
+      authUserId = existingUser.id
+    } else {
+      console.error("[POST /api/admin/users] Supabase create error:", createError)
+      return NextResponse.json(
+        { error: `Failed to create auth account: ${createError.message}` },
+        { status: 500 }
+      )
     }
-
-    console.error("[POST /api/admin/users] Supabase invite error:", inviteError)
-    return NextResponse.json(
-      { error: `Failed to create auth account: ${inviteError.message}` },
-      { status: 500 }
-    )
+  } else {
+    authUserId = createData.user.id
   }
-
-  const authUserId = inviteData.user.id
 
   const [created] = await db
     .insert(teamMembers)
@@ -201,10 +156,10 @@ export async function POST(req: NextRequest) {
     })
     .returning()
 
-  // Send branded welcome email with the invite link
+  // Generate a recovery link so user can set their password, send via SendGrid
   const roleMeta = getTeamRoleMeta(normalizedRole)
   const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
-    type: "invite",
+    type: "recovery",
     email,
     options: { redirectTo: `${adminPortalUrl}/sign-in` },
   })

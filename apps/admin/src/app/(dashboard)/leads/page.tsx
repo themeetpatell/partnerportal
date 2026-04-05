@@ -178,11 +178,13 @@ export default async function LeadsPage({
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-zinc-300 text-sm">
-                          {lead.partnerCompanyName ?? "—"}
+                          {lead.partnerCompanyName || lead.partnerContactName || "—"}
                         </p>
-                        <p className="text-zinc-500 text-xs">
-                          {lead.partnerContactName ?? ""}
-                        </p>
+                        {lead.partnerCompanyName && lead.partnerContactName ? (
+                          <p className="text-zinc-500 text-xs">
+                            {lead.partnerContactName}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-zinc-400 text-sm truncate max-w-[160px]">
