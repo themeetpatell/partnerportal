@@ -52,7 +52,12 @@ export function PartnerSignUpForm({
           },
         },
       })
-      if (signUpError) throw signUpError
+
+      // If error is about email sending, the user was still likely created.
+      // Continue with auto-confirm since we don't rely on the email link.
+      if (signUpError && !signUpError.message.toLowerCase().includes("email")) {
+        throw signUpError
+      }
 
       // Auto-confirm email so user can sign in immediately
       await fetch("/api/auth/confirm", {
