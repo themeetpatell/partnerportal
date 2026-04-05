@@ -496,7 +496,9 @@ async function getZohoAccessToken(): Promise<string> {
   return cachedToken.token
 }
 
-export async function createZohoLead(lead: ZohoLead): Promise<string | null> {
+export async function createZohoLead(
+  lead: ZohoLead
+): Promise<{ id: string } | { error: string }> {
   try {
     const token = await getZohoAccessToken()
 
@@ -512,14 +514,35 @@ export async function createZohoLead(lead: ZohoLead): Promise<string | null> {
     if (!res.ok) {
       const text = await res.text()
       console.error("[zoho/crm] createZohoLead failed", { status: res.status, body: text })
-      return null
+      return { error: `Zoho API returned ${res.status}: ${text}` }
     }
 
-    const data = (await res.json()) as { data: Array<{ details: { id: string } }> }
-    return data.data?.[0]?.details?.id ?? null
+    const data = (await res.json()) as {
+      data: Array<{
+        code?: string
+        message?: string
+        status?: string
+        details: { id: string }
+      }>
+    }
+
+    const record = data.data?.[0]
+    if (record?.status === "error" || (record?.code && record.code !== "SUCCESS")) {
+      const msg = record?.message || record?.code || "Unknown error"
+      console.error("[zoho/crm] createZohoLead rejected", { code: record?.code, message: msg })
+      return { error: msg }
+    }
+
+    const id = record?.details?.id
+    if (!id) {
+      console.error("[zoho/crm] createZohoLead no ID in response", { data })
+      return { error: "Zoho returned success but no lead ID" }
+    }
+
+    return { id }
   } catch (error) {
     console.error("[zoho/crm] createZohoLead error", { error: String(error) })
-    return null
+    return { error: String(error) }
   }
 }
 

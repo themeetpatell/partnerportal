@@ -5,46 +5,7 @@ import { db } from "@repo/db"
 import { leads, partners } from "@repo/db"
 import { and, eq, isNull, or } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
-import { createZohoLead, normalizeZohoLeadServices } from "@repo/zoho"
 import { sendLeadSubmittedEmail } from "@repo/notifications"
-
-function splitCustomerName(fullName: string) {
-  const trimmed = fullName.trim()
-  if (!trimmed) {
-    return { firstName: undefined, lastName: "Unknown" }
-  }
-
-  const parts = trimmed.split(/\s+/)
-  if (parts.length === 1) {
-    return { firstName: undefined, lastName: parts[0]! }
-  }
-
-  return {
-    firstName: parts.slice(0, -1).join(" "),
-    lastName: parts.at(-1)!,
-  }
-}
-
-function buildZohoLeadDescription(params: {
-  partnerName: string
-  partnerCompany: string
-  serviceInterest: string[]
-  notes: string
-}) {
-  const lines = [
-    `Submitted via partner portal by ${params.partnerName} (${params.partnerCompany}).`,
-  ]
-
-  if (params.serviceInterest.length > 0) {
-    lines.push(`Services interested: ${params.serviceInterest.join(", ")}`)
-  }
-
-  if (params.notes.trim()) {
-    lines.push(`Notes: ${params.notes.trim()}`)
-  }
-
-  return lines.join("\n")
-}
 
 const createLeadSchema = z
   .object({
@@ -167,7 +128,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Save locally first — Zoho sync is non-blocking
+    // Save locally — CRM push happens when admin approves the lead
     const [newLead] = await db
       .insert(leads)
       .values({
@@ -184,36 +145,6 @@ export async function POST(request: NextRequest) {
         channel: "partner_portal",
       })
       .returning()
-
-    // Attempt Zoho sync — failure does not block the response
-    const { firstName, lastName } = splitCustomerName(customerName)
-    const zohoServices = normalizeZohoLeadServices(serviceInterest)
-    const zohoLeadId = await createZohoLead({
-      First_Name: firstName,
-      Last_Name: lastName,
-      Email: customerEmail,
-      Phone: customerPhone || undefined,
-      Company: customerCompany || customerName,
-      Lead_Source: "Partner Portal",
-      Lead_Status: "New (Incoming)",
-      Services_List: zohoServices.length > 0 ? zohoServices : undefined,
-      Description: buildZohoLeadDescription({
-        partnerName: partner.contactName,
-        partnerCompany: partner.companyName,
-        serviceInterest,
-        notes,
-      }),
-    })
-
-    if (zohoLeadId) {
-      await db
-        .update(leads)
-        .set({ zohoLeadId })
-        .where(eq(leads.id, newLead.id))
-      newLead.zohoLeadId = zohoLeadId
-    } else {
-      console.warn("[POST /api/leads] Zoho sync failed for lead", newLead.id)
-    }
 
     // Fire-and-forget confirmation email — never block the response
     sendLeadSubmittedEmail(

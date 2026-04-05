@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
   // Attempt Zoho sync — failure does not block the response
   const { firstName, lastName } = splitCustomerName(customerName)
   const zohoServices = normalizeZohoLeadServices(serviceInterestNames)
-  const zohoLeadId = await createZohoLead({
+  const crmResult = await createZohoLead({
     First_Name: firstName,
     Last_Name: lastName,
     Email: customerEmail,
@@ -206,11 +206,11 @@ export async function POST(req: NextRequest) {
     }),
   })
 
-  if (zohoLeadId) {
-    await db.update(leads).set({ zohoLeadId }).where(eq(leads.id, created!.id))
-    created!.zohoLeadId = zohoLeadId
+  if ("id" in crmResult) {
+    await db.update(leads).set({ zohoLeadId: crmResult.id }).where(eq(leads.id, created!.id))
+    created!.zohoLeadId = crmResult.id
   } else {
-    console.warn("[admin/leads] Zoho sync failed for lead", created!.id)
+    console.warn("[admin/leads] Zoho sync failed for lead", created!.id, crmResult.error)
   }
 
   await logActivity({

@@ -13,6 +13,7 @@ import {
   ExternalLink,
   RefreshCw,
   Upload,
+  CheckCircle,
   User,
   Tag,
 } from "lucide-react"
@@ -116,19 +117,27 @@ function PushToCrmForm({
   leadId,
   canSync,
   zohoLeadId,
+  isPartnerSubmitted,
 }: {
   leadId: string
   canSync: boolean
   zohoLeadId: string | null
+  isPartnerSubmitted: boolean
 }) {
   if (zohoLeadId) {
     return (
       <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-800/40 bg-emerald-950/60 px-4 py-2 text-sm font-medium text-emerald-400">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        In CRM
+        {isPartnerSubmitted ? "Approved" : "In CRM"}
       </span>
     )
   }
+
+  const label = isPartnerSubmitted ? "Approve" : "Push to CRM"
+  const Icon = isPartnerSubmitted ? CheckCircle : Upload
+  const disabledTitle = isPartnerSubmitted
+    ? "Only Admin, Partnership Manager, and SDR roles can approve leads."
+    : "Only Admin, Partnership Manager, and SDR roles can push to CRM."
 
   return (
     <form action={`/api/leads/${leadId}/push-to-crm?redirectTo=/leads/${leadId}`} method="POST">
@@ -136,15 +145,17 @@ function PushToCrmForm({
         type="submit"
         disabled={!canSync}
         aria-disabled={!canSync}
-        title={!canSync ? "Only Admin, Partnership Manager, and SDR roles can push to CRM." : undefined}
+        title={!canSync ? disabledTitle : undefined}
         className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
           canSync
-            ? "border border-amber-800/40 bg-amber-950/60 text-amber-300 hover:bg-amber-900/60"
+            ? isPartnerSubmitted
+              ? "border border-emerald-800/40 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60"
+              : "border border-amber-800/40 bg-amber-950/60 text-amber-300 hover:bg-amber-900/60"
             : "cursor-not-allowed bg-slate-700/70 text-slate-400"
         }`}
       >
-        <Upload className="h-4 w-4" />
-        Push to CRM
+        <Icon className="h-4 w-4" />
+        {label}
       </button>
     </form>
   )
@@ -222,19 +233,22 @@ export default async function LeadDetailPage({
 
   // CRM sync actions require lead management permissions
   const canSyncFromCrm = canManageLeads
+  const isPartnerSubmitted = lead.source === "partner_portal"
   const pushCrmBanner =
     query.pushCrm === "ok"
-      ? { tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100", text: "Lead successfully pushed to Zoho CRM." }
+      ? { tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100", text: isPartnerSubmitted ? "Lead approved and pushed to Zoho CRM." : "Lead successfully pushed to Zoho CRM." }
       : query.pushCrm === "already_synced"
         ? { tone: "border-sky-400/16 bg-sky-500/8 text-sky-100", text: "This lead is already in Zoho CRM." }
         : query.pushCrm === "error"
           ? {
               tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
-              text: query.reason === "crm_rejected"
-                ? "Zoho CRM rejected the push. Check CRM credentials and try again."
-                : query.reason === "forbidden"
-                  ? "Your role does not have permission to push leads to CRM."
-                  : "Failed to push lead to CRM.",
+              text: query.reason?.startsWith("crm_rejected:")
+                ? `Zoho CRM rejected the push: ${query.reason.slice("crm_rejected:".length)}`
+                : query.reason === "crm_rejected"
+                  ? "Zoho CRM rejected the push. Check CRM credentials and try again."
+                  : query.reason === "forbidden"
+                    ? "Your role does not have permission to push leads to CRM."
+                    : "Failed to push lead to CRM.",
             }
           : null
 
@@ -294,7 +308,7 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <PushToCrmForm leadId={lead.id} canSync={canSyncFromCrm} zohoLeadId={lead.zohoLeadId} />
+        <PushToCrmForm leadId={lead.id} canSync={canSyncFromCrm} zohoLeadId={lead.zohoLeadId} isPartnerSubmitted={lead.source === "partner_portal"} />
         <ZohoSyncForm leadId={lead.id} canSync={canSyncFromCrm && Boolean(lead.zohoLeadId)} />
         <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
           Status syncs from Zoho CRM.
@@ -680,7 +694,7 @@ export default async function LeadDetailPage({
                   <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                     Company
                   </p>
-                  <p className="text-white text-sm">{partner.companyName}</p>
+                  <p className="text-white text-sm">{partner.companyName || "—"}</p>
                 </div>
                 <div>
                   <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

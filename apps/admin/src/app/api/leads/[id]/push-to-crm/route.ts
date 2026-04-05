@@ -61,7 +61,7 @@ export async function POST(
   const zohoServices = normalizeZohoLeadServices(serviceInterest)
   const { firstName, lastName } = splitCustomerName(row.lead.customerName)
 
-  const zohoLeadId = await createZohoLead({
+  const result = await createZohoLead({
     First_Name: firstName,
     Last_Name: lastName,
     Email: row.lead.customerEmail,
@@ -77,12 +77,12 @@ export async function POST(
     ].filter(Boolean).join("\n"),
   })
 
-  if (!zohoLeadId) {
-    console.error("[push-to-crm] Zoho rejected lead", id)
-    return reply(502, "error", "crm_rejected")
+  if ("error" in result) {
+    console.error("[push-to-crm] Zoho rejected lead", id, result.error)
+    return reply(502, "error", `crm_rejected:${result.error}`)
   }
 
-  await db.update(leads).set({ zohoLeadId, updatedAt: new Date() }).where(eq(leads.id, id))
+  await db.update(leads).set({ zohoLeadId: result.id, updatedAt: new Date() }).where(eq(leads.id, id))
 
   return reply(200, "ok")
 }
