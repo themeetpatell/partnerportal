@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
+import { getSupabaseAdminClient } from "@repo/auth/admin"
 import { db, teamMembers, logActivity } from "@repo/db"
 import { and, eq } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
@@ -9,9 +10,11 @@ import {
   TEAM_ROLE_OPTIONS,
   USER_MANAGEMENT_ROLES,
   getDefaultPermissionsForRole,
+  getTeamRoleMeta,
   hasAnyTeamRole,
   normalizeTeamRole,
 } from "@/lib/rbac"
+import { sendTeamMemberInviteEmail } from "@repo/notifications"
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
@@ -90,13 +93,103 @@ export async function POST(req: NextRequest) {
   // Use provided permissions or default to role matrix
   const resolvedPermissions =
     permissions ?? getDefaultPermissionsForRole(normalizedRole) ?? {}
-  const placeholderAuthUserId = `manual_${crypto.randomUUID()}`
+
+  // Create Supabase auth account and get invite link
+  const supabaseAdmin = getSupabaseAdminClient()
+  const adminPortalUrl =
+    process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || "http://localhost:3001"
+
+  const { data: inviteData, error: inviteError } =
+    await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+      data: { full_name: name },
+      redirectTo: `${adminPortalUrl}/sign-in`,
+    })
+
+  if (inviteError) {
+    // If user already exists in Supabase, use their existing ID
+    if (
+      inviteError.message?.includes("already been registered") ||
+      inviteError.message?.includes("already exists")
+    ) {
+      const { data: existingUsers } =
+        await supabaseAdmin.auth.admin.listUsers()
+      const existingUser = existingUsers?.users?.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase()
+      )
+
+      if (!existingUser) {
+        return NextResponse.json(
+          { error: "User exists in auth but could not be found." },
+          { status: 500 }
+        )
+      }
+
+      // Generate a password recovery link so they can set a new password
+      const { data: linkData } =
+        await supabaseAdmin.auth.admin.generateLink({
+          type: "recovery",
+          email,
+          options: { redirectTo: `${adminPortalUrl}/sign-in` },
+        })
+
+      const [created] = await db
+        .insert(teamMembers)
+        .values({
+          tenantId,
+          authUserId: existingUser.id,
+          name,
+          email,
+          phone: phone || null,
+          designation: designation || null,
+          role: normalizedRole,
+          rowScope,
+          permissions: JSON.stringify(resolvedPermissions),
+          isActive: true,
+        })
+        .returning()
+
+      const roleMeta = getTeamRoleMeta(normalizedRole)
+      if (linkData?.properties?.action_link) {
+        await sendTeamMemberInviteEmail(
+          email,
+          name,
+          roleMeta.label,
+          linkData.properties.action_link
+        )
+      }
+
+      await logActivity({
+        tenantId,
+        entityType: "team_member",
+        entityId: created!.id,
+        actorId: userId,
+        actorName,
+        action: "created",
+        note: `User ${name} (${role}) created by ${actorName} — existing auth account linked`,
+        metadata: {
+          designation: designation || null,
+          phone: phone || null,
+          identitySource: "supabase_existing",
+        },
+      })
+
+      return NextResponse.json(created, { status: 201 })
+    }
+
+    console.error("[POST /api/admin/users] Supabase invite error:", inviteError)
+    return NextResponse.json(
+      { error: `Failed to create auth account: ${inviteError.message}` },
+      { status: 500 }
+    )
+  }
+
+  const authUserId = inviteData.user.id
 
   const [created] = await db
     .insert(teamMembers)
     .values({
       tenantId,
-      authUserId: placeholderAuthUserId,
+      authUserId,
       name,
       email,
       phone: phone || null,
@@ -107,6 +200,23 @@ export async function POST(req: NextRequest) {
       isActive: true,
     })
     .returning()
+
+  // Send branded welcome email with the invite link
+  const roleMeta = getTeamRoleMeta(normalizedRole)
+  const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { redirectTo: `${adminPortalUrl}/sign-in` },
+  })
+
+  if (linkData?.properties?.action_link) {
+    await sendTeamMemberInviteEmail(
+      email,
+      name,
+      roleMeta.label,
+      linkData.properties.action_link
+    )
+  }
 
   await logActivity({
     tenantId,
@@ -119,7 +229,7 @@ export async function POST(req: NextRequest) {
     metadata: {
       designation: designation || null,
       phone: phone || null,
-      identitySource: "manual",
+      identitySource: "supabase",
     },
   })
 

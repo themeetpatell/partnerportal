@@ -8,6 +8,7 @@ import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 export function PartnerSignInForm() {
   const searchParams = useSearchParams()
+  const authError = searchParams.get("auth_error")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -54,7 +55,7 @@ export function PartnerSignInForm() {
         required
       />
 
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {(authError || error) && <ErrorBanner>{error || authError}</ErrorBanner>}
 
       <SubmitButton loading={loading} label="Sign in" />
     </form>

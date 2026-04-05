@@ -44,7 +44,7 @@ async function ensureDefaultTenantExists(tenantId: string) {
 }
 
 const registerSchema = z.object({
-  companyName: z.string().min(1, "Company name is required").max(255),
+  companyName: z.string().max(255).optional().default(""),
   contactName: z.string().min(1, "Contact name is required").max(255),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional().default(""),
@@ -61,6 +61,13 @@ const registerSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ["signatureDataUrl"],
       message: "Drawn signature is required.",
+    })
+  }
+  if (data.type === "channel" && !data.companyName?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["companyName"],
+      message: "Company name is required for channel partners.",
     })
   }
 })

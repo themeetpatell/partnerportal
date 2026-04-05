@@ -16,6 +16,20 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl, 307)
   }
 
+  // Handle Supabase auth error redirects (e.g. expired email verification links).
+  // Supabase redirects to the Site URL root with error query params on failure.
+  const authErrorCode = req.nextUrl.searchParams.get("error_code")
+  if (authErrorCode && req.nextUrl.pathname === "/") {
+    const signInUrl = new URL("/sign-in", req.url)
+    if (authErrorCode === "otp_expired") {
+      signInUrl.searchParams.set("auth_error", "Your verification link has expired. Please sign in or request a new one.")
+    } else {
+      const desc = req.nextUrl.searchParams.get("error_description")?.replace(/\+/g, " ")
+      signInUrl.searchParams.set("auth_error", desc || "Authentication failed. Please try again.")
+    }
+    return NextResponse.redirect(signInUrl)
+  }
+
   const { response, user } = await updateSession(req)
   const pathname = req.nextUrl.pathname
 

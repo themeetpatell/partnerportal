@@ -47,10 +47,9 @@ const INITIAL_FORM: FormData = {
 }
 
 const STEPS = [
-  { number: 1, label: "Model" },
-  { number: 2, label: "Company" },
-  { number: 3, label: "Agreement" },
-  { number: 4, label: "Done" },
+  { number: 1, label: "Details" },
+  { number: 2, label: "Agreement" },
+  { number: 3, label: "Done" },
 ]
 
 const PARTNER_MODELS = {
@@ -117,13 +116,19 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
   )
 }
 
-function Step1TypeSelection({
-  selected,
-  onSelect,
+function Step1ModelAndDetails({
+  formData,
+  onChange,
+  lockedContact,
+  lockedEmail,
 }: {
-  selected: PartnerType | null
-  onSelect: (type: PartnerType) => void
+  formData: FormData
+  onChange: (field: keyof FormData, value: string) => void
+  lockedContact: string
+  lockedEmail: string
 }) {
+  const isChannel = formData.type === "channel"
+
   return (
     <div>
       <h2 className="section-title">Choose your partner model</h2>
@@ -137,9 +142,9 @@ function Step1TypeSelection({
             <button
               key={type}
               type="button"
-              onClick={() => onSelect(type)}
+              onClick={() => onChange("type", type)}
               className={`rounded-[1.75rem] border p-6 text-left transition-all ${
-                selected === type
+                formData.type === type
                   ? "border-indigo-400/35 bg-indigo-500/10 shadow-[0_20px_50px_rgba(99,102,241,0.16)]"
                   : "border-white/8 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.05]"
               }`}
@@ -148,7 +153,7 @@ function Step1TypeSelection({
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
                   <config.icon className="h-5 w-5" />
                 </div>
-                {selected === type ? (
+                {formData.type === type ? (
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-400 text-[#0f1027]">
                     <Check className="h-4 w-4" />
                   </div>
@@ -192,100 +197,98 @@ function Step1TypeSelection({
           ),
         )}
       </div>
-    </div>
-  )
-}
 
-function Step2CompanyDetails({
-  formData,
-  onChange,
-  lockedContact,
-  lockedEmail,
-}: {
-  formData: FormData
-  onChange: (field: keyof FormData, value: string) => void
-  lockedContact: string
-  lockedEmail: string
-}) {
-  return (
-    <div>
-      <h2 className="section-title">Add your company details</h2>
-      <p className="page-subtitle mt-2">
-        We use this to create your partner record and route the right onboarding experience.
-      </p>
+      {/* Details section — shown once a type is selected */}
+      {formData.type ? (
+        <div className="mt-10">
+          <h2 className="section-title">
+            {isChannel ? "Add your company details" : "Add your details"}
+          </h2>
+          <p className="page-subtitle mt-2">
+            We use this to create your partner record and route the right onboarding experience.
+          </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
-        {/* Company Name */}
-        <div>
-          <label className="field-label">
-            Company name <span className="ml-1 text-rose-300">*</span>
-          </label>
-          <div className="relative">
-            <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              value={formData.companyName}
-              onChange={(e) => onChange("companyName", e.target.value)}
-              placeholder="Acme Consulting LLC"
-              required
-              className="field-input pl-11"
-            />
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {/* Company Name */}
+            <div>
+              <label className="field-label">
+                Company name{" "}
+                {isChannel ? (
+                  <span className="ml-1 text-rose-300">*</span>
+                ) : (
+                  <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                    optional
+                  </span>
+                )}
+              </label>
+              <div className="relative">
+                <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={formData.companyName}
+                  onChange={(e) => onChange("companyName", e.target.value)}
+                  placeholder="Acme Consulting LLC"
+                  required={isChannel}
+                  className="field-input pl-11"
+                />
+              </div>
+            </div>
+
+            {/* Primary Contact — locked to signed-in user */}
+            <div>
+              <label className="field-label">
+                Primary contact
+                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                  from your account
+                </span>
+              </label>
+              <div className="relative">
+                <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={lockedContact}
+                  readOnly
+                  className="field-input pl-11 cursor-not-allowed opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Business Email — locked to signed-in user */}
+            <div className="sm:col-span-2">
+              <label className="field-label">
+                Business email
+                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                  from your account
+                </span>
+              </label>
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="email"
+                  value={lockedEmail}
+                  readOnly
+                  className="field-input pl-11 cursor-not-allowed opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Phone */}
+            <div className="sm:col-span-2">
+              <label className="field-label">Phone number</label>
+              <div className="relative">
+                <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => onChange("phone", e.target.value)}
+                  placeholder="+971 50 123 4567"
+                  className="field-input pl-11"
+                />
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* Primary Contact — locked to signed-in user */}
-        <div>
-          <label className="field-label">
-            Primary contact
-            <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
-              from your account
-            </span>
-          </label>
-          <div className="relative">
-            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              value={lockedContact}
-              readOnly
-              className="field-input pl-11 cursor-not-allowed opacity-60"
-            />
-          </div>
-        </div>
-
-        {/* Business Email — locked to signed-in user */}
-        <div className="sm:col-span-2">
-          <label className="field-label">
-            Business email
-            <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
-              from your account
-            </span>
-          </label>
-          <div className="relative">
-            <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="email"
-              value={lockedEmail}
-              readOnly
-              className="field-input pl-11 cursor-not-allowed opacity-60"
-            />
-          </div>
-        </div>
-
-        {/* Phone */}
-        <div className="sm:col-span-2">
-          <label className="field-label">Phone number</label>
-          <div className="relative">
-            <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => onChange("phone", e.target.value)}
-              placeholder="+971 50 123 4567"
-              className="field-input pl-11"
-            />
-          </div>
-        </div>
-      </div>
+      ) : null}
     </div>
   )
 }
@@ -535,10 +538,12 @@ function Step3Terms({
                 </p>
                 <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
                   <p><span className="text-slate-500">Partner type:</span> {partnerLabel}</p>
-                  <p><span className="text-slate-500">Company:</span> {formData.companyName || "Your company name"}</p>
+                  {formData.companyName ? (
+                    <p><span className="text-slate-500">Company:</span> {formData.companyName}</p>
+                  ) : null}
                   <p><span className="text-slate-500">Authorized signatory:</span> {contactName || "Your full name"}</p>
                   <p><span className="text-slate-500">Email:</span> {contactEmail || "your@email.com"}</p>
-                  <p><span className="text-slate-500">Phone:</span> {formData.phone || "Add in company step"}</p>
+                  <p><span className="text-slate-500">Phone:</span> {formData.phone || "Not provided"}</p>
                 </div>
               </div>
             </div>
@@ -730,7 +735,7 @@ function Step3Terms({
                 <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-300">
                   <p>{contactName || "Authorized signatory"}</p>
                   <p>Authorized Signatory</p>
-                  <p>{formData.companyName || "Your company"}</p>
+                  {formData.companyName ? <p>{formData.companyName}</p> : null}
                 </div>
               </div>
             </div>
@@ -748,10 +753,10 @@ function Step3Terms({
         }`}
       >
         <div
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border ${
+          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
             formData.agreedToTerms
               ? "border-indigo-400 bg-indigo-400 text-[#0f1027]"
-              : "border-white/15 bg-transparent text-transparent"
+              : "border-slate-400 bg-transparent text-transparent"
           }`}
         >
           <Check className="h-3 w-3" />
@@ -784,7 +789,7 @@ function Step4Success({
       </h2>
 
       <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
-        Your {typeLabel} partner application for {companyName} is now in review.
+        Your {typeLabel} partner application{companyName ? ` for ${companyName}` : ""} is now in review.
         Your agreement acknowledgement and signature were captured during onboarding, so the
         remaining step is admin approval before the revenue workspace unlocks.
       </p>
@@ -828,8 +833,6 @@ export default function OnboardingPage() {
         type: user.partnerType,
       }
     })
-
-    setStep((current) => (current === 1 ? 2 : current))
   }, [user?.partnerType])
 
   useEffect(() => {
@@ -855,17 +858,18 @@ export default function OnboardingPage() {
   }
 
   function validateStep(): string | null {
-    if (step === 1 && !formData.type) return "Please select a partnership type."
-    if (step === 2) {
-      if (!formData.companyName.trim()) return "Company name is required."
+    if (step === 1) {
+      if (!formData.type) return "Please select a partnership type."
+      if (formData.type === "channel" && !formData.companyName.trim())
+        return "Company name is required for channel partners."
     }
-    if (step === 3 && !formData.agreedToTerms) {
+    if (step === 2 && !formData.agreedToTerms) {
       return "You must confirm the agreement review to continue."
     }
-    if (step === 3 && formData.signatureMode === "typed" && !formData.typedSignature.trim()) {
+    if (step === 2 && formData.signatureMode === "typed" && !formData.typedSignature.trim()) {
       return "Please type your signature to continue."
     }
-    if (step === 3 && formData.signatureMode === "draw" && !formData.signatureDataUrl) {
+    if (step === 2 && formData.signatureMode === "draw" && !formData.signatureDataUrl) {
       return "Please draw your signature to continue."
     }
 
@@ -879,7 +883,7 @@ export default function OnboardingPage() {
       return
     }
 
-    if (step === 3) {
+    if (step === 2) {
       setLoading(true)
       setError(null)
 
@@ -906,7 +910,7 @@ export default function OnboardingPage() {
           throw new Error(data.error || "Failed to submit application.")
         }
 
-        setStep(4)
+        setStep(3)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.")
       } finally {
@@ -924,7 +928,7 @@ export default function OnboardingPage() {
     setStep((current) => current - 1)
   }
 
-  const isLastStep = step === 3
+  const isLastStep = step === 2
   const selectedModel = formData.type ? PARTNER_MODELS[formData.type] : null
 
   if (!isLoaded) {
@@ -974,7 +978,7 @@ export default function OnboardingPage() {
                 What happens next
               </p>
               <div className="mt-3 space-y-2.5 text-sm leading-6 text-slate-300">
-                <p>1. Submit your company details and sign the partner agreement here.</p>
+                <p>1. Choose your partner model, fill in your details, and sign the agreement.</p>
                 <p>2. Finanshels reviews the application and verifies the onboarding details.</p>
                 <p>3. Once approved, the workspace unlocks immediately.</p>
               </div>
@@ -1017,14 +1021,7 @@ export default function OnboardingPage() {
             <StepIndicator currentStep={step} />
 
             {step === 1 ? (
-              <Step1TypeSelection
-                selected={formData.type}
-                onSelect={(type) => handleChange("type", type)}
-              />
-            ) : null}
-
-            {step === 2 ? (
-              <Step2CompanyDetails
+              <Step1ModelAndDetails
                 formData={formData}
                 onChange={handleChange}
                 lockedContact={lockedContact}
@@ -1032,7 +1029,7 @@ export default function OnboardingPage() {
               />
             ) : null}
 
-            {step === 3 ? (
+            {step === 2 ? (
               <Step3Terms
                 formData={formData}
                 onToggle={() => handleChange("agreedToTerms", !formData.agreedToTerms)}
@@ -1043,7 +1040,7 @@ export default function OnboardingPage() {
               />
             ) : null}
 
-            {step === 4 ? (
+            {step === 3 ? (
               <Step4Success
                 partnerType={formData.type}
                 companyName={formData.companyName}
@@ -1056,7 +1053,7 @@ export default function OnboardingPage() {
               </div>
             ) : null}
 
-            {step < 4 ? (
+            {step < 3 ? (
               <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <button
                   type="button"

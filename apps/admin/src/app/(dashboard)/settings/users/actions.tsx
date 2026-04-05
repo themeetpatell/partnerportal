@@ -8,9 +8,11 @@ import { MoreHorizontal } from "lucide-react"
 export function UserActionsMenu({
   memberId,
   isActive,
+  email,
 }: {
   memberId: string
   isActive: boolean
+  email: string
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -35,6 +37,48 @@ export function UserActionsMenu({
     }
   }
 
+  async function resetPassword() {
+    setLoading(true)
+    setOpen(false)
+    try {
+      const res = await fetch("/api/admin/users/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? "Failed to send reset email")
+      }
+      toast.success(`Password reset email sent to ${email}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function resendInvite() {
+    setLoading(true)
+    setOpen(false)
+    try {
+      const res = await fetch("/api/admin/users/resend-invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? "Failed to resend invite")
+      }
+      toast.success(`Invite email resent to ${email}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="relative inline-block">
       <button
@@ -47,7 +91,7 @@ export function UserActionsMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-20 w-44 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
+          <div className="absolute right-0 top-8 z-20 w-48 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden">
             <button
               onClick={() => {
                 setOpen(false)
@@ -56,6 +100,19 @@ export function UserActionsMenu({
               className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
             >
               Edit permissions
+            </button>
+            <div className="h-px bg-zinc-700" />
+            <button
+              onClick={resetPassword}
+              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+            >
+              Reset password
+            </button>
+            <button
+              onClick={resendInvite}
+              className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+            >
+              Resend invite
             </button>
             <div className="h-px bg-zinc-700" />
             <button

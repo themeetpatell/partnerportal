@@ -51,7 +51,7 @@ export default async function UsersPage() {
       </div>
 
       {/* Members table */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-visible">
         <div className="px-6 py-4 border-b border-zinc-800 flex items-center gap-2">
           <Users className="w-4 h-4 text-zinc-500" />
           <h2 className="text-zinc-100 font-semibold text-sm">Team Members ({members.length})</h2>
@@ -112,7 +112,7 @@ export default async function UsersPage() {
                         })}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <UserActionsMenu memberId={m.id} isActive={m.isActive} />
+                        <UserActionsMenu memberId={m.id} isActive={m.isActive} email={m.email} />
                       </td>
                     </tr>
                   )

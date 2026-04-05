@@ -217,7 +217,7 @@ export default async function PartnerDetailPage({
         : "indigo"
   const onboardingSnapshotRows = [
     { label: "Partner type", value: partner.type?.replace("_", " ") },
-    { label: "Company name", value: partner.companyName },
+    { label: "Company name", value: partner.companyName || "—" },
     { label: "Primary contact", value: partner.contactName },
     { label: "Business email", value: partner.email },
     { label: "Phone number", value: partner.phone },
@@ -241,7 +241,7 @@ export default async function PartnerDetailPage({
               {partner.profileImageUrl ? (
                 <img
                   src={partner.profileImageUrl}
-                  alt={partner.companyName}
+                  alt={partner.companyName || partner.contactName}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -250,7 +250,7 @@ export default async function PartnerDetailPage({
             </div>
             <div>
             <h1 className="text-2xl font-bold text-white">
-              {partner.companyName}
+              {partner.companyName || partner.contactName}
             </h1>
             <p className="text-slate-400 text-sm mt-1">
               Partner ID: {partner.id}
@@ -451,7 +451,7 @@ export default async function PartnerDetailPage({
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Company Name
                 </dt>
-                <dd className="text-white text-sm">{partner.companyName}</dd>
+                <dd className="text-white text-sm">{partner.companyName || "—"}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
