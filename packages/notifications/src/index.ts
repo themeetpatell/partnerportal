@@ -2,6 +2,7 @@ import sgMail from "@sendgrid/mail"
 
 const apiKey = process.env.SENDGRID_API_KEY?.trim()
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL?.trim() || "noreply@finanshels.com"
+const FROM_NAME = process.env.SENDGRID_FROM_NAME?.trim() || "Finanshels"
 
 let hasWarnedAboutMissingConfig = false
 
@@ -33,12 +34,24 @@ async function sendEmail(message: {
     return
   }
 
-  await sgMail.send({
-    to: message.to,
-    from: FROM_EMAIL,
-    subject: message.subject,
-    html: message.html,
-  })
+  try {
+    await sgMail.send({
+      to: message.to,
+      from: { email: FROM_EMAIL, name: FROM_NAME },
+      subject: message.subject,
+      html: message.html,
+    })
+  } catch (err: unknown) {
+    const sgError = err as { response?: { body?: unknown }; message?: string }
+    console.error("[notifications] SendGrid send failed:", {
+      to: message.to,
+      subject: message.subject,
+      statusCode: (sgError.response as { statusCode?: number })?.statusCode,
+      body: sgError.response?.body,
+      message: sgError.message,
+    })
+    throw err
+  }
 }
 
 function getPartnerPortalUrl() {
@@ -1089,6 +1102,72 @@ export async function sendTeamMemberPasswordResetEmail(
     console.error("[notifications] sendTeamMemberPasswordResetEmail failed", {
       to,
       memberName,
+      error: String(error),
+    })
+  }
+}
+
+// ─── Partner auth emails ────────────────────────────────────────────────────
+
+export async function sendPartnerWelcomeEmail(
+  to: string,
+  partnerName: string
+): Promise<void> {
+  try {
+    const safePartnerName = escapeHtml(partnerName)
+    const signInUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
+
+    await sendEmail({
+      to,
+      subject: "Welcome to the Finanshels Partner Portal",
+      html: buildPartnerEmailShell({
+        eyebrow: "Welcome",
+        title: `Welcome aboard, ${safePartnerName}.`,
+        body: `
+          <p>Your Finanshels Partner Portal account has been created successfully.</p>
+          <p>Sign in to complete your onboarding and start submitting leads.</p>
+        `,
+        ctaLabel: "Sign in to get started",
+        ctaHref: signInUrl,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendPartnerWelcomeEmail failed", {
+      to,
+      partnerName,
+      error: String(error),
+    })
+  }
+}
+
+export async function sendPartnerPasswordResetEmail(
+  to: string,
+  partnerName: string,
+  resetUrl: string
+): Promise<void> {
+  try {
+    const safeName = escapeHtml(partnerName)
+    const safeResetUrl = escapeHtml(resetUrl)
+
+    await sendEmail({
+      to,
+      subject: "Reset your Finanshels Partner Portal password",
+      html: buildPartnerEmailShell({
+        eyebrow: "Password reset",
+        title: "Reset your password.",
+        body: `
+          <p>Hi ${safeName},</p>
+          <p>We received a request to reset your password. Click the button below to choose a new one.</p>
+          <p style="margin-top:12px;font-size:13px;color:#94a3b8;">This link will expire shortly. If you didn't request this, you can safely ignore this email.</p>
+        `,
+        ctaLabel: "Reset password",
+        ctaHref: safeResetUrl,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendPartnerPasswordResetEmail failed", {
+      to,
+      partnerName,
       error: String(error),
     })
   }

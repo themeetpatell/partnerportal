@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { rateLimit, getClientIp } from "@repo/auth"
+import { sendPartnerWelcomeEmail } from "@repo/notifications"
 
 function getSupabaseAdmin() {
   return createClient(
@@ -38,6 +39,16 @@ export async function POST(request: NextRequest) {
   await admin.auth.admin.updateUserById(user.id, {
     email_confirm: true,
   })
+
+  // Send welcome email via SendGrid (fire-and-forget)
+  const fullName =
+    [user.user_metadata?.first_name, user.user_metadata?.last_name]
+      .filter(Boolean)
+      .join(" ") || "Partner"
+
+  sendPartnerWelcomeEmail(email, fullName).catch((err) =>
+    console.error("[POST /api/auth/confirm] Welcome email failed:", err)
+  )
 
   return NextResponse.json({ ok: true })
 }

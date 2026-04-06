@@ -194,6 +194,15 @@ export default function SignInPage() {
 
           <PartnerSignInForm />
 
+          <div className="mt-4 text-right">
+            <Link
+              href="/forgot-password"
+              className="text-[13px] text-zinc-500 hover:text-indigo-400 transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           <div
             className="mt-8 space-y-3 pt-8 text-center"
             style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}

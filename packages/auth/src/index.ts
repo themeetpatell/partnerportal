@@ -11,6 +11,8 @@ export const PUBLIC_PARTNER_ROUTES = [
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/register(.*)",
+  "/forgot-password(.*)",
+  "/reset-password(.*)",
 ]
 
 export const PUBLIC_ADMIN_ROUTES = [

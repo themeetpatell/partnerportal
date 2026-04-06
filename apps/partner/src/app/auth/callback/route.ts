@@ -25,8 +25,16 @@ export async function GET(request: Request) {
       },
     )
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // If this is a password recovery session, redirect to reset-password page
+      if (data.session?.user?.recovery_sent_at) {
+        const recoveryTs = new Date(data.session.user.recovery_sent_at).getTime()
+        const fiveMinutesAgo = Date.now() - 5 * 60 * 1000
+        if (recoveryTs > fiveMinutesAgo) {
+          return NextResponse.redirect(new URL("/reset-password", origin))
+        }
+      }
       return NextResponse.redirect(new URL("/auth/continue", origin))
     }
   }
