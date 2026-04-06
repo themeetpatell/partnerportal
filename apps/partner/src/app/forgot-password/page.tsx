@@ -63,8 +63,8 @@ export default function ForgotPasswordPage() {
             <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
             <p className="text-sm font-medium text-white mb-1">Check your inbox</p>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              If an account exists for <strong className="text-zinc-300">{email}</strong>, we've sent
-              a password reset link. Check your spam folder if you don't see it.
+              If an account exists for <strong className="text-zinc-300">{email}</strong>, we&apos;ve sent
+              a password reset link. Check your spam folder if you don&apos;t see it.
             </p>
             <Link
               href="/sign-in"
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
               Reset your password
             </h2>
             <p className="text-zinc-500 text-sm mb-8">
-              Enter your email and we'll send you a link to reset your password.
+              Enter your email and we&apos;ll send you a link to reset your password.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
