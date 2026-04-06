@@ -102,12 +102,9 @@ function extractPicklistValues(value: unknown): string[] {
 
 export async function fetchZohoLeadServiceOptions(): Promise<string[]> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/settings/fields?module=Leads`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/settings/fields?module=Leads`, {
       method: "GET",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -451,12 +448,85 @@ export function getZohoDealServiceType(deal: ZohoDeal | null | undefined) {
 
 // Cache token in memory to avoid unnecessary refreshes
 let cachedToken: { token: string; expiresAt: number } | null = null
+let tokenRefreshPromise: Promise<string> | null = null
 
-async function getZohoAccessToken(): Promise<string> {
+const INVALID_ZOHO_TOKEN_CODES = new Set([
+  "INVALID_TOKEN",
+  "INVALID_OAUTHTOKEN",
+  "AUTHENTICATION_FAILURE",
+])
+
+function getZohoErrorCodeFromBody(bodyText: string): string | null {
+  if (!bodyText) {
+    return null
+  }
+
+  try {
+    const parsed = JSON.parse(bodyText) as {
+      code?: unknown
+      data?: Array<{ code?: unknown }>
+    }
+
+    if (typeof parsed.code === "string") {
+      return parsed.code
+    }
+
+    const nestedCode = parsed.data?.[0]?.code
+    return typeof nestedCode === "string" ? nestedCode : null
+  } catch {
+    return null
+  }
+}
+
+async function shouldRetryWithFreshToken(response: Response): Promise<boolean> {
+  if (response.status !== 401 && response.status !== 400) {
+    return false
+  }
+
+  try {
+    const bodyText = await response.clone().text()
+    const code = getZohoErrorCodeFromBody(bodyText)
+    return !!(code && INVALID_ZOHO_TOKEN_CODES.has(code))
+  } catch {
+    return false
+  }
+}
+
+async function zohoFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const makeRequest = async (token: string) => {
+    const headers = new Headers(init.headers)
+    headers.set("Authorization", `Zoho-oauthtoken ${token}`)
+
+    return fetch(url, {
+      ...init,
+      headers,
+    })
+  }
+
+  const token = await getZohoAccessToken()
+  let response = await makeRequest(token)
+
+  if (await shouldRetryWithFreshToken(response)) {
+    const refreshedToken = await getZohoAccessToken(true)
+    response = await makeRequest(refreshedToken)
+  }
+
+  return response
+}
+
+async function getZohoAccessToken(forceRefresh = false): Promise<string> {
   const now = Date.now()
 
-  if (cachedToken && cachedToken.expiresAt > now + 60_000) {
+  if (!forceRefresh && cachedToken && cachedToken.expiresAt > now + 60_000) {
     return cachedToken.token
+  }
+
+  if (forceRefresh) {
+    cachedToken = null
+  }
+
+  if (tokenRefreshPromise) {
+    return tokenRefreshPromise
   }
 
   const clientId = process.env.ZOHO_CLIENT_ID
@@ -469,43 +539,60 @@ async function getZohoAccessToken(): Promise<string> {
     )
   }
 
-  const params = new URLSearchParams({
-    grant_type: "refresh_token",
-    client_id: clientId,
-    client_secret: clientSecret,
-    refresh_token: refreshToken,
-  })
+  tokenRefreshPromise = (async () => {
+    const params = new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+    })
 
-  const res = await fetch(
-    `${ZOHO_ACCOUNTS_BASE_URL}/oauth/v2/token?${params.toString()}`,
-    { method: "POST" }
-  )
+    const res = await fetch(
+      `${ZOHO_ACCOUNTS_BASE_URL}/oauth/v2/token?${params.toString()}`,
+      { method: "POST" }
+    )
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`[zoho/crm] Token refresh failed: ${res.status} ${text}`)
+    if (!res.ok) {
+      const text = await res.text()
+      throw new Error(`[zoho/crm] Token refresh failed: ${res.status} ${text}`)
+    }
+
+    const data = (await res.json()) as {
+      access_token?: string
+      expires_in?: number
+    }
+
+    if (!data.access_token) {
+      throw new Error("[zoho/crm] Token refresh response missing access_token")
+    }
+
+    const expiresInSeconds =
+      typeof data.expires_in === "number" && data.expires_in > 0
+        ? data.expires_in
+        : 3600
+
+    cachedToken = {
+      token: data.access_token,
+      expiresAt: Date.now() + expiresInSeconds * 1000,
+    }
+
+    return cachedToken.token
+  })()
+
+  try {
+    return await tokenRefreshPromise
+  } finally {
+    tokenRefreshPromise = null
   }
-
-  const data = (await res.json()) as { access_token: string; expires_in: number }
-
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: now + data.expires_in * 1000,
-  }
-
-  return cachedToken.token
 }
 
 export async function createZohoLead(
   lead: ZohoLead
 ): Promise<{ id: string } | { error: string }> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Leads`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Leads`, {
       method: "POST",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ data: [lead] }),
@@ -548,12 +635,9 @@ export async function createZohoLead(
 
 export async function fetchZohoLead(leadId: string): Promise<ZohoLead | null> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Leads/${leadId}`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Leads/${leadId}`, {
       method: "GET",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -581,12 +665,9 @@ export async function updateZohoLead(
   updates: Partial<ZohoLead>
 ): Promise<boolean> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Leads/${leadId}`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Leads/${leadId}`, {
       method: "PUT",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ data: [updates] }),
@@ -611,12 +692,9 @@ export async function updateZohoLead(
 
 export async function createZohoDeal(deal: ZohoDeal): Promise<string | null> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Deals`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Deals`, {
       method: "POST",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ data: [deal] }),
@@ -649,7 +727,6 @@ export async function convertZohoLeadToDeal(params: {
   stage?: string
 }): Promise<string | null> {
   try {
-    const token = await getZohoAccessToken()
     const payload = {
       overwrite: false,
       notify_lead_owner: false,
@@ -663,10 +740,9 @@ export async function convertZohoLeadToDeal(params: {
       },
     }
 
-    const res = await fetch(`${ZOHO_BASE_URL}/Leads/${params.leadId}/actions/convert`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Leads/${params.leadId}/actions/convert`, {
       method: "POST",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -715,12 +791,9 @@ export async function convertZohoLeadToDeal(params: {
 
 export async function fetchZohoDeal(dealId: string): Promise<ZohoDeal | null> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Deals/${dealId}`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Deals/${dealId}`, {
       method: "GET",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
     })
@@ -754,12 +827,9 @@ export async function updateZohoDealStage(
   stage: string
 ): Promise<boolean> {
   try {
-    const token = await getZohoAccessToken()
-
-    const res = await fetch(`${ZOHO_BASE_URL}/Deals/${dealId}`, {
+    const res = await zohoFetch(`${ZOHO_BASE_URL}/Deals/${dealId}`, {
       method: "PUT",
       headers: {
-        Authorization: `Zoho-oauthtoken ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ data: [{ Stage: stage }] }),
