@@ -35,12 +35,14 @@ export function useAuthUser() {
     let active = true
 
     async function load() {
-      const { data } = await client.auth.getUser()
+      // Use getSession() (reads cookie locally) instead of getUser() (network call).
+      // onAuthStateChange below handles token refresh and keeps the session current.
+      const { data: { session } } = await client.auth.getSession()
       if (!active) {
         return
       }
 
-      setUser(mapSupabaseUser(data.user))
+      setUser(mapSupabaseUser(session?.user ?? null))
       setIsLoaded(true)
     }
 

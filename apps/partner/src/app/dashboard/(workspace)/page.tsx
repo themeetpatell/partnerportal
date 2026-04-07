@@ -8,7 +8,7 @@ import {
   serviceRequests,
   services,
 } from "@repo/db"
-import { and, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
+import { and, count, desc, eq, isNull, notInArray, sql, sum } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowRight, CircleDollarSign, ClipboardList, Plus, Users, Wallet } from "lucide-react"
 import { buildClientRecords } from "@/lib/client-records"
@@ -76,8 +76,10 @@ export default async function DashboardPage() {
 
       if (partner) {
         partnerRecord = partner
-        const [savedClientRows, leadRows, requestRows, paidResult, pendingResult] =
+        const pid = partner.id
+        const [savedClientRows, leadRows, requestRows, paidResult, pendingResult, clientCountResult, activeRequestCountResult, unlinkedLeadCountResult] =
           await Promise.all([
+            // Recent 5 saved clients (for display)
             db
               .select({
                 id: partnerClients.id,
@@ -96,56 +98,66 @@ export default async function DashboardPage() {
                 updatedAt: partnerClients.updatedAt,
               })
               .from(partnerClients)
-              .where(
-                and(
-                  eq(partnerClients.partnerId, partner.id),
-                  isNull(partnerClients.deletedAt)
-                )
-              )
-              .orderBy(desc(partnerClients.createdAt)),
-          db
-            .select({
-              customerName: leads.customerName,
-              customerEmail: leads.customerEmail,
-              customerCompany: leads.customerCompany,
-              status: leads.status,
-              createdAt: leads.createdAt,
-            })
-            .from(leads)
-            .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
-            .orderBy(desc(leads.createdAt)),
-          db
-            .select({
-              id: serviceRequests.id,
-              customerCompany: serviceRequests.customerCompany,
-              customerContact: serviceRequests.customerContact,
-              customerEmail: serviceRequests.customerEmail,
-              serviceName: services.name,
-              status: serviceRequests.status,
-              createdAt: serviceRequests.createdAt,
-            })
-            .from(serviceRequests)
-            .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-            .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
-            .orderBy(desc(serviceRequests.createdAt)),
-          db
-            .select({ total: sum(commissions.amount) })
-            .from(commissions)
-            .where(and(eq(commissions.partnerId, partner.id), eq(commissions.status, "paid"))),
-          db
-            .select({ total: sum(commissions.amount) })
-            .from(commissions)
-            .where(
-              and(
-                eq(commissions.partnerId, partner.id),
-                notInArray(commissions.status, ["paid", "disputed"]),
-              ),
-            ),
+              .where(and(eq(partnerClients.partnerId, pid), isNull(partnerClients.deletedAt)))
+              .orderBy(desc(partnerClients.createdAt))
+              .limit(10),
+            // Recent leads (for activity-only client detection)
+            db
+              .select({
+                customerName: leads.customerName,
+                customerEmail: leads.customerEmail,
+                customerCompany: leads.customerCompany,
+                status: leads.status,
+                createdAt: leads.createdAt,
+              })
+              .from(leads)
+              .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt)))
+              .orderBy(desc(leads.createdAt))
+              .limit(10),
+            // Recent 5 service requests (for display)
+            db
+              .select({
+                id: serviceRequests.id,
+                customerCompany: serviceRequests.customerCompany,
+                customerContact: serviceRequests.customerContact,
+                customerEmail: serviceRequests.customerEmail,
+                serviceName: services.name,
+                status: serviceRequests.status,
+                createdAt: serviceRequests.createdAt,
+              })
+              .from(serviceRequests)
+              .innerJoin(services, eq(serviceRequests.serviceId, services.id))
+              .where(and(eq(serviceRequests.partnerId, pid), isNull(serviceRequests.deletedAt)))
+              .orderBy(desc(serviceRequests.createdAt))
+              .limit(10),
+            // Aggregates — cheap COUNT/SUM queries
+            db
+              .select({ total: sum(commissions.amount) })
+              .from(commissions)
+              .where(and(eq(commissions.partnerId, pid), eq(commissions.status, "paid"))),
+            db
+              .select({ total: sum(commissions.amount) })
+              .from(commissions)
+              .where(and(eq(commissions.partnerId, pid), notInArray(commissions.status, ["paid", "disputed"]))),
+            db
+              .select({ value: count() })
+              .from(partnerClients)
+              .where(and(eq(partnerClients.partnerId, pid), isNull(partnerClients.deletedAt))),
+            db
+              .select({ value: count() })
+              .from(serviceRequests)
+              .where(and(
+                eq(serviceRequests.partnerId, pid),
+                isNull(serviceRequests.deletedAt),
+                notInArray(serviceRequests.status, ["completed", "cancelled"]),
+              )),
+            db
+              .select({ value: count() })
+              .from(leads)
+              .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt))),
           ])
 
-        activeRequests = requestRows.filter(
-          (request) => !["completed", "cancelled"].includes(request.status),
-        ).length
+        activeRequests = Number(activeRequestCountResult[0]?.value ?? 0)
         totalEarned = Number(paidResult[0]?.total ?? 0)
         pendingPayout = Number(pendingResult[0]?.total ?? 0)
         const clientRecords = buildClientRecords(
@@ -156,10 +168,10 @@ export default async function DashboardPage() {
 
         recentRequests = requestRows.slice(0, 5)
         recentClients = clientRecords.slice(0, 5)
-        totalClients = clientRecords.filter((client) => client.source === "saved").length
-        unlinkedClientActivity = clientRecords.filter(
-          (client) => client.source === "activity_only"
-        ).length
+        totalClients = Number(clientCountResult[0]?.value ?? 0)
+        // Approximate: total leads minus saved clients gives activity-only count
+        const totalLeads = Number(unlinkedLeadCountResult[0]?.value ?? 0)
+        unlinkedClientActivity = Math.max(0, totalLeads - totalClients)
       }
     }
   } catch (error) {

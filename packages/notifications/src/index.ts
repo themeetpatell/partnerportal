@@ -1,13 +1,19 @@
 import sgMail from "@sendgrid/mail"
 
-const apiKey = process.env.SENDGRID_API_KEY?.trim()
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL?.trim() || "noreply@finanshels.com"
-const FROM_NAME = process.env.SENDGRID_FROM_NAME?.trim() || "Finanshels"
+// Lazy-init: read env vars at first send, not at module load.
+// Module-level capture fails on Vercel when the module is evaluated at build
+// time or before runtime env vars are injected.
+let sgReady = false
 
-let hasWarnedAboutMissingConfig = false
+function ensureSendGrid(): boolean {
+  if (sgReady) return true
 
-if (apiKey) {
-  sgMail.setApiKey(apiKey)
+  const key = process.env.SENDGRID_API_KEY?.trim()
+  if (!key) return false
+
+  sgMail.setApiKey(key)
+  sgReady = true
+  return true
 }
 
 function escapeHtml(value: string): string {
@@ -24,20 +30,22 @@ async function sendEmail(message: {
   subject: string
   html: string
 }): Promise<void> {
-  if (!apiKey) {
-    if (!hasWarnedAboutMissingConfig) {
-      hasWarnedAboutMissingConfig = true
-      console.warn(
-        "[notifications] SENDGRID_API_KEY is missing. Email sending is disabled until it is configured."
-      )
-    }
+  if (!ensureSendGrid()) {
+    // Log every skipped email so the issue is visible in runtime logs
+    console.error(
+      "[notifications] SENDGRID_API_KEY is not set. Skipping email:",
+      { to: message.to, subject: message.subject }
+    )
     return
   }
+
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL?.trim() || "noreply@finanshels.com"
+  const fromName = process.env.SENDGRID_FROM_NAME?.trim() || "Finanshels"
 
   try {
     await sgMail.send({
       to: message.to,
-      from: { email: FROM_EMAIL, name: FROM_NAME },
+      from: { email: fromEmail, name: fromName },
       subject: message.subject,
       html: message.html,
     })

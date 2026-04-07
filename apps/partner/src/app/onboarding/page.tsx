@@ -640,7 +640,7 @@ function Step3Terms({
                         alt="Muhammed Shafeeq signature"
                         width={320}
                         height={120}
-                        className="h-auto w-full max-w-[260px] object-contain"
+                        className="h-auto w-full max-w-[260px] rounded-lg bg-white/95 object-contain p-2"
                       />
                     </div>
                     <div className="mx-auto w-full max-w-[150px]">

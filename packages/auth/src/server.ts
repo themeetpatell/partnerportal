@@ -33,11 +33,14 @@ export const currentUser = cache(async function currentUser() {
     return null
   }
 
+  // Use getSession() instead of getUser() to avoid a network round-trip.
+  // Middleware already validates the token via getUser() on every request,
+  // so the session cookie is guaranteed fresh by the time we reach here.
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  return mapSupabaseUser(user)
+  return mapSupabaseUser(session?.user ?? null)
 })
 
 export async function auth() {

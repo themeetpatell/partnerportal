@@ -1,7 +1,7 @@
-import { currentUser } from "@repo/auth/server"
+import { auth } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import {
-  getPartnerRecordForAuthenticatedUser,
+  getPartnerRecordByAuthUserId,
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
@@ -10,22 +10,19 @@ export default async function PartnerWorkspaceLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await currentUser()
+  const { userId } = await auth()
 
-  if (!user) {
+  if (!userId) {
     redirect("/sign-in")
   }
 
-  const partner = await getPartnerRecordForAuthenticatedUser({
-    userId: user.id,
-    email: user.email,
-  })
+  // Use the lightweight auth-only check here.
+  // The parent dashboard layout already fetched and validated the full
+  // partner record (including the email-based fallback + linking).
+  // We only need to confirm workspace access hasn't been revoked.
+  const partner = await getPartnerRecordByAuthUserId(userId)
 
-  if (!partner) {
-    redirect("/onboarding")
-  }
-
-  if (!hasApprovedWorkspaceAccess(partner)) {
+  if (!partner || !hasApprovedWorkspaceAccess(partner)) {
     redirect("/dashboard/profile")
   }
 

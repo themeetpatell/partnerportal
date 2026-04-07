@@ -1,9 +1,13 @@
 import { Suspense } from "react"
-import { auth, currentUser } from "@repo/auth/server"
+import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
 import { getActiveTeamMember } from "@/lib/admin-auth"
+
+// Dashboard pages use cookies + DB — must be dynamic.
+// Placed here (not root layout) so auth pages like sign-in can still be static.
+export const dynamic = "force-dynamic"
 
 function formatRoleLabel(role: string | null | undefined) {
   if (!role) {
@@ -21,13 +25,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [{ userId }, user] = await Promise.all([auth(), currentUser()])
+  const user = await currentUser()
 
-  if (!userId || !user) {
+  if (!user?.id) {
     redirect("/sign-in")
   }
 
-  const teamMember = await getActiveTeamMember(userId)
+  const userId = user.id
+  const teamMember = await getActiveTeamMember(userId, user.email)
 
   if (!teamMember) {
     redirect("/sign-in")

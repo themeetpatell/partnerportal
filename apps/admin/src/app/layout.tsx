@@ -9,8 +9,6 @@ const inter = Inter({
   display: "swap",
 })
 
-export const dynamic = "force-dynamic"
-
 export const metadata: Metadata = {
   title: {
     default: "Finanshels Admin",

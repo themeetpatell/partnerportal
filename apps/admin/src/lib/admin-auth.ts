@@ -2,7 +2,7 @@ import { currentUser } from "@repo/auth/server"
 import { db, teamMembers } from "@repo/db"
 import { and, eq, ilike } from "drizzle-orm"
 
-export async function getActiveTeamMember(userId: string) {
+export async function getActiveTeamMember(userId: string, email?: string | null) {
   const [member] = await db
     .select()
     .from(teamMembers)
@@ -13,17 +13,19 @@ export async function getActiveTeamMember(userId: string) {
     return member
   }
 
-  const user = await currentUser()
-  const email = user?.email?.trim().toLowerCase()
+  // Email fallback: try to link an existing team member by email.
+  // Accept email as a parameter to avoid a redundant currentUser() call
+  // when the caller already has the user object.
+  const normalizedEmail = email?.trim().toLowerCase()
 
-  if (!email) {
+  if (!normalizedEmail) {
     return null
   }
 
   const [memberByEmail] = await db
     .select()
     .from(teamMembers)
-    .where(and(ilike(teamMembers.email, email), eq(teamMembers.isActive, true)))
+    .where(and(ilike(teamMembers.email, normalizedEmail), eq(teamMembers.isActive, true)))
     .limit(1)
 
   if (!memberByEmail) {
