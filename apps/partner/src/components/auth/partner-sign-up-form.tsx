@@ -53,18 +53,30 @@ export function PartnerSignUpForm({
         },
       })
 
-      // If error is about email sending, the user was still likely created.
-      // Continue with auto-confirm since we don't rely on the email link.
-      if (signUpError && !signUpError.message.toLowerCase().includes("email")) {
-        throw signUpError
+      // If signUp returned an error unrelated to email sending, throw it.
+      // Email-related errors are expected when Supabase SMTP isn't configured
+      // — the user is still created, we just need to confirm manually.
+      if (signUpError) {
+        const msg = signUpError.message.toLowerCase()
+        const isEmailError = msg.includes("email") || msg.includes("smtp") || msg.includes("mail")
+        if (!isEmailError) {
+          throw signUpError
+        }
+        console.warn("[sign-up] Supabase email error (expected):", signUpError.message)
       }
 
-      // Auto-confirm email so user can sign in immediately
-      await fetch("/api/auth/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
-      }).catch(() => {})
+      // Auto-confirm email and send welcome via SendGrid
+      try {
+        const confirmRes = await fetch("/api/auth/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: email.trim() }),
+        })
+        const confirmData = await confirmRes.json().catch(() => ({}))
+        console.log("[sign-up] confirm response:", confirmRes.status, confirmData)
+      } catch (fetchErr) {
+        console.error("[sign-up] confirm fetch failed:", fetchErr)
+      }
 
       if (data.session) {
         window.location.assign(buildAuthContinueHref())
