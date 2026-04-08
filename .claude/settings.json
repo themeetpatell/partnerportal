@@ -11,7 +11,8 @@
       "Bash(vercel --prod --yes)",
       "Bash(find \"/Users/themeetpatel/Startups/Partner Portal\" -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" -exec grep -l \"supabase.*auth\\\\|auth.*email\\\\|SUPABASE\" {} \\\\;)",
       "mcp__plugin_vercel_vercel__get_runtime_logs",
-      "Bash(find \"/Users/themeetpatel/Startups/Partner Portal/apps/partner/src/app/dashboard\" -name \"page.tsx\" -exec ls -lh {} \\\\;)"
+      "Bash(find \"/Users/themeetpatel/Startups/Partner Portal/apps/partner/src/app/dashboard\" -name \"page.tsx\" -exec ls -lh {} \\\\;)",
+      "Bash(node -e ':*)"
     ]
   }
 }

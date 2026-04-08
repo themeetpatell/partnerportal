@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
+import sgMail from "@sendgrid/mail"
 import { rateLimit, getClientIp } from "@repo/auth"
 import { sendPartnerWelcomeEmail } from "@repo/notifications"
 
@@ -53,12 +54,39 @@ export async function POST(request: NextRequest) {
       .filter(Boolean)
       .join(" ") || "Partner"
 
+  // Diagnostic: test both direct sgMail and notifications package
+  const diagKey = process.env.SENDGRID_API_KEY?.trim()
+  const diagFrom = process.env.SENDGRID_FROM_EMAIL?.trim() || "meet@finanshels.com"
+
+  if (!diagKey) {
+    return NextResponse.json({ ok: false, debug: "NO_SENDGRID_API_KEY_IN_ENV" })
+  }
+
+  // Send via direct sgMail (same approach as test-email endpoint that works)
+  sgMail.setApiKey(diagKey)
   try {
-    await sendPartnerWelcomeEmail(email, fullName)
-    return NextResponse.json({ ok: true, debug: "email_sent", to: email, name: fullName })
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err)
-    console.error("[POST /api/auth/confirm] Welcome email failed:", err)
-    return NextResponse.json({ ok: false, debug: "email_failed", error: errMsg })
+    const [sgResponse] = await sgMail.send({
+      to: email,
+      from: { email: diagFrom, name: "Finanshels" },
+      subject: "Welcome to the Finanshels Partner Portal",
+      html: `<p>Hi ${fullName}, your account has been confirmed. Sign in at <a href="https://partner.finanshels.com/sign-in">partner.finanshels.com</a>.</p>`,
+    })
+    return NextResponse.json({
+      ok: true,
+      debug: "direct_sgmail_sent",
+      statusCode: sgResponse.statusCode,
+      to: email,
+      from: diagFrom,
+      name: fullName,
+    })
+  } catch (err: unknown) {
+    const sgErr = err as { response?: { statusCode?: number; body?: unknown }; message?: string }
+    return NextResponse.json({
+      ok: false,
+      debug: "direct_sgmail_failed",
+      statusCode: sgErr.response?.statusCode,
+      body: sgErr.response?.body,
+      message: sgErr.message,
+    })
   }
 }
