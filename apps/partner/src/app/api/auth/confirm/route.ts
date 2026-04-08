@@ -39,8 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user) {
-    // Don't reveal whether the user exists
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, debug: "user_not_found", pagesSearched: page - 1 })
   }
 
   // Auto-confirm the email
@@ -56,9 +55,10 @@ export async function POST(request: NextRequest) {
 
   try {
     await sendPartnerWelcomeEmail(email, fullName)
+    return NextResponse.json({ ok: true, debug: "email_sent", to: email, name: fullName })
   } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err)
     console.error("[POST /api/auth/confirm] Welcome email failed:", err)
+    return NextResponse.json({ ok: false, debug: "email_failed", error: errMsg })
   }
-
-  return NextResponse.json({ ok: true })
 }
