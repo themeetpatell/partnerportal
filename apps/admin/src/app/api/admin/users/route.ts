@@ -115,11 +115,19 @@ export async function POST(req: NextRequest) {
       createError.message?.includes("already been registered") ||
       createError.message?.includes("already exists")
     ) {
-      const { data: existingUsers } =
-        await supabaseAdmin.auth.admin.listUsers()
-      const existingUser = existingUsers?.users?.find(
-        (u) => u.email?.toLowerCase() === email.toLowerCase()
-      )
+      // Paginate to handle >50 auth users
+      let existingUser: { id: string } | undefined
+      let page = 1
+      while (!existingUser) {
+        const { data: existingUsers } =
+          await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 })
+        const users = existingUsers?.users ?? []
+        if (users.length === 0) break
+        existingUser = users.find(
+          (u) => u.email?.toLowerCase() === email.toLowerCase()
+        )
+        page++
+      }
 
       if (!existingUser) {
         return NextResponse.json(

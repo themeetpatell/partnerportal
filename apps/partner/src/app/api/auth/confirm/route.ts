@@ -24,11 +24,19 @@ export async function POST(request: NextRequest) {
 
   const admin = getSupabaseAdmin()
 
-  // Find the user by email
-  const { data: usersData } = await admin.auth.admin.listUsers()
-  const user = usersData?.users?.find(
-    (u) => u.email?.toLowerCase() === email
-  )
+  // Find the user by email — paginate to handle >50 auth users
+  let user: { id: string; user_metadata?: Record<string, string> } | undefined
+  let page = 1
+  while (!user) {
+    const { data: usersData } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 100,
+    })
+    const users = usersData?.users ?? []
+    if (users.length === 0) break
+    user = users.find((u) => u.email?.toLowerCase() === email)
+    page++
+  }
 
   if (!user) {
     // Don't reveal whether the user exists
@@ -40,15 +48,17 @@ export async function POST(request: NextRequest) {
     email_confirm: true,
   })
 
-  // Send welcome email via SendGrid (fire-and-forget)
+  // Send welcome email — MUST await so the serverless function stays alive
   const fullName =
     [user.user_metadata?.first_name, user.user_metadata?.last_name]
       .filter(Boolean)
       .join(" ") || "Partner"
 
-  sendPartnerWelcomeEmail(email, fullName).catch((err) =>
+  try {
+    await sendPartnerWelcomeEmail(email, fullName)
+  } catch (err) {
     console.error("[POST /api/auth/confirm] Welcome email failed:", err)
-  )
+  }
 
   return NextResponse.json({ ok: true })
 }
