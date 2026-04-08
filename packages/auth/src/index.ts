@@ -16,6 +16,7 @@ export const PUBLIC_PARTNER_ROUTES = [
   "/reset-password(.*)",
   "/api/auth/confirm",
   "/api/auth/forgot-password",
+  "/api/auth/test-email",
 ]
 
 export const PUBLIC_ADMIN_ROUTES = [
