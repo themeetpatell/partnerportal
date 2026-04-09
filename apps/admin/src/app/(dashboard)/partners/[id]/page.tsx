@@ -30,6 +30,7 @@ import {
   ExternalLink,
   CreditCard,
   User,
+  KeyRound,
 } from "lucide-react"
 
 function StatusBadge({ status }: { status: string }) {
@@ -434,6 +435,27 @@ export default async function PartnerDetailPage({
             />
           </div>
         )}
+
+        <div className="surface-card rounded-2xl p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-white font-semibold">Reset partner password</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Sends a password reset email to the partner so they can set a new portal password.
+              </p>
+            </div>
+            <KeyRound className="mt-0.5 h-5 w-5 text-indigo-300" />
+          </div>
+          <PartnerActionButton
+            partnerId={partner.id}
+            action="reset_password"
+            endpoint={`/api/partners/${partner.id}/reset-password`}
+            label="Send reset email"
+            confirmLabel={`Send a password reset email to ${partner.email}?`}
+            variant="slate"
+            icon="reset"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { CheckCircle, XCircle, PauseCircle, RotateCcw } from "lucide-react"
+import { CheckCircle, XCircle, PauseCircle, RotateCcw, KeyRound } from "lucide-react"
 
 type ActionButtonProps = {
   partnerId: string
@@ -11,7 +11,7 @@ type ActionButtonProps = {
   label: string
   confirmLabel?: string
   variant: "green" | "red" | "yellow" | "slate"
-  icon: "approve" | "reject" | "suspend" | "reactivate"
+  icon: "approve" | "reject" | "suspend" | "reactivate" | "reset"
   extraBody?: Record<string, string>
 }
 
@@ -27,6 +27,7 @@ const icons = {
   reject: XCircle,
   suspend: PauseCircle,
   reactivate: RotateCcw,
+  reset: KeyRound,
 }
 
 export function PartnerActionButton({
@@ -46,12 +47,18 @@ export function PartnerActionButton({
     if (confirmLabel && !window.confirm(confirmLabel)) return
     setLoading(true)
     try {
-      await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ...extraBody }),
       })
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "Action failed.")
+      }
       router.refresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Action failed.")
     } finally {
       setLoading(false)
     }
@@ -90,12 +97,18 @@ export function PartnerRejectForm({
     e.preventDefault()
     setLoading(true)
     try {
-      await fetch(resolvedEndpoint, {
+      const response = await fetch(resolvedEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason }),
       })
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || "Action failed.")
+      }
       router.refresh()
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Action failed.")
     } finally {
       setLoading(false)
     }
