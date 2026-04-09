@@ -20,11 +20,11 @@ type LeadOptionsResponse = {
 }
 
 const statusStyles: Record<string, string> = {
-  submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  qualified: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-100",
-  proposal_sent: "border border-zinc-600/20 bg-zinc-600/10 text-zinc-100",
-  deal_won: "border border-white/20 bg-white/10 text-white",
-  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
+  submitted: "border border-border bg-secondary text-foreground/90",
+  qualified: "border border-border bg-secondary text-foreground/90",
+  proposal_sent: "border border-border bg-secondary/60 text-foreground/90",
+  deal_won: "border border-border bg-secondary text-foreground",
+  deal_lost: "border border-border bg-secondary/60 text-[var(--portal-text-soft)]",
 }
 
 export default function NewLeadPage() {
@@ -209,7 +209,7 @@ export default function NewLeadPage() {
                   {field.required ? <span className="ml-1 text-rose-300">*</span> : null}
                 </label>
                 <div className="relative">
-                  <field.icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <field.icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     required={field.required}
                     type={field.type}
@@ -235,7 +235,7 @@ export default function NewLeadPage() {
               >
                 <span
                   className={
-                    form.serviceInterests.length > 0 ? "text-white" : "text-slate-500"
+                    form.serviceInterests.length > 0 ? "text-foreground" : "text-muted-foreground"
                   }
                 >
                   {loadingServiceOptions
@@ -245,16 +245,16 @@ export default function NewLeadPage() {
                       : "Select services from CRM"}
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 text-slate-500 transition-transform ${
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${
                     serviceDropdownOpen ? "rotate-180" : ""
                   }`}
                 />
               </button>
 
               {serviceDropdownOpen ? (
-                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-[1.2rem] border border-white/10 bg-[#111117] p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-[1.2rem] border border-border bg-card p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
                   {serviceOptions.length === 0 ? (
-                    <div className="px-3 py-3 text-sm text-slate-400">
+                    <div className="px-3 py-3 text-sm text-muted-foreground">
                       No CRM services available.
                     </div>
                   ) : (
@@ -268,12 +268,12 @@ export default function NewLeadPage() {
                           onClick={() => toggle(service)}
                           className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
                             active
-                              ? "bg-indigo-500/14 text-white"
-                              : "text-slate-300 hover:bg-white/[0.05]"
+                              ? "bg-indigo-500/14 text-foreground"
+                              : "text-[var(--portal-text-soft)] hover:bg-secondary/70"
                           }`}
                         >
                           <span>{service}</span>
-                          {active ? <Check className="h-4 w-4 text-indigo-300" /> : null}
+                          {active ? <Check className="h-4 w-4 text-primary" /> : null}
                         </button>
                       )
                     })
@@ -288,15 +288,15 @@ export default function NewLeadPage() {
                   key={service}
                   type="button"
                   onClick={() => toggle(service)}
-                  className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-100"
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
                 >
                   {service}
-                  <X className="h-3.5 w-3.5 text-indigo-300" />
+                  <X className="h-3.5 w-3.5 text-primary" />
                 </button>
               ))}
             </div>
 
-            <p className="mt-3 text-xs text-slate-500">
+            <p className="mt-3 text-xs text-muted-foreground">
               Source:{" "}
               {serviceOptionsSource === "crm"
                 ? "Zoho CRM picklist"
@@ -331,10 +331,10 @@ export default function NewLeadPage() {
       </section>
 
       <section className="table-shell">
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
-            <p className="font-heading text-xl font-semibold text-white">Previous leads</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="font-heading text-xl font-semibold text-foreground">Previous leads</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Your latest submissions stay visible while you add the next one.
             </p>
           </div>
@@ -344,9 +344,9 @@ export default function NewLeadPage() {
         </div>
 
         {loadingRecent ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">Loading leads...</div>
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">Loading leads...</div>
         ) : recentLeads.length === 0 ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">
             No previous leads yet.
           </div>
         ) : (
@@ -354,7 +354,7 @@ export default function NewLeadPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Customer</th>
                     <th className="px-6 py-4 font-medium">Email</th>
                     <th className="px-6 py-4 font-medium">Status</th>
@@ -365,18 +365,18 @@ export default function NewLeadPage() {
                   {recentLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                      className="border-b border-border transition-colors hover:bg-secondary/50"
                     >
-                      <td className="px-6 py-4 font-medium text-white">{lead.customerName}</td>
-                      <td className="px-6 py-4 text-slate-300">{lead.customerEmail}</td>
+                      <td className="px-6 py-4 font-medium text-foreground">{lead.customerName}</td>
+                      <td className="px-6 py-4 text-[var(--portal-text-soft)]">{lead.customerEmail}</td>
                       <td className="px-6 py-4">
                         <span
-                          className={`status-pill ${statusStyles[lead.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                          className={`status-pill ${statusStyles[lead.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                         >
                           {lead.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {new Date(lead.createdAt).toLocaleDateString("en-AE", {
                           day: "numeric",
                           month: "short",
@@ -393,22 +393,22 @@ export default function NewLeadPage() {
               {recentLeads.map((lead) => (
                 <div
                   key={lead.id}
-                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                  className="rounded-[1.5rem] border border-border bg-secondary/50 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-heading text-lg font-semibold text-white">
+                      <p className="font-heading text-lg font-semibold text-foreground">
                         {lead.customerName}
                       </p>
-                      <p className="mt-1 text-sm text-slate-400">{lead.customerEmail}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{lead.customerEmail}</p>
                     </div>
                     <span
-                      className={`status-pill ${statusStyles[lead.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                      className={`status-pill ${statusStyles[lead.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                     >
                       {lead.status.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {new Date(lead.createdAt).toLocaleDateString("en-AE", {
                       day: "numeric",
                       month: "short",

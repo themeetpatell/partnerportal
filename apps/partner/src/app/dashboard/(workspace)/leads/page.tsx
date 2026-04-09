@@ -7,11 +7,11 @@ import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/databas
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const statusStyles: Record<string, string> = {
-  submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
+  submitted: "border border-border bg-secondary text-foreground/90",
   qualified: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
-  proposal_sent: "border border-indigo-400/20 bg-indigo-500/10 text-indigo-100",
+  proposal_sent: "border border-primary/20 bg-primary/10 text-primary",
   deal_won: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
-  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-400",
+  deal_lost: "border border-border bg-secondary/60 text-muted-foreground",
 }
 
 function formatDate(date: Date | null) {
@@ -89,27 +89,27 @@ export default async function LeadsPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="metric-card">
             <p className="metric-value">{rows.length}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Total leads</p>
-            <p className="mt-1 text-sm text-slate-400">All leads submitted to Finanshels.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">Total leads</p>
+            <p className="mt-1 text-sm text-muted-foreground">All leads submitted to Finanshels.</p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{openCount}</p>
-            <p className="mt-2 text-sm font-semibold text-white">In pipeline</p>
-            <p className="mt-1 text-sm text-slate-400">Leads actively being worked on.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">In pipeline</p>
+            <p className="mt-1 text-sm text-muted-foreground">Leads actively being worked on.</p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{wonCount}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Deals won</p>
-            <p className="mt-1 text-sm text-slate-400">Leads that converted to closed deals.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">Deals won</p>
+            <p className="mt-1 text-sm text-muted-foreground">Leads that converted to closed deals.</p>
           </div>
         </div>
       </section>
 
       <section className="table-shell">
-        <div className="flex flex-col gap-3 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-heading text-xl font-semibold text-white">All leads</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="font-heading text-xl font-semibold text-foreground">All leads</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Sorted by most recently submitted.
             </p>
           </div>
@@ -117,11 +117,11 @@ export default async function LeadsPage() {
 
         {rows.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
               <Users className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-heading text-2xl font-semibold text-white">No leads yet</p>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+            <p className="mt-5 font-heading text-2xl font-semibold text-foreground">No leads yet</p>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
               Submit your first lead to Finanshels and track it here.
             </p>
             <Link href="/dashboard/leads/new" className="primary-button mt-6">
@@ -135,7 +135,7 @@ export default async function LeadsPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Customer</th>
                     <th className="px-6 py-4 font-medium">Services</th>
                     <th className="px-6 py-4 font-medium">Status</th>
@@ -149,12 +149,12 @@ export default async function LeadsPage() {
                     return (
                       <tr
                         key={lead.id}
-                        className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                        className="border-b border-border transition-colors hover:bg-secondary/50"
                       >
                         <td className="px-6 py-4">
                           <Link href={`/dashboard/leads/${lead.id}`} className="group">
-                            <p className="font-medium text-white group-hover:text-indigo-200">{lead.customerName}</p>
-                            <p className="mt-1 text-xs text-slate-400">
+                            <p className="font-medium text-foreground group-hover:text-primary">{lead.customerName}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
                               {lead.customerCompany
                                 ? `${lead.customerCompany} · `
                                 : ""}
@@ -168,24 +168,24 @@ export default async function LeadsPage() {
                               {services.slice(0, 2).map((s) => (
                                 <span
                                   key={s}
-                                  className="status-pill border border-white/10 bg-white/[0.05] text-slate-300"
+                                  className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]"
                                 >
                                   {s}
                                 </span>
                               ))}
                               {services.length > 2 ? (
-                                <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-400">
+                                <span className="status-pill border border-border bg-secondary/70 text-muted-foreground">
                                   +{services.length - 2}
                                 </span>
                               ) : null}
                             </div>
                           ) : (
-                            <span className="text-slate-500">—</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <span
-                            className={`status-pill ${statusStyles[lead.status] ?? "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                            className={`status-pill ${statusStyles[lead.status] ?? "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                           >
                             {formatLabel(lead.status)}
                           </span>
@@ -201,7 +201,7 @@ export default async function LeadsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-slate-400">
+                        <td className="px-6 py-4 text-muted-foreground">
                           {formatDate(lead.createdAt)}
                         </td>
                       </tr>
@@ -219,19 +219,19 @@ export default async function LeadsPage() {
                   <Link
                     key={lead.id}
                     href={`/dashboard/leads/${lead.id}`}
-                    className="block rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4 transition-colors hover:border-white/15 hover:bg-white/[0.05]"
+                    className="block rounded-[1.5rem] border border-border bg-secondary/50 p-4 transition-colors hover:border-border hover:bg-secondary/70"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-heading text-lg font-semibold text-white">
+                        <p className="font-heading text-lg font-semibold text-foreground">
                           {lead.customerName}
                         </p>
-                        <p className="mt-1 text-sm text-slate-400">
+                        <p className="mt-1 text-sm text-muted-foreground">
                           {lead.customerCompany || lead.customerEmail}
                         </p>
                       </div>
                       <span
-                        className={`status-pill shrink-0 ${statusStyles[lead.status] ?? "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                        className={`status-pill shrink-0 ${statusStyles[lead.status] ?? "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                       >
                         {formatLabel(lead.status)}
                       </span>
@@ -241,7 +241,7 @@ export default async function LeadsPage() {
                         {services.map((s) => (
                           <span
                             key={s}
-                            className="status-pill border border-white/10 bg-white/[0.05] text-slate-300"
+                            className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]"
                           >
                             {s}
                           </span>
@@ -249,7 +249,7 @@ export default async function LeadsPage() {
                       </div>
                     ) : null}
                     <div className="mt-3 flex items-center justify-between">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-muted-foreground">
                         Submitted {formatDate(lead.createdAt)}
                       </p>
                       {lead.zohoLeadId ? (

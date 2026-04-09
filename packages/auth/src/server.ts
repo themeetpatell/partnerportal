@@ -1,7 +1,7 @@
 import { cache } from "react"
 import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
-import { getOptionalSupabaseAuthEnv, mapSupabaseUser } from "./shared"
+import { getOptionalSupabaseAuthEnv, mapJwtClaimsToUser } from "./shared"
 
 export async function createAuthServerClient() {
   const cookieStore = await cookies()
@@ -33,14 +33,11 @@ export const currentUser = cache(async function currentUser() {
     return null
   }
 
-  // Use getSession() instead of getUser() to avoid a network round-trip.
-  // Middleware already validates the token via getUser() on every request,
-  // so the session cookie is guaranteed fresh by the time we reach here.
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data,
+  } = await supabase.auth.getClaims()
 
-  return mapSupabaseUser(session?.user ?? null)
+  return mapJwtClaimsToUser(data?.claims ?? null)
 })
 
 export async function auth() {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { Toaster } from "sonner"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 const inter = Inter({
@@ -17,11 +18,9 @@ export const metadata: Metadata = {
   description:
     "The official partner portal for Finanshels — manage clients, commissions, and service requests.",
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-    ],
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: [{ url: "/brand-mark.png", type: "image/png" }],
+    shortcut: "/brand-mark.png",
+    apple: "/brand-mark.png",
   },
   robots: {
     index: false,
@@ -40,20 +39,19 @@ export default function RootLayout({
       className={inter.variable}
       suppressHydrationWarning
     >
-      <body className="min-h-screen font-sans text-white antialiased">
-        {children}
-        <Toaster
-          position="bottom-right"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: "rgba(10, 10, 10, 0.94)",
-              border: "1px solid rgba(255, 255, 255, 0.14)",
-              color: "#f5f5f5",
-              backdropFilter: "blur(20px)",
-            },
-          }}
-        />
+      <body className="min-h-screen font-sans text-foreground antialiased">
+        <ThemeProvider>
+          {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              classNames: {
+                toast:
+                  "!bg-card !border-border !text-foreground !shadow-lg backdrop-blur-xl",
+              },
+            }}
+          />
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -269,30 +269,30 @@ export default async function LandingPage() {
   return (
     <div className="page-wrap min-h-screen">
       {/* ── Navbar ──────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 border-b border-white/6 backdrop-blur-xl bg-[#09090b]/80">
+      <nav className="sticky top-0 z-50 border-b border-border backdrop-blur-xl bg-background/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-3.5 sm:px-8">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 via-indigo-500 to-violet-500 text-sm font-black text-white shadow-[0_8px_24px_rgba(99,102,241,0.25)]">
               F
             </div>
             <div className="hidden sm:block">
-              <p className="font-heading text-base font-semibold text-white leading-tight">
+              <p className="font-heading text-base font-semibold text-foreground leading-tight">
                 Finanshels
               </p>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                 Partner Portal
               </p>
             </div>
           </div>
 
           <div className="hidden items-center gap-6 md:flex">
-            <a href="#how-it-works" className="text-sm text-slate-400 transition-colors hover:text-white">
+            <a href="#how-it-works" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               How it works
             </a>
-            <a href="#benefits" className="text-sm text-slate-400 transition-colors hover:text-white">
+            <a href="#benefits" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               Benefits
             </a>
-            <a href="#faq" className="text-sm text-slate-400 transition-colors hover:text-white">
+            <a href="#faq" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
               FAQ
             </a>
           </div>
@@ -328,19 +328,19 @@ export default async function LandingPage() {
             </div>
 
             {landingCta.statusPill ? (
-              <div className="mx-auto mb-6 w-fit rounded-full border border-indigo-400/18 bg-indigo-500/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-indigo-200">
+              <div className="mx-auto mb-6 w-fit rounded-full border border-primary/18 bg-primary/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
                 {landingCta.statusPill}
               </div>
             ) : null}
 
-            <h1 className="hero-title text-white">
+            <h1 className="hero-title text-foreground">
               Earn commissions by referring clients to&nbsp;
               <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-300 bg-clip-text text-transparent">
                 Finanshels.
               </span>
             </h1>
 
-            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-400 sm:text-lg sm:leading-8">
+            <p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg sm:leading-8">
               Join the partner network trusted by consultants, agencies, and advisors across
               the UAE. Submit leads, track conversions, and get paid — all from one workspace.
             </p>
@@ -361,7 +361,7 @@ export default async function LandingPage() {
               </Link>
             </div>
 
-            <p className="mt-6 text-xs text-slate-600">
+            <p className="mt-6 text-xs text-muted-foreground/70">
               {landingCta.heroSubtext}
             </p>
           </div>
@@ -371,11 +371,11 @@ export default async function LandingPage() {
             {stats.map((s) => (
               <div
                 key={s.label}
-                className="surface-card rounded-2xl px-5 py-5 text-center transition-colors hover:border-zinc-700"
+                className="surface-card rounded-2xl px-5 py-5 text-center transition-colors hover:border-[var(--portal-line-strong)]"
               >
-                <p className="font-heading text-3xl font-bold text-white">{s.value}</p>
-                <p className="mt-1.5 text-sm font-medium text-slate-200">{s.label}</p>
-                <p className="mt-0.5 text-xs text-slate-500">{s.sublabel}</p>
+                <p className="font-heading text-3xl font-bold text-foreground">{s.value}</p>
+                <p className="mt-1.5 text-sm font-medium text-foreground/80">{s.label}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{s.sublabel}</p>
               </div>
             ))}
           </div>
@@ -399,11 +399,11 @@ export default async function LandingPage() {
             {partnerModels.map((model) => (
               <div
                 key={model.title}
-                className="surface-card-strong group relative overflow-hidden rounded-[2rem] p-7 sm:p-8 transition-all hover:border-zinc-600"
+                className="surface-card-strong group relative overflow-hidden rounded-[2rem] p-7 sm:p-8 transition-all hover:border-[var(--portal-line-strong)]"
               >
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/10 to-transparent" />
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+                  <div className="flex h-13 w-13 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                     <model.icon className="h-6 w-6" />
                   </div>
                   <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${model.badgeClass}`}>
@@ -411,17 +411,17 @@ export default async function LandingPage() {
                   </span>
                 </div>
 
-                <h3 className="font-heading mt-6 text-2xl font-semibold text-white">
+                <h3 className="font-heading mt-6 text-2xl font-semibold text-foreground">
                   {model.title}
                 </h3>
-                <p className="mt-3 text-sm leading-7 text-slate-400">
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   {model.description}
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 gap-2.5">
                   {model.perks.map((perk) => (
-                    <div key={perk} className="flex items-center gap-2 text-sm text-slate-300">
-                      <Check className="h-3.5 w-3.5 flex-shrink-0 text-indigo-400" />
+                    <div key={perk} className="flex items-center gap-2 text-sm text-[var(--portal-text-soft)]">
+                      <Check className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
                       {perk}
                     </div>
                   ))}
@@ -429,23 +429,23 @@ export default async function LandingPage() {
 
                 {/* Commission rates */}
                 <div className="mt-5 grid grid-cols-3 gap-2">
-                  <div className="rounded-lg bg-white/[0.04] border border-white/6 px-3 py-2.5 text-center">
-                    <p className="text-lg font-bold text-white">{model.rates.initial}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Initial</p>
+                  <div className="rounded-lg bg-secondary/50 border border-border px-3 py-2.5 text-center">
+                    <p className="text-lg font-bold text-foreground">{model.rates.initial}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Initial</p>
                   </div>
-                  <div className="rounded-lg bg-white/[0.04] border border-white/6 px-3 py-2.5 text-center">
-                    <p className="text-lg font-bold text-white">{model.rates.renewal}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Renewals</p>
+                  <div className="rounded-lg bg-secondary/50 border border-border px-3 py-2.5 text-center">
+                    <p className="text-lg font-bold text-foreground">{model.rates.renewal}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Renewals</p>
                   </div>
-                  <div className="rounded-lg bg-white/[0.04] border border-white/6 px-3 py-2.5 text-center">
-                    <p className="text-lg font-bold text-white">{model.rates.addon}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Add-ons</p>
+                  <div className="rounded-lg bg-secondary/50 border border-border px-3 py-2.5 text-center">
+                    <p className="text-lg font-bold text-foreground">{model.rates.addon}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Add-ons</p>
                   </div>
                 </div>
 
                 <Link
                   href="/register"
-                  className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-indigo-400 transition-colors hover:text-indigo-300"
+                  className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-primary transition-colors hover:text-primary/80"
                 >
                   Get started
                   <ChevronRight className="h-4 w-4" />
@@ -474,16 +474,16 @@ export default async function LandingPage() {
 
             {howItWorks.map((item) => (
               <div key={item.step} className="relative text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200 ring-4 ring-[#09090b] relative z-10">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/12 text-primary ring-4 ring-background relative z-10">
                   <item.icon className="h-6 w-6" />
                 </div>
-                <div className="mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-300">
+                <div className="mx-auto mt-2 flex h-7 w-7 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
                   {item.step}
                 </div>
-                <h3 className="font-heading mt-4 text-xl font-semibold text-white">
+                <h3 className="font-heading mt-4 text-xl font-semibold text-foreground">
                   {item.title}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {item.description}
                 </p>
               </div>
@@ -518,15 +518,15 @@ export default async function LandingPage() {
             {benefits.map((b) => (
               <div
                 key={b.title}
-                className="surface-card rounded-[1.75rem] p-6 transition-colors hover:border-zinc-700"
+                className="surface-card rounded-[1.75rem] p-6 transition-colors hover:border-[var(--portal-line-strong)]"
               >
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                   <b.icon className="h-5 w-5" />
                 </div>
-                <h3 className="font-heading mt-5 text-lg font-semibold text-white">
+                <h3 className="font-heading mt-5 text-lg font-semibold text-foreground">
                   {b.title}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {b.description}
                 </p>
               </div>
@@ -555,13 +555,13 @@ export default async function LandingPage() {
                     <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                   ))}
                 </div>
-                <blockquote className="mt-4 text-sm leading-7 text-slate-300">
+                <blockquote className="mt-4 text-sm leading-7 text-[var(--portal-text-soft)]">
                   &ldquo;{t.quote}&rdquo;
                 </blockquote>
-                <div className="mt-5 border-t border-white/8 pt-4">
-                  <p className="text-sm font-semibold text-white">{t.name}</p>
-                  <p className="text-xs text-slate-500">{t.title}</p>
-                  <p className="text-xs text-slate-600">{t.location}</p>
+                <div className="mt-5 border-t border-border pt-4">
+                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                  <p className="text-xs text-muted-foreground">{t.title}</p>
+                  <p className="text-xs text-muted-foreground/70">{t.location}</p>
                 </div>
               </div>
             ))}
@@ -583,11 +583,11 @@ export default async function LandingPage() {
                 key={faq.q}
                 className="group surface-card rounded-2xl overflow-hidden"
               >
-                <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-sm font-medium text-white transition-colors hover:text-indigo-300 [&::-webkit-details-marker]:hidden list-none">
+                <summary className="flex cursor-pointer items-center justify-between gap-4 px-6 py-5 text-sm font-medium text-foreground transition-colors hover:text-primary [&::-webkit-details-marker]:hidden list-none">
                   {faq.q}
-                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-500 transition-transform group-open:rotate-90" />
+                  <ChevronRight className="h-4 w-4 flex-shrink-0 text-muted-foreground transition-transform group-open:rotate-90" />
                 </summary>
-                <div className="px-6 pb-5 text-sm leading-7 text-slate-400">
+                <div className="px-6 pb-5 text-sm leading-7 text-muted-foreground">
                   {faq.a}
                 </div>
               </details>
@@ -603,10 +603,10 @@ export default async function LandingPage() {
             <div className="absolute -right-20 bottom-10 h-48 w-48 rounded-full bg-violet-500/10 blur-[80px]" />
 
             <div className="relative">
-              <h2 className="font-heading text-3xl font-bold text-white sm:text-4xl lg:text-5xl" style={{ letterSpacing: "-0.04em" }}>
+              <h2 className="font-heading text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl" style={{ letterSpacing: "-0.04em" }}>
                 Ready to grow your revenue?
               </h2>
-              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-slate-400 sm:text-lg">
+              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
                 {landingCta.ctaSubcopy}
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -630,7 +630,7 @@ export default async function LandingPage() {
       </div>
 
       {/* ── Footer ─────────────────────────────────── */}
-      <footer className="border-t border-white/6 mt-4">
+      <footer className="border-t border-border mt-4">
         <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-12">
           <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -639,32 +639,32 @@ export default async function LandingPage() {
                   F
                 </div>
                 <div>
-                  <p className="font-heading text-base font-semibold text-white">Finanshels</p>
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-slate-500">Partner Portal</p>
+                  <p className="font-heading text-base font-semibold text-foreground">Finanshels</p>
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Partner Portal</p>
                 </div>
               </div>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-slate-500">
+              <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
                 The partner workspace for referrals, service requests, and commission visibility across the UAE and GCC.
               </p>
             </div>
             <div className="flex flex-col gap-3 text-sm">
-              <Link href="/register" className="text-slate-400 transition-colors hover:text-white">
+              <Link href="/register" className="text-muted-foreground transition-colors hover:text-foreground">
                 Become a partner
               </Link>
-              <Link href="/sign-in" className="text-slate-400 transition-colors hover:text-white">
+              <Link href="/sign-in" className="text-muted-foreground transition-colors hover:text-foreground">
                 Sign in
               </Link>
-              <a href="#how-it-works" className="text-slate-400 transition-colors hover:text-white">
+              <a href="#how-it-works" className="text-muted-foreground transition-colors hover:text-foreground">
                 How it works
               </a>
-              <a href="#faq" className="text-slate-400 transition-colors hover:text-white">
+              <a href="#faq" className="text-muted-foreground transition-colors hover:text-foreground">
                 FAQ
               </a>
             </div>
           </div>
-          <div className="mt-8 flex flex-col gap-3 border-t border-white/6 pt-6 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-8 flex flex-col gap-3 border-t border-border pt-6 text-xs text-muted-foreground/70 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <BadgeCheck className="h-3.5 w-3.5 text-indigo-400/60" />
+              <BadgeCheck className="h-3.5 w-3.5 text-primary/60" />
               Trusted by 150+ partners across the GCC
             </div>
             <span>© {new Date().getFullYear()} Finanshels. All rights reserved.</span>

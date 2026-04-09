@@ -27,11 +27,11 @@ export function DatabaseFallbackCard({
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200/80">
             Database unavailable
           </p>
-          <h2 className="mt-4 text-xl font-semibold text-white">{title}</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{message}</p>
+          <h2 className="mt-4 text-xl font-semibold text-foreground">{title}</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--portal-text-soft)]">{message}</p>
 
           {host ? (
-            <div className="mt-5 rounded-2xl border border-white/8 bg-black/20 p-4 text-sm text-slate-300">
+            <div className="mt-5 rounded-2xl border border-border bg-secondary/50 p-4 text-sm text-[var(--portal-text-soft)]">
               Failing host: <span className="font-medium text-amber-200">{host}</span>
             </div>
           ) : null}
@@ -41,13 +41,13 @@ export function DatabaseFallbackCard({
               <button
                 type="button"
                 onClick={onRetry}
-                className="inline-flex items-center rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/10"
+                className="inline-flex items-center rounded-full border border-border bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/80"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {retryLabel}
               </button>
             ) : null}
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-muted-foreground">
               Typical local causes: placeholder Supabase hostname, offline VPN, a typo in `DATABASE_URL`, or exhausted / slow database connections.
             </p>
           </div>

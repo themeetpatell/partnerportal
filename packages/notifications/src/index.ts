@@ -5,6 +5,16 @@ import sgMail from "@sendgrid/mail"
 // time or before runtime env vars are injected.
 let sgReady = false
 
+const CANONICAL_PORTAL_URLS = {
+  partner: "https://partner.finanshels.com",
+  admin: "https://collab.finanshels.com",
+} as const
+
+const LOCAL_PORTAL_URLS = {
+  partner: "http://localhost:3000",
+  admin: "http://localhost:3001",
+} as const
+
 function ensureSendGrid(): boolean {
   if (sgReady) return true
 
@@ -23,6 +33,63 @@ function escapeHtml(value: string): string {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;")
+}
+
+function normalizeBaseUrl(value: string | null | undefined) {
+  const trimmed = value?.trim()
+
+  if (!trimmed) {
+    return null
+  }
+
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+
+  try {
+    const parsed = new URL(withProtocol)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null
+    }
+
+    const normalizedPath = parsed.pathname === "/" ? "" : parsed.pathname.replace(/\/+$/, "")
+    return `${parsed.origin}${normalizedPath}`
+  } catch {
+    return null
+  }
+}
+
+function resolvePortalBaseUrl(target: keyof typeof CANONICAL_PORTAL_URLS) {
+  const envCandidates =
+    target === "partner"
+      ? [process.env.PARTNER_APP_URL, process.env.NEXT_PUBLIC_PARTNER_APP_URL]
+      : [process.env.ADMIN_APP_URL, process.env.NEXT_PUBLIC_ADMIN_APP_URL]
+
+  for (const candidate of envCandidates) {
+    const normalized = normalizeBaseUrl(candidate)
+    if (normalized) {
+      return normalized
+    }
+  }
+
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    return CANONICAL_PORTAL_URLS[target]
+  }
+
+  return LOCAL_PORTAL_URLS[target]
+}
+
+export function getPartnerPortalUrl() {
+  return resolvePortalBaseUrl("partner")
+}
+
+export function getAdminPortalUrl() {
+  return resolvePortalBaseUrl("admin")
+}
+
+export function buildPortalUrl(
+  target: keyof typeof CANONICAL_PORTAL_URLS,
+  pathname: string
+) {
+  return new URL(pathname, `${resolvePortalBaseUrl(target)}/`).toString()
 }
 
 async function sendEmail(message: {
@@ -60,14 +127,6 @@ async function sendEmail(message: {
     })
     throw err
   }
-}
-
-function getPartnerPortalUrl() {
-  return process.env.NEXT_PUBLIC_PARTNER_APP_URL?.trim() || "http://localhost:3000"
-}
-
-function getAdminPortalUrl() {
-  return process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || "http://localhost:3001"
 }
 
 function buildPartnerEmailShell({
@@ -152,7 +211,7 @@ export async function sendPartnerApprovedEmail(
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCompanyName = escapeHtml(companyName)
-    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
+    const portalUrl = escapeHtml(buildPortalUrl("partner", "/sign-in"))
 
     await sendEmail({
       to,
@@ -187,7 +246,7 @@ export async function sendPartnerContractReadyEmail(
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCompanyName = escapeHtml(companyName)
-    const profileUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/profile`)
+    const profileUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/profile"))
 
     await sendEmail({
       to,
@@ -222,7 +281,7 @@ export async function sendPartnerWorkspaceUnlockedEmail(
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCompanyName = escapeHtml(companyName)
-    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard`)
+    const portalUrl = escapeHtml(buildPortalUrl("partner", "/dashboard"))
 
     await sendEmail({
       to,
@@ -257,7 +316,7 @@ export async function sendPartnerReactivatedEmail(
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCompanyName = escapeHtml(companyName)
-    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
+    const portalUrl = escapeHtml(buildPortalUrl("partner", "/sign-in"))
 
     await sendEmail({
       to,
@@ -401,7 +460,7 @@ export async function sendLeadSubmittedEmail(
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCustomerName = escapeHtml(customerName)
-    const leadsUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/leads`)
+    const leadsUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/leads"))
     const servicesMarkup =
       services.length > 0
         ? `<p><strong>Services requested:</strong> ${services.map(escapeHtml).join(", ")}</p>`
@@ -444,7 +503,7 @@ export async function sendLeadStatusEmail(
       label: status.replace(/_/g, " "),
       description: "The status of this lead has been updated.",
     }
-    const leadsUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/leads`)
+    const leadsUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/leads"))
 
     const isDealWon = status === "deal_won"
     const isDealLost = status === "deal_lost"
@@ -491,7 +550,7 @@ export async function sendCommissionApprovedEmail(
       style: "currency",
       currency,
     }).format(amount)
-    const commissionsUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/commissions`)
+    const commissionsUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/commissions"))
 
     await sendEmail({
       to,
@@ -527,7 +586,7 @@ export async function sendCommissionPaidEmail(
       style: "currency",
       currency,
     }).format(amount)
-    const commissionsUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/commissions`)
+    const commissionsUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/commissions"))
 
     await sendEmail({
       to,
@@ -566,7 +625,7 @@ export async function sendInvoiceEmail(
       style: "currency",
       currency: "AED",
     }).format(amount)
-    const invoicesUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard/invoices`)
+    const invoicesUrl = escapeHtml(buildPortalUrl("partner", "/dashboard/invoices"))
 
     await sendEmail({
       to,
@@ -928,7 +987,7 @@ export async function sendWeeklyNewsletterEmail(
 ): Promise<void> {
   try {
     const safePartnerName = escapeHtml(partnerName)
-    const portalUrl = escapeHtml(`${getPartnerPortalUrl()}/dashboard`)
+    const portalUrl = escapeHtml(buildPortalUrl("partner", "/dashboard"))
     const tips = getWeeklyTips(weekSeed)
 
     const formatAed = (n: number) =>
@@ -1123,7 +1182,7 @@ export async function sendPartnerWelcomeEmail(
 ): Promise<void> {
   try {
     const safePartnerName = escapeHtml(partnerName)
-    const signInUrl = escapeHtml(`${getPartnerPortalUrl()}/sign-in`)
+    const signInUrl = escapeHtml(buildPortalUrl("partner", "/sign-in"))
 
     await sendEmail({
       to,

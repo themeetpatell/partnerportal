@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#080810] px-5 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="mb-10 flex items-center gap-3">
@@ -50,8 +50,8 @@ export default function ForgotPasswordPage() {
             priority
           />
           <div>
-            <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+            <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+            <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
           </div>
         </div>
 
@@ -61,14 +61,14 @@ export default function ForgotPasswordPage() {
             style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.16)" }}
           >
             <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-white mb-1">Check your inbox</p>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              If an account exists for <strong className="text-zinc-300">{email}</strong>, we&apos;ve sent
+            <p className="text-sm font-medium text-foreground mb-1">Check your inbox</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              If an account exists for <strong className="text-[var(--portal-text-soft)]">{email}</strong>, we&apos;ve sent
               a password reset link. Check your spam folder if you don&apos;t see it.
             </p>
             <Link
               href="/sign-in"
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-300 transition-colors hover:text-indigo-200"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               Back to sign in
@@ -77,18 +77,18 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <h2
-              className="text-white font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
+              className="text-foreground font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
               style={{ fontSize: "1.875rem" }}
             >
               Reset your password
             </h2>
-            <p className="text-zinc-500 text-sm mb-8">
+            <p className="text-muted-foreground text-sm mb-8">
               Enter your email and we&apos;ll send you a link to reset your password.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="fp-email" className="block text-[13px] font-medium text-zinc-400 mb-2">
+                <label htmlFor="fp-email" className="block text-[13px] font-medium text-muted-foreground mb-2">
                   Email address
                 </label>
                 <input
@@ -105,9 +105,9 @@ export default function ForgotPasswordPage() {
                     height: "46px",
                     padding: "0 14px",
                     borderRadius: "10px",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    background: "rgba(255,255,255,0.04)",
-                    color: "#f4f4f5",
+                    border: "1px solid var(--portal-line)",
+                    background: "var(--portal-surface-soft)",
+                    color: "var(--portal-fg)",
                     fontSize: "14px",
                     outline: "none",
                   }}
@@ -126,7 +126,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-foreground transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   height: "46px",
                   borderRadius: "10px",
@@ -142,11 +142,11 @@ export default function ForgotPasswordPage() {
 
             <div
               className="mt-8 pt-6 text-center"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+              style={{ borderTop: "1px solid var(--portal-line)" }}
             >
               <Link
                 href="/sign-in"
-                className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-[var(--portal-text-soft)] transition-colors"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
                 Back to sign in

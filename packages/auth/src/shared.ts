@@ -9,39 +9,58 @@ export interface AppAuthUser {
   partnerType: "referral" | "channel" | null
 }
 
-export function mapSupabaseUser(user: User | null): AppAuthUser | null {
-  if (!user?.id || !user.email) {
+function normalizeMetadataValue(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+export function mapJwtClaimsToUser(claims: Record<string, unknown> | null | undefined): AppAuthUser | null {
+  if (!claims) {
     return null
   }
 
-  const metadata = user.user_metadata ?? {}
-  const firstName =
-    typeof metadata.first_name === "string" && metadata.first_name.trim()
-      ? metadata.first_name.trim()
-      : null
-  const lastName =
-    typeof metadata.last_name === "string" && metadata.last_name.trim()
-      ? metadata.last_name.trim()
-      : null
+  const id = normalizeMetadataValue(claims.sub)
+  const email = normalizeMetadataValue(claims.email)
+
+  if (!id || !email) {
+    return null
+  }
+
+  const metadata =
+    claims.user_metadata && typeof claims.user_metadata === "object"
+      ? (claims.user_metadata as Record<string, unknown>)
+      : {}
+
+  const firstName = normalizeMetadataValue(metadata.first_name)
+  const lastName = normalizeMetadataValue(metadata.last_name)
   const fullName =
-    typeof metadata.full_name === "string" && metadata.full_name.trim()
-      ? metadata.full_name.trim()
-      : firstName || lastName
-        ? [firstName, lastName].filter(Boolean).join(" ")
-        : null
+    normalizeMetadataValue(metadata.full_name) ||
+    (firstName || lastName ? [firstName, lastName].filter(Boolean).join(" ") : null)
+  const rawPartnerType = normalizeMetadataValue(metadata.partner_type)
   const partnerType =
-    metadata.partner_type === "referral" || metadata.partner_type === "channel"
-      ? metadata.partner_type
+    rawPartnerType === "referral" || rawPartnerType === "channel"
+      ? rawPartnerType
       : null
 
   return {
-    id: user.id,
-    email: user.email,
+    id,
+    email,
     firstName,
     lastName,
     fullName,
     partnerType,
   }
+}
+
+export function mapSupabaseUser(user: User | null): AppAuthUser | null {
+  if (!user?.id || !user.email) {
+    return null
+  }
+
+  return mapJwtClaimsToUser({
+    sub: user.id,
+    email: user.email,
+    user_metadata: user.user_metadata ?? {},
+  })
 }
 
 export function getSupabaseAuthEnv() {

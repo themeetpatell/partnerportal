@@ -15,6 +15,11 @@ export const metadata: Metadata = {
     template: "%s | Finanshels Admin",
   },
   description: "Internal admin portal for Finanshels team.",
+  icons: {
+    icon: [{ url: "/brand-mark.png", type: "image/png" }],
+    shortcut: "/brand-mark.png",
+    apple: "/brand-mark.png",
+  },
   robots: {
     index: false,
     follow: false,

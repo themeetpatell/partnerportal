@@ -3,7 +3,7 @@ import { getSupabaseAdminClient } from "@repo/auth/admin"
 import { rateLimit, getClientIp } from "@repo/auth"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { sendPartnerPasswordResetEmail } from "@repo/notifications"
+import { buildPortalUrl, sendPartnerPasswordResetEmail } from "@repo/notifications"
 
 export async function POST(request: NextRequest) {
   const limited = rateLimit(`forgot-password:${getClientIp(request.headers)}`, 3, 60_000)
@@ -21,15 +21,13 @@ export async function POST(request: NextRequest) {
 
   try {
     const supabaseAdmin = getSupabaseAdminClient()
-    const partnerPortalUrl =
-      process.env.NEXT_PUBLIC_PARTNER_APP_URL?.trim() || "http://localhost:3000"
 
     // Generate a recovery link server-side so we control the email
     const { data: linkData, error: linkError } =
       await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: { redirectTo: `${partnerPortalUrl}/auth/callback` },
+        options: { redirectTo: buildPortalUrl("partner", "/auth/callback") },
       })
 
     if (linkError || !linkData?.properties?.action_link) {

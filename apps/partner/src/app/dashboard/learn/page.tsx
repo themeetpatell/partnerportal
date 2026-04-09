@@ -252,8 +252,8 @@ const GENERAL_SALES_GUIDE = [
 function ColorClasses(color: string) {
   const map: Record<string, { icon: string; badge: string; border: string }> = {
     indigo: {
-      icon: "bg-indigo-500/12 text-indigo-300",
-      badge: "border-indigo-400/20 bg-indigo-500/10 text-indigo-200",
+      icon: "bg-primary/12 text-primary",
+      badge: "border-primary/20 bg-primary/10 text-primary",
       border: "border-indigo-400/15",
     },
     sky: {
@@ -293,14 +293,14 @@ export default function LearnPage() {
               <a
                 key={cat.id}
                 href={`#${cat.id}`}
-                className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4 transition-colors hover:border-white/15 hover:bg-white/[0.05]"
+                className="flex items-start gap-3 rounded-2xl border border-border bg-secondary/50 p-4 transition-colors hover:border-border hover:bg-secondary/70"
               >
                 <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${c.icon}`}>
                   <cat.icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{cat.title}</p>
-                  <p className="mt-0.5 text-xs leading-5 text-slate-400">{cat.description}</p>
+                  <p className="text-sm font-semibold text-foreground">{cat.title}</p>
+                  <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{cat.description}</p>
                 </div>
               </a>
             )
@@ -316,10 +316,10 @@ export default function LearnPage() {
           </div>
           <div>
             <div className="eyebrow">General guide</div>
-            <h2 className="font-heading text-xl font-semibold text-white">How to sell Finanshels</h2>
+            <h2 className="font-heading text-xl font-semibold text-foreground">How to sell Finanshels</h2>
           </div>
         </div>
-        <p className="mt-3 text-sm leading-7 text-slate-400">
+        <p className="mt-3 text-sm leading-7 text-muted-foreground">
           These principles apply across all service lines — master these and every conversation becomes easier.
         </p>
 
@@ -327,10 +327,10 @@ export default function LearnPage() {
           {GENERAL_SALES_GUIDE.map((tip) => (
             <div
               key={tip.heading}
-              className="rounded-2xl border border-white/8 bg-white/[0.03] p-5"
+              className="rounded-2xl border border-border bg-secondary/50 p-5"
             >
-              <p className="text-sm font-semibold text-white">{tip.heading}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-400">{tip.body}</p>
+              <p className="text-sm font-semibold text-foreground">{tip.heading}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{tip.body}</p>
             </div>
           ))}
         </div>
@@ -347,40 +347,40 @@ export default function LearnPage() {
               </div>
               <div>
                 <div className="eyebrow">{cat.title}</div>
-                <h2 className="font-heading text-xl font-semibold text-white">{cat.title}</h2>
+                <h2 className="font-heading text-xl font-semibold text-foreground">{cat.title}</h2>
               </div>
             </div>
-            <p className="mt-2 text-sm leading-6 text-slate-400">{cat.description}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">{cat.description}</p>
 
             <div className="mt-6 space-y-6">
               {cat.services.map((service) => (
                 <div
                   key={service.name}
-                  className={`rounded-2xl border bg-white/[0.02] p-5 ${c.border}`}
+                  className={`rounded-2xl border bg-secondary/30 p-5 ${c.border}`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-base font-semibold text-white">{service.name}</h3>
+                    <h3 className="text-base font-semibold text-foreground">{service.name}</h3>
                     <span className={`status-pill border ${c.badge}`}>{cat.title}</span>
                   </div>
 
-                  <p className="mt-3 text-sm leading-6 text-slate-300">{service.what}</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--portal-text-soft)]">{service.what}</p>
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         Who needs this
                       </p>
-                      <p className="mt-2 text-sm leading-6 text-slate-400">{service.who}</p>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{service.who}</p>
                     </div>
 
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                         How to pitch it
                       </p>
                       <ul className="mt-2 space-y-1.5">
                         {service.pitch.map((point, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm leading-6 text-slate-400">
-                            <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600" />
+                          <li key={i} className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                            <ChevronRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
                             <span>{point}</span>
                           </li>
                         ))}
@@ -389,20 +389,20 @@ export default function LearnPage() {
                   </div>
 
                   {service.objections.length > 0 ? (
-                    <div className="mt-4 border-t border-white/6 pt-4">
+                    <div className="mt-4 border-t border-border pt-4">
                       <div className="flex items-center gap-1.5">
-                        <HelpCircle className="h-3.5 w-3.5 text-slate-600" />
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                           Common objections
                         </p>
                       </div>
                       <div className="mt-3 space-y-3">
                         {service.objections.map((obj, i) => (
-                          <div key={i} className="rounded-xl bg-white/[0.03] px-4 py-3">
-                            <p className="text-sm font-medium text-slate-300">
+                          <div key={i} className="rounded-xl bg-secondary/50 px-4 py-3">
+                            <p className="text-sm font-medium text-[var(--portal-text-soft)]">
                               &ldquo;{obj.q}&rdquo;
                             </p>
-                            <p className="mt-1.5 text-sm leading-6 text-slate-400">
+                            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                               → {obj.a}
                             </p>
                           </div>
@@ -419,13 +419,13 @@ export default function LearnPage() {
 
       {/* CTA footer */}
       <section className="surface-card rounded-[2rem] px-6 py-7 text-center sm:px-8">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
           <DollarSign className="h-6 w-6" />
         </div>
-        <h2 className="mt-5 font-heading text-2xl font-semibold text-white">
+        <h2 className="mt-5 font-heading text-2xl font-semibold text-foreground">
           Ready to earn your next commission?
         </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+        <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
           Submit a qualified lead now. The more context you provide, the faster our team can qualify it.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">

@@ -26,10 +26,10 @@ type EligibleClient = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  in_progress: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
-  completed: "border border-white/20 bg-white/10 text-white",
-  cancelled: "border border-zinc-600/20 bg-zinc-500/10 text-zinc-300",
+  pending: "border border-border bg-secondary text-foreground/90",
+  in_progress: "border border-border bg-secondary text-foreground/90",
+  completed: "border border-border bg-secondary text-foreground",
+  cancelled: "border border-border bg-secondary text-[var(--portal-text-soft)]",
 }
 
 export default function NewServiceRequestPage() {
@@ -174,7 +174,7 @@ export default function NewServiceRequestPage() {
               <div>
                 <label className="field-label">Client company</label>
                 <div className="relative">
-                  <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     readOnly
                     value={selectedClient.companyName}
@@ -185,7 +185,7 @@ export default function NewServiceRequestPage() {
               <div>
                 <label className="field-label">Client contact</label>
                 <div className="relative">
-                  <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     readOnly
                     value={selectedClient.contactName}
@@ -196,7 +196,7 @@ export default function NewServiceRequestPage() {
               <div>
                 <label className="field-label">Client email</label>
                 <div className="relative">
-                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     readOnly
                     value={selectedClient.email}
@@ -212,7 +212,7 @@ export default function NewServiceRequestPage() {
             <label className="field-label">
               List of services <span className="ml-1 text-rose-300">*</span>
             </label>
-            <p className="mb-3 text-sm text-slate-400">
+            <p className="mb-3 text-sm text-muted-foreground">
               Select all services to cross-sell or upsell for this client.
             </p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -223,8 +223,8 @@ export default function NewServiceRequestPage() {
                     key={service}
                     className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-colors ${
                       checked
-                        ? "border-indigo-400/40 bg-indigo-500/15 text-indigo-100"
-                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/15 hover:bg-white/[0.05]"
+                        ? "border-indigo-400/40 bg-indigo-500/15 text-primary"
+                        : "border-border bg-secondary/50 text-[var(--portal-text-soft)] hover:border-border hover:bg-secondary/70"
                     }`}
                   >
                     <input
@@ -239,7 +239,7 @@ export default function NewServiceRequestPage() {
               })}
             </div>
             {form.serviceInterest.length > 0 ? (
-              <p className="mt-3 text-sm text-indigo-300">
+              <p className="mt-3 text-sm text-primary">
                 {form.serviceInterest.length} service{form.serviceInterest.length === 1 ? "" : "s"} selected
               </p>
             ) : null}
@@ -278,10 +278,10 @@ export default function NewServiceRequestPage() {
 
       {/* Previous requests */}
       <section className="table-shell">
-        <div className="flex items-center justify-between border-b border-white/8 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-border px-6 py-5">
           <div>
-            <p className="font-heading text-xl font-semibold text-white">Previous service requests</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="font-heading text-xl font-semibold text-foreground">Previous service requests</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Your latest requests, visible while you create the next one.
             </p>
           </div>
@@ -291,15 +291,15 @@ export default function NewServiceRequestPage() {
         </div>
 
         {loadingRecent ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">Loading...</div>
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">Loading...</div>
         ) : recentRequests.length === 0 ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">No previous requests yet.</div>
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">No previous requests yet.</div>
         ) : (
           <>
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Client</th>
                     <th className="px-6 py-4 font-medium">Services</th>
                     <th className="px-6 py-4 font-medium">Status</th>
@@ -310,19 +310,19 @@ export default function NewServiceRequestPage() {
                   {recentRequests.map((request) => (
                     <tr
                       key={request.id}
-                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                      className="border-b border-border transition-colors hover:bg-secondary/50"
                     >
                       <td className="px-6 py-4">
-                        <p className="font-medium text-white">{request.customerCompany}</p>
-                        <p className="mt-1 text-xs text-slate-400">{request.customerContact}</p>
+                        <p className="font-medium text-foreground">{request.customerCompany}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">{request.customerContact}</p>
                       </td>
-                      <td className="px-6 py-4 text-slate-300">{request.serviceName}</td>
+                      <td className="px-6 py-4 text-[var(--portal-text-soft)]">{request.serviceName}</td>
                       <td className="px-6 py-4">
-                        <span className={`status-pill ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}>
+                        <span className={`status-pill ${statusStyles[request.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}>
                           {request.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {new Date(request.createdAt).toLocaleDateString("en-AE", {
                           day: "numeric",
                           month: "short",
@@ -339,18 +339,18 @@ export default function NewServiceRequestPage() {
               {recentRequests.map((request) => (
                 <div
                   key={request.id}
-                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                  className="rounded-[1.5rem] border border-border bg-secondary/50 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-heading text-lg font-semibold text-white">{request.customerCompany}</p>
-                      <p className="mt-1 text-sm text-slate-400">{request.serviceName}</p>
+                      <p className="font-heading text-lg font-semibold text-foreground">{request.customerCompany}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{request.serviceName}</p>
                     </div>
-                    <span className={`status-pill shrink-0 ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}>
+                    <span className={`status-pill shrink-0 ${statusStyles[request.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}>
                       {request.status.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <p className="mt-4 text-xs text-slate-500">
+                  <p className="mt-4 text-xs text-muted-foreground">
                     {new Date(request.createdAt).toLocaleDateString("en-AE", {
                       day: "numeric",
                       month: "short",

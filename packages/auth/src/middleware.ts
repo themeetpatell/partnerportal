@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
-import { getOptionalSupabaseAuthEnv, mapSupabaseUser } from "./shared"
+import { getOptionalSupabaseAuthEnv, mapJwtClaimsToUser } from "./shared"
 
 export function createRouteMatcher(routes: string[]) {
   const patterns = routes.map((route) => new RegExp(`^${route}$`))
@@ -49,11 +49,11 @@ export async function updateSession(request: NextRequest) {
   })
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data,
+  } = await supabase.auth.getClaims()
 
   return {
     response,
-    user: mapSupabaseUser(user),
+    user: mapJwtClaimsToUser(data?.claims ?? null),
   }
 }

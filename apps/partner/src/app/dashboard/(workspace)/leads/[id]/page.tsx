@@ -14,11 +14,11 @@ import {
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const statusStyles: Record<string, string> = {
-  submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
+  submitted: "border border-border bg-secondary text-foreground/90",
   qualified: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
-  proposal_sent: "border border-indigo-400/20 bg-indigo-500/10 text-indigo-100",
+  proposal_sent: "border border-primary/20 bg-primary/10 text-primary",
   deal_won: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
-  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-400",
+  deal_lost: "border border-border bg-secondary/60 text-muted-foreground",
 }
 
 const statusTimeline = ["submitted", "qualified", "proposal_sent", "deal_won"]
@@ -66,10 +66,10 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   if (!value) return null
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-white">{value}</dd>
+      <dd className="mt-1 text-sm text-foreground">{value}</dd>
     </div>
   )
 }
@@ -131,7 +131,7 @@ export default async function LeadDetailPage({
       <section className="surface-card rounded-[2rem] px-6 py-7 sm:px-8">
         <Link
           href="/dashboard/leads"
-          className="inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-white"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to leads
@@ -141,12 +141,12 @@ export default async function LeadDetailPage({
           <div>
             <h1 className="page-title">{lead.customerName}</h1>
             {lead.customerCompany ? (
-              <p className="mt-1 text-base text-slate-400">{lead.customerCompany}</p>
+              <p className="mt-1 text-base text-muted-foreground">{lead.customerCompany}</p>
             ) : null}
-            <p className="mt-1 text-xs text-slate-600">Lead ID: {lead.id}</p>
+            <p className="mt-1 text-xs text-muted-foreground/60">Lead ID: {lead.id}</p>
           </div>
           <span
-            className={`status-pill self-start text-sm ${statusStyles[lead.status] ?? "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+            className={`status-pill self-start text-sm ${statusStyles[lead.status] ?? "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
           >
             {lead.status.replace(/_/g, " ")}
           </span>
@@ -164,20 +164,20 @@ export default async function LeadDetailPage({
                   <div
                     className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                       done && !current
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-emerald-500 text-foreground"
                         : current
-                          ? "bg-indigo-500 text-white ring-2 ring-indigo-400/40 ring-offset-1 ring-offset-transparent"
-                          : "border border-white/15 bg-white/[0.04] text-slate-600"
+                          ? "bg-indigo-500 text-foreground ring-2 ring-indigo-400/40 ring-offset-1 ring-offset-transparent"
+                          : "border border-border bg-secondary/50 text-muted-foreground/60"
                     }`}
                   >
                     {done && !current ? "✓" : i + 1}
                   </div>
-                  <span className={`hidden text-[11px] sm:block ${current ? "text-indigo-300" : done ? "text-slate-400" : "text-slate-600"}`}>
+                  <span className={`hidden text-[11px] sm:block ${current ? "text-primary" : done ? "text-muted-foreground" : "text-muted-foreground/60"}`}>
                     {step.replace(/_/g, " ")}
                   </span>
                 </div>
                 {i < statusTimeline.length - 1 ? (
-                  <div className={`h-px flex-1 ${done ? "bg-emerald-600/50" : "bg-white/10"}`} />
+                  <div className={`h-px flex-1 ${done ? "bg-emerald-600/50" : "bg-secondary"}`} />
                 ) : null}
               </div>
             )
@@ -204,8 +204,8 @@ export default async function LeadDetailPage({
         <div className="space-y-6 lg:col-span-2">
           {/* Customer info */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-white">
-              <User className="h-4 w-4 text-slate-400" />
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
+              <User className="h-4 w-4 text-muted-foreground" />
               Customer information
             </h2>
             <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -213,7 +213,7 @@ export default async function LeadDetailPage({
               <Field
                 label="Email"
                 value={
-                  <a href={`mailto:${lead.customerEmail}`} className="text-indigo-300 hover:text-indigo-200">
+                  <a href={`mailto:${lead.customerEmail}`} className="text-primary hover:text-primary">
                     {lead.customerEmail}
                   </a>
                 }
@@ -222,7 +222,7 @@ export default async function LeadDetailPage({
                 <Field
                   label="Phone"
                   value={
-                    <a href={`tel:${lead.customerPhone}`} className="text-indigo-300 hover:text-indigo-200">
+                    <a href={`tel:${lead.customerPhone}`} className="text-primary hover:text-primary">
                       {lead.customerPhone}
                     </a>
                   }
@@ -237,16 +237,16 @@ export default async function LeadDetailPage({
               {/* Services of interest */}
               {services.length > 0 ? (
                 <div className="sm:col-span-2">
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Services of interest
                   </dt>
                   <dd className="mt-2 flex flex-wrap gap-1.5">
                     {services.map((s) => (
                       <span
                         key={s}
-                        className="flex items-center gap-1 rounded-lg border border-white/8 bg-white/[0.05] px-2.5 py-1 text-xs text-zinc-300"
+                        className="flex items-center gap-1 rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-xs text-[var(--portal-text-soft)]"
                       >
-                        <Tag className="h-3 w-3 text-slate-500" />
+                        <Tag className="h-3 w-3 text-muted-foreground" />
                         {s}
                       </span>
                     ))}
@@ -257,10 +257,10 @@ export default async function LeadDetailPage({
               {/* Notes */}
               {lead.notes ? (
                 <div className="sm:col-span-2">
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Notes
                   </dt>
-                  <dd className="mt-2 rounded-xl border border-white/8 bg-white/[0.03] p-3 text-sm text-slate-300">
+                  <dd className="mt-2 rounded-xl border border-border bg-secondary/50 p-3 text-sm text-[var(--portal-text-soft)]">
                     {lead.notes}
                   </dd>
                 </div>
@@ -271,21 +271,21 @@ export default async function LeadDetailPage({
           {/* CRM Deal Snapshot */}
           {hasCrmSnapshot ? (
             <section className="surface-card rounded-[2rem] px-6 py-6">
-              <h2 className="font-heading text-lg font-semibold text-white">CRM deal snapshot</h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <h2 className="font-heading text-lg font-semibold text-foreground">CRM deal snapshot</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Data synced from Zoho CRM after your lead progressed.
               </p>
 
               {crmServicesList.length > 0 ? (
                 <div className="mt-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                     Proposal services
                   </p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {crmServicesList.map((s) => (
                       <span
                         key={s}
-                        className="flex items-center gap-1 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-100"
+                        className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary"
                       >
                         <Tag className="h-3 w-3" />
                         {s}
@@ -315,12 +315,12 @@ export default async function LeadDetailPage({
 
           {/* Documents */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-white">
-              <FileText className="h-4 w-4 text-slate-400" />
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
+              <FileText className="h-4 w-4 text-muted-foreground" />
               Documents
             </h2>
             {leadDocs.length === 0 ? (
-              <p className="mt-4 text-center text-sm text-slate-500">No documents attached.</p>
+              <p className="mt-4 text-center text-sm text-muted-foreground">No documents attached.</p>
             ) : (
               <div className="mt-4 space-y-2">
                 {leadDocs.map((doc) => (
@@ -329,14 +329,14 @@ export default async function LeadDetailPage({
                     href={doc.zohoWorkdriveUrl ?? "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-3 rounded-xl border border-white/8 bg-white/[0.03] p-3 transition-colors hover:bg-white/[0.06]"
+                    className="group flex items-center gap-3 rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary/80"
                   >
-                    <FileText className="h-4 w-4 shrink-0 text-slate-500" />
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">{doc.fileName}</p>
-                      <p className="text-xs capitalize text-slate-500">{doc.documentType}</p>
+                      <p className="truncate text-sm font-medium text-foreground">{doc.fileName}</p>
+                      <p className="text-xs capitalize text-muted-foreground">{doc.documentType}</p>
                     </div>
-                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-600 transition-colors group-hover:text-slate-400" />
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-colors group-hover:text-muted-foreground" />
                   </a>
                 ))}
               </div>
@@ -348,25 +348,25 @@ export default async function LeadDetailPage({
         <div className="space-y-6">
           {/* Key dates */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-white">
-              <Calendar className="h-4 w-4 text-slate-400" />
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               Key dates
             </h2>
             <dl className="mt-4 space-y-3">
               <div>
-                <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Submitted</dt>
-                <dd className="mt-1 text-sm text-white">{formatDateTime(lead.createdAt)}</dd>
+                <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Submitted</dt>
+                <dd className="mt-1 text-sm text-foreground">{formatDateTime(lead.createdAt)}</dd>
               </div>
               {lead.convertedAt ? (
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-500">Deal won</dt>
-                  <dd className="mt-1 text-sm text-white">{formatDateTime(lead.convertedAt)}</dd>
+                  <dd className="mt-1 text-sm text-foreground">{formatDateTime(lead.convertedAt)}</dd>
                 </div>
               ) : null}
               {crmClosingDate ? (
                 <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">CRM closing date</dt>
-                  <dd className="mt-1 text-sm text-white">{crmClosingDate}</dd>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">CRM closing date</dt>
+                  <dd className="mt-1 text-sm text-foreground">{crmClosingDate}</dd>
                 </div>
               ) : null}
             </dl>
@@ -374,8 +374,8 @@ export default async function LeadDetailPage({
 
           {/* Source info */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-white">
-              <Building2 className="h-4 w-4 text-slate-400" />
+            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
               Lead source
             </h2>
             <dl className="mt-4 space-y-3">
@@ -388,8 +388,8 @@ export default async function LeadDetailPage({
           {/* Next steps for won leads */}
           {lead.status === "deal_won" ? (
             <section className="surface-card rounded-[2rem] px-6 py-6">
-              <h2 className="font-heading text-lg font-semibold text-white">Next steps</h2>
-              <p className="mt-1 text-sm text-slate-400">
+              <h2 className="font-heading text-lg font-semibold text-foreground">Next steps</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 This lead is won. You can cross-sell or upsell to this client.
               </p>
               <div className="mt-4 flex flex-col gap-2">

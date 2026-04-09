@@ -1,25 +1,28 @@
 @import "tailwindcss";
 @source "../**/*.{ts,tsx}";
 
+@custom-variant dark (&:is(.dark *));
+
 @theme {
   --font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --color-background: #09090b;
-  --color-foreground: #fafafa;
-  --color-card: #18181b;
-  --color-card-foreground: #fafafa;
-  --color-primary: #818cf8;
+
+  --color-background: var(--portal-bg);
+  --color-foreground: var(--portal-fg);
+  --color-card: var(--portal-surface);
+  --color-card-foreground: var(--portal-fg);
+  --color-primary: var(--portal-indigo);
   --color-primary-foreground: #ffffff;
-  --color-secondary: #27272a;
-  --color-secondary-foreground: #fafafa;
-  --color-muted: #27272a;
-  --color-muted-foreground: #a1a1aa;
-  --color-accent: #818cf8;
+  --color-secondary: var(--portal-secondary);
+  --color-secondary-foreground: var(--portal-secondary-fg);
+  --color-muted: var(--portal-secondary);
+  --color-muted-foreground: var(--portal-text-muted);
+  --color-accent: var(--portal-indigo);
   --color-accent-foreground: #ffffff;
   --color-destructive: #ef4444;
-  --color-destructive-foreground: #fafafa;
-  --color-border: #27272a;
-  --color-input: #27272a;
-  --color-ring: #818cf8;
+  --color-destructive-foreground: var(--portal-fg);
+  --color-border: var(--portal-line);
+  --color-input: var(--portal-line);
+  --color-ring: var(--portal-indigo);
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -28,10 +31,31 @@
   --radius-2xl: 1.5rem;
 }
 
+/* ── Light mode (default) ── */
 :root {
+  color-scheme: light;
+  --portal-bg: #ffffff;
+  --portal-fg: #0f172a;
+  --portal-surface: #ffffff;
+  --portal-surface-strong: #f8fafc;
+  --portal-surface-soft: #f1f5f9;
+  --portal-line: #e2e8f0;
+  --portal-line-strong: #cbd5e1;
+  --portal-text-soft: #475569;
+  --portal-text-muted: #64748b;
+  --portal-indigo: #6366f1;
+  --portal-indigo-muted: rgba(99, 102, 241, 0.08);
+  --portal-secondary: #f1f5f9;
+  --portal-secondary-fg: #0f172a;
+  --portal-shadow-card: rgba(0, 0, 0, 0.06);
+  --portal-shadow-card-strong: rgba(0, 0, 0, 0.08);
+}
+
+/* ── Dark mode ── */
+.dark {
   color-scheme: dark;
-  background-color: #09090b;
-  color: #fafafa;
+  --portal-bg: #09090b;
+  --portal-fg: #fafafa;
   --portal-surface: #18181b;
   --portal-surface-strong: #111113;
   --portal-surface-soft: #1c1c1f;
@@ -41,6 +65,10 @@
   --portal-text-muted: #71717a;
   --portal-indigo: #818cf8;
   --portal-indigo-muted: rgba(129, 140, 248, 0.15);
+  --portal-secondary: #27272a;
+  --portal-secondary-fg: #fafafa;
+  --portal-shadow-card: rgba(0, 0, 0, 0.4);
+  --portal-shadow-card-strong: rgba(0, 0, 0, 0.5);
 }
 
 html,
@@ -58,8 +86,8 @@ body {
 
 body {
   margin: 0;
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: var(--portal-bg);
+  color: var(--portal-fg);
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -77,20 +105,20 @@ a {
 }
 
 ::-webkit-scrollbar-track {
-  background: #18181b;
+  background: var(--portal-surface);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
+  background: var(--portal-line-strong);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+  background: var(--portal-text-muted);
 }
 
 :focus-visible {
-  outline: 2px solid #818cf8;
+  outline: 2px solid var(--portal-indigo);
   outline-offset: 2px;
 }
 
@@ -107,13 +135,13 @@ a {
   .surface-card {
     background: var(--portal-surface);
     border: 1px solid var(--portal-line);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 3px var(--portal-shadow-card);
   }
 
   .surface-card-strong {
     background: var(--portal-surface-strong);
     border: 1px solid var(--portal-line-strong);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 8px var(--portal-shadow-card-strong);
   }
 
   .surface-card-soft {
@@ -122,27 +150,22 @@ a {
   }
 
   .workspace-mobile-topbar {
-    background:
-      linear-gradient(180deg, rgba(32, 32, 36, 0.96) 0%, rgba(23, 23, 27, 0.98) 100%),
-      radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 55%);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 14px 36px rgba(0, 0, 0, 0.34),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid var(--portal-line);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(18px);
   }
 
   .workspace-mobile-topbar-avatar {
-    background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.12));
-    border: 1px solid rgba(129, 140, 248, 0.24);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.06));
+    border: 1px solid rgba(99, 102, 241, 0.18);
   }
 
   .eyebrow {
     @apply inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em];
-    background: rgba(129, 140, 248, 0.12);
-    border: 1px solid rgba(129, 140, 248, 0.28);
-    color: #818cf8;
+    background: var(--portal-indigo-muted);
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    color: var(--portal-indigo);
   }
 
   .hero-title {
@@ -152,7 +175,8 @@ a {
 
   .page-title {
     letter-spacing: -0.03em;
-    @apply text-3xl font-bold text-white sm:text-4xl;
+    color: var(--portal-fg);
+    @apply text-3xl font-bold sm:text-4xl;
   }
 
   .page-subtitle {
@@ -162,25 +186,31 @@ a {
 
   .section-title {
     letter-spacing: -0.025em;
-    @apply text-xl font-semibold text-white sm:text-2xl;
+    color: var(--portal-fg);
+    @apply text-xl font-semibold sm:text-2xl;
   }
 
   .metric-card {
     background: var(--portal-surface);
     border: 1px solid var(--portal-line);
-    @apply rounded-2xl p-5 transition-colors duration-200 hover:border-zinc-700;
+    @apply rounded-2xl p-5 transition-colors duration-200;
+  }
+
+  .metric-card:hover {
+    border-color: var(--portal-line-strong);
   }
 
   .metric-value {
     letter-spacing: -0.04em;
-    @apply text-3xl font-bold text-white;
+    color: var(--portal-fg);
+    @apply text-3xl font-bold;
   }
 
   .tag-pill {
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
-    background: rgba(129, 140, 248, 0.1);
-    border: 1px solid rgba(129, 140, 248, 0.18);
-    color: #c7d2fe;
+    background: var(--portal-indigo-muted);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+    color: var(--portal-indigo);
   }
 
   .status-pill {
@@ -193,7 +223,7 @@ a {
   }
 
   .field-label {
-    color: #d4d4d8;
+    color: var(--portal-text-soft);
     @apply mb-1.5 block text-sm font-medium;
   }
 
@@ -202,9 +232,9 @@ a {
   .field-textarea {
     width: 100%;
     border-radius: 0.625rem;
-    border: 1px solid #3f3f46;
-    background: #09090b;
-    color: #fafafa;
+    border: 1px solid var(--portal-line-strong);
+    background: var(--portal-bg);
+    color: var(--portal-fg);
     transition: border-color 150ms ease, box-shadow 150ms ease;
   }
 
@@ -226,20 +256,20 @@ a {
   .field-input:hover,
   .field-select:hover,
   .field-textarea:hover {
-    border-color: #52525b;
+    border-color: var(--portal-text-muted);
   }
 
   .field-input:focus,
   .field-select:focus,
   .field-textarea:focus {
     outline: none;
-    border-color: #818cf8;
-    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+    border-color: var(--portal-indigo);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
   }
 
   .primary-button {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150;
-    background: #818cf8;
+    background: var(--portal-indigo);
     color: #ffffff;
   }
 
@@ -253,13 +283,13 @@ a {
 
   .secondary-button {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150;
-    background: #27272a;
-    border: 1px solid #3f3f46;
-    color: #e4e4e7;
+    background: var(--portal-secondary);
+    border: 1px solid var(--portal-line-strong);
+    color: var(--portal-fg);
   }
 
   .secondary-button:hover {
-    background: #3f3f46;
+    background: var(--portal-line-strong);
   }
 
   .table-shell {
@@ -281,9 +311,9 @@ a {
 }
 
 .cl-card {
-  background-color: #18181b !important;
-  border: 1px solid #27272a !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+  background-color: var(--portal-surface) !important;
+  border: 1px solid var(--portal-line) !important;
+  box-shadow: 0 25px 50px -12px var(--portal-shadow-card-strong) !important;
 }
 
 .cl-headerTitle,
@@ -291,25 +321,42 @@ a {
 .cl-bodyText,
 .cl-formFieldLabel,
 .cl-footerActionText {
-  color: #fafafa !important;
+  color: var(--portal-fg) !important;
 }
 
 .cl-formFieldInput {
-  background-color: #09090b !important;
-  border-color: #3f3f46 !important;
-  color: #fafafa !important;
+  background-color: var(--portal-bg) !important;
+  border-color: var(--portal-line-strong) !important;
+  color: var(--portal-fg) !important;
 }
 
 .cl-formButtonPrimary {
-  background-color: #818cf8 !important;
+  background-color: var(--portal-indigo) !important;
   color: #ffffff !important;
 }
 
 .cl-footerActionLink {
-  color: #818cf8 !important;
+  color: var(--portal-indigo) !important;
 }
 
 .cl-identityPreviewText,
 .cl-identityPreviewEditButton {
-  color: #a1a1aa !important;
+  color: var(--portal-text-soft) !important;
+}
+
+/* ── Dark-mode-specific overrides for complex gradients ── */
+.dark .workspace-mobile-topbar {
+  background:
+    linear-gradient(180deg, rgba(32, 32, 36, 0.96) 0%, rgba(23, 23, 27, 0.98) 100%),
+    radial-gradient(circle at top left, rgba(129, 140, 248, 0.18), transparent 55%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .workspace-mobile-topbar-avatar {
+  background: linear-gradient(135deg, rgba(129, 140, 248, 0.22), rgba(99, 102, 241, 0.12));
+  border: 1px solid rgba(129, 140, 248, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }

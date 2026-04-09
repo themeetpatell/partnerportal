@@ -50,7 +50,7 @@ export function AvatarUpload({ profileImageUrl }: AvatarUploadProps) {
 
   return (
     <div className="relative shrink-0">
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.65rem] border border-white/15 bg-gradient-to-br from-white/18 via-white/10 to-white/5 text-white shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
+      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.65rem] border border-border bg-gradient-to-br from-secondary via-secondary/70 to-secondary/40 text-foreground shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
         {preview ? (
           <img
             src={preview}
@@ -66,7 +66,7 @@ export function AvatarUpload({ profileImageUrl }: AvatarUploadProps) {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-white/20 bg-indigo-600 text-white shadow-lg transition-colors hover:bg-indigo-500 disabled:opacity-50"
+        className="absolute -bottom-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-indigo-600 text-foreground shadow-lg transition-colors hover:bg-indigo-500 disabled:opacity-50"
         title="Change profile picture"
       >
         {uploading ? (

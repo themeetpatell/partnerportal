@@ -38,24 +38,29 @@ export default async function AdminOverviewPage() {
   let dashboardData
 
   try {
-    dashboardData = await Promise.all([
-      db
+    dashboardData = await db.transaction(async (tx) => {
+      // Keep the overview fetch on a single pooled connection so the landing page
+      // does not fan out into multiple concurrent queries under serverless load.
+      const partnerMetricsResult = await tx
         .select({
           total: sql<number>`count(*)`,
           pending: sql<number>`count(*) filter (where ${partners.status} = 'pending')`,
         })
-        .from(partners),
-      db
+        .from(partners)
+
+      const leadMetricsResult = await tx
         .select({
           total: sql<number>`count(*)`,
           submitted: sql<number>`count(*) filter (where ${leads.status} = 'submitted')`,
         })
-        .from(leads),
-      db
+        .from(leads)
+
+      const pendingCommissionsResult = await tx
         .select({ total: sum(commissions.amount) })
         .from(commissions)
-        .where(eq(commissions.status, "pending")),
-      db
+        .where(eq(commissions.status, "pending"))
+
+      const pendingPartnersList = await tx
         .select({
           id: partners.id,
           companyName: partners.companyName,
@@ -66,8 +71,9 @@ export default async function AdminOverviewPage() {
         .from(partners)
         .where(eq(partners.status, "pending"))
         .orderBy(desc(partners.createdAt))
-        .limit(5),
-      db
+        .limit(5)
+
+      const recentLeadsList = await tx
         .select({
           id: leads.id,
           customerName: leads.customerName,
@@ -78,8 +84,16 @@ export default async function AdminOverviewPage() {
         })
         .from(leads)
         .orderBy(desc(leads.createdAt))
-        .limit(5),
-    ])
+        .limit(5)
+
+      return [
+        partnerMetricsResult,
+        leadMetricsResult,
+        pendingCommissionsResult,
+        pendingPartnersList,
+        recentLeadsList,
+      ] as const
+    })
   } catch (error) {
     if (isDatabaseConnectivityError(error)) {
       console.error("Admin overview database query failed", error)

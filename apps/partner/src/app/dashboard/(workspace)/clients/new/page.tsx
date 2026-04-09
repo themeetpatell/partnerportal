@@ -213,7 +213,7 @@ export default function NewClientPage() {
                   ) : null}
                 </label>
                 <div className="relative">
-                  <field.icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                  <field.icon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input
                     required={field.required}
                     type={field.type}
@@ -253,7 +253,7 @@ export default function NewClientPage() {
             <div>
               <label className="field-label">Renewal date</label>
               <div className="relative">
-                <CalendarClock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <CalendarClock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="date"
                   value={form.renewalDate}
@@ -294,10 +294,10 @@ export default function NewClientPage() {
       </section>
 
       <section className="table-shell">
-        <div className="flex flex-col gap-3 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="font-heading text-xl font-semibold text-white">Recent clients</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="font-heading text-xl font-semibold text-foreground">Recent clients</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Latest partner-owned client records saved to your workspace.
             </p>
           </div>
@@ -307,11 +307,11 @@ export default function NewClientPage() {
         </div>
 
         {loadingRecent ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">
             Loading clients...
           </div>
         ) : recentClients.length === 0 ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">
             No saved clients yet.
           </div>
         ) : (
@@ -319,7 +319,7 @@ export default function NewClientPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Company</th>
                     <th className="px-6 py-4 font-medium">Contact</th>
                     <th className="px-6 py-4 font-medium">Status</th>
@@ -330,24 +330,24 @@ export default function NewClientPage() {
                   {recentClients.map((client) => (
                     <tr
                       key={client.id}
-                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                      className="border-b border-border transition-colors hover:bg-secondary/50"
                     >
                       <td className="px-6 py-4">
-                        <p className="font-medium text-white">{client.companyName}</p>
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="font-medium text-foreground">{client.companyName}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {[client.city, client.country, client.nationality].filter(Boolean).join(", ") || "No location"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-slate-300">
+                      <td className="px-6 py-4 text-[var(--portal-text-soft)]">
                         <p>{client.contactName}</p>
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {client.email || client.phone || "No contact details"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-slate-300 capitalize">
+                      <td className="px-6 py-4 text-[var(--portal-text-soft)] capitalize">
                         {client.status.replace(/_/g, " ")}
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {toDateInputValue(client.renewalDate)}
                       </td>
                     </tr>
@@ -360,28 +360,28 @@ export default function NewClientPage() {
               {recentClients.map((client) => (
                 <div
                   key={client.id}
-                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                  className="rounded-[1.5rem] border border-border bg-secondary/50 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-heading text-lg font-semibold text-white">
+                      <p className="font-heading text-lg font-semibold text-foreground">
                         {client.companyName}
                       </p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {client.city || client.country || "No location"}
                       </p>
                     </div>
-                    <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-300">
+                    <span className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]">
                       {client.status.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <div className="mt-4 rounded-[1.15rem] border border-white/8 bg-black/10 p-3">
-                    <p className="text-sm text-white">{client.contactName}</p>
-                    <p className="mt-1 text-sm text-slate-400">
+                  <div className="mt-4 rounded-[1.15rem] border border-border bg-black/10 p-3">
+                    <p className="text-sm text-foreground">{client.contactName}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
                       {client.email || client.phone || "No contact details"}
                     </p>
                   </div>
-                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     Renewal {toDateInputValue(client.renewalDate) || "not set"}
                   </p>
                 </div>

@@ -36,10 +36,10 @@ function LifecyclePill({
   tone: "indigo" | "emerald" | "amber" | "slate"
 }) {
   const tones = {
-    indigo: "border-indigo-400/20 bg-indigo-500/12 text-indigo-200",
+    indigo: "border-primary/20 bg-primary/12 text-primary",
     emerald: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
     amber: "border-amber-400/20 bg-amber-400/10 text-amber-300",
-    slate: "border-white/10 bg-white/5 text-slate-400",
+    slate: "border-border bg-secondary/50 text-muted-foreground",
   }
 
   return (
@@ -64,8 +64,8 @@ function FieldRow({
 }) {
   const hasValue = Boolean(value)
   return (
-    <div className="border-b border-white/8 py-4 last:border-b-0">
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+    <div className="border-b border-border py-4 last:border-b-0">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         <span>{label}</span>
       </div>
@@ -74,14 +74,14 @@ function FieldRow({
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-white transition-colors hover:text-indigo-200"
+          className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
         >
           <span className="break-all">{value}</span>
-          <ArrowUpRight className="h-4 w-4 text-slate-500" />
+          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
         </a>
       ) : (
-        <p className="mt-2 text-sm font-medium leading-6 text-white break-words">
-          {value || <span className="text-slate-600">—</span>}
+        <p className="mt-2 text-sm font-medium leading-6 text-foreground break-words">
+          {value || <span className="text-muted-foreground/60">—</span>}
         </p>
       )}
     </div>
@@ -97,9 +97,9 @@ function SectionHeader({
 }) {
   return (
     <div className="mb-5">
-      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <h2 className="text-base font-semibold text-foreground">{title}</h2>
       {description && (
-        <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
       )}
     </div>
   )
@@ -115,11 +115,11 @@ function StatCard({
   accent: string
 }) {
   return (
-    <div className="min-w-[150px] border-t border-white/10 pt-4 first:border-t-0 first:pt-0 sm:border-t-0 sm:pt-0 sm:border-l sm:pl-4 sm:first:border-l-0 sm:first:pl-0">
-      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+    <div className="min-w-[120px] border-l border-border pl-6 first:border-l-0 first:pl-0">
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </p>
-      <p className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</p>
+      <p className={`mt-1.5 text-lg font-semibold ${accent}`}>{value}</p>
     </div>
   )
 }
@@ -234,7 +234,7 @@ export default async function ProfilePage({
       : contractQuery === "declined" || contractQuery === "missing-fields" || contractQuery === "unavailable"
         ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
         : contractQuery === "later" || contractQuery === "ready"
-          ? "border-indigo-400/20 bg-indigo-500/10 text-indigo-100"
+          ? "border-primary/20 bg-primary/10 text-primary"
           : ""
 
   const editablePartnerData = {
@@ -299,46 +299,58 @@ export default async function ProfilePage({
         <h1 className="page-title">Profile</h1>
       </div>
 
-      <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[#060b18] shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
-        <div className="h-28 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.38),transparent_34%),radial-gradient(circle_at_top_right,rgba(14,165,233,0.2),transparent_28%),linear-gradient(135deg,#121a31_0%,#0a1020_55%,#05070f_100%)] sm:h-40" />
-        <div className="px-5 pb-5 sm:px-8 sm:pb-8">
-          <div className="-mt-12 flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-end">
-              <AvatarUploadWrapper profileImageUrl={partnerRecord.profileImageUrl} />
-              <div className="max-w-3xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <LifecyclePill
-                    label={operationalLabel}
-                    tone={operationalTone}
-                  />
-                </div>
-                <h2 className="mt-4 font-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+      <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+        <div className="px-5 pt-6 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
+          {/* Row 1: Avatar + Identity */}
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <AvatarUploadWrapper profileImageUrl={partnerRecord.profileImageUrl} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="font-heading text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                   {fullName}
                 </h2>
-                <p className="mt-2 text-base text-slate-300 sm:text-lg">
-                  {[partnerRecord.designation, partnerRecord.companyName].filter(Boolean).join(" at ") ||
-                    partnerTypeLabel}
-                </p>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400">
-                  Partnership workspace for managing your company profile, agreement status, and finance details.
-                </p>
+                <LifecyclePill
+                  label={operationalLabel}
+                  tone={operationalTone}
+                />
               </div>
-            </div>
-
-            <div className="flex w-full flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-6 xl:w-auto xl:justify-end">
-              <StatCard
-                label="Profile strength"
-                value={`${profileStrength}%`}
-                accent="text-white"
-              />
-              <StatCard
-                label="Member since"
-                value={memberSince}
-                accent="text-sky-300"
-              />
+              <p className="mt-1.5 text-sm text-[var(--portal-text-soft)]">
+                {[partnerRecord.designation, partnerRecord.companyName].filter(Boolean).join(" at ") ||
+                  partnerTypeLabel}
+              </p>
             </div>
           </div>
 
+          {/* Row 2: Stats strip */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-border pt-5">
+            <StatCard
+              label="Profile strength"
+              value={`${profileStrength}%`}
+              accent="text-foreground"
+            />
+            <StatCard
+              label="Member since"
+              value={memberSince}
+              accent="text-sky-300"
+            />
+            <StatCard
+              label="Partner type"
+              value={partnerTypeLabel}
+              accent="text-primary"
+            />
+          </div>
+
+          {/* Activation hint */}
+          {operationalStatus === "yet_to_activate" && (
+            <div className="mt-5 flex items-center gap-3 rounded-xl border border-amber-400/15 bg-amber-400/5 px-4 py-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400/10">
+                <ArrowUpRight className="h-4 w-4 text-amber-400" />
+              </div>
+              <p className="text-sm leading-snug text-amber-200/80">
+                Your partnership will be activated once you refer your first lead to Finanshels.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -360,7 +372,7 @@ export default async function ProfilePage({
               />
             </div>
 
-            <div className="mt-5 rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+            <div className="mt-5 rounded-[1.5rem] border border-border bg-secondary/50 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <LifecyclePill
                   label={agreementStatusLabel}
@@ -368,7 +380,7 @@ export default async function ProfilePage({
                 />
               </div>
 
-              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-[var(--portal-text-soft)]">
                 {onboardingBannerMessage}
               </p>
 
@@ -378,7 +390,7 @@ export default async function ProfilePage({
                 </div>
               ) : null}
 
-              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
+              <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
                 <span>
                   Signed: {formatDate(partnerRecord.contractSignedAt ?? partnerRecord.createdAt) || "—"}
                 </span>
@@ -390,7 +402,7 @@ export default async function ProfilePage({
                 </span>
               </div>
 
-              <p className="mt-4 text-sm leading-6 text-slate-400">
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
                 Your partner agreement is digitally signed during onboarding with a two-party signature (Finanshels Accounting Technologies + your authorized signatory). This is the sole required legal document for partnership activation.
               </p>
             </div>
@@ -573,11 +585,11 @@ export default async function ProfilePage({
                   label="Email opt out"
                   value={partnerRecord.emailOptOut ? "Yes" : "No"}
                 />
-                <div className="border-b border-white/8 py-4">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+                <div className="border-b border-border py-4">
+                  <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                     Overview
                   </p>
-                  <p className="mt-3 text-sm leading-7 text-slate-200">
+                  <p className="mt-3 text-sm leading-7 text-foreground/90">
                     {partnerRecord.overview?.trim() || "Add a short company overview to make your profile feel complete and credible."}
                   </p>
                 </div>

@@ -14,7 +14,7 @@ import {
   hasAnyTeamRole,
   normalizeTeamRole,
 } from "@/lib/rbac"
-import { sendTeamMemberInviteEmail } from "@repo/notifications"
+import { getAdminPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
@@ -96,8 +96,7 @@ export async function POST(req: NextRequest) {
 
   // Create Supabase auth account (no Supabase email — we use SendGrid)
   const supabaseAdmin = getSupabaseAdminClient()
-  const adminPortalUrl =
-    process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || "http://localhost:3001"
+  const adminPortalUrl = getAdminPortalUrl()
 
   let authUserId: string
 

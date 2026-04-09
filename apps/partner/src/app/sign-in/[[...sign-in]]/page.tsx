@@ -46,11 +46,11 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#080810] lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex w-[54%] relative overflow-hidden flex-col p-14 xl:p-16">
         {/* Background treatment */}
-        <div className="absolute inset-0 bg-[#080810]" />
+        <div className="absolute inset-0 bg-background" />
         {/* Dot grid */}
         <div
           className="absolute inset-0 opacity-[0.35]"
@@ -92,8 +92,8 @@ export default function SignInPage() {
               priority
             />
             <div>
-              <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+              <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
             </div>
           </div>
 
@@ -104,13 +104,13 @@ export default function SignInPage() {
               style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-[0.2em]">
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em]">
                 Existing partner access
               </span>
             </div>
 
             <h1
-              className="text-white font-extrabold leading-[1.06] tracking-[-0.04em]"
+              className="text-foreground font-extrabold leading-[1.06] tracking-[-0.04em]"
               style={{ fontSize: "clamp(2rem, 3vw, 2.7rem)" }}
             >
               Back to
@@ -122,7 +122,7 @@ export default function SignInPage() {
               <span style={{ color: "#818cf8" }}>No filler.</span>
             </h1>
 
-            <p className="mt-5 text-zinc-400 text-[15px] leading-[1.7]">
+            <p className="mt-5 text-muted-foreground text-[15px] leading-[1.7]">
               Sign in to continue where you left off: leads, submissions, onboarding progress, and account updates.
             </p>
 
@@ -130,12 +130,12 @@ export default function SignInPage() {
             <div
               className="mt-10 rounded-2xl p-5 space-y-4"
               style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                background: "var(--portal-surface-soft)",
+                border: "1px solid var(--portal-line)",
                 backdropFilter: "blur(12px)",
               }}
             >
-              <p className="text-[11px] text-zinc-500 uppercase tracking-[0.2em] font-semibold mb-4">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-[0.2em] font-semibold mb-4">
                 Inside your workspace
               </p>
               <div className="space-y-4">
@@ -148,8 +148,8 @@ export default function SignInPage() {
                       <Icon className="h-3.5 w-3.5" style={{ color }} />
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-sm tracking-tight">{title}</p>
-                      <p className="text-zinc-500 text-[12px] leading-5 mt-1">{description}</p>
+                      <p className="text-foreground font-semibold text-sm tracking-tight">{title}</p>
+                      <p className="text-muted-foreground text-[12px] leading-5 mt-1">{description}</p>
                     </div>
                   </div>
                 ))}
@@ -163,7 +163,7 @@ export default function SignInPage() {
       {/* ── Right form panel ── */}
       <div
         className="flex flex-1 flex-col items-center justify-start px-5 py-8 sm:px-6 sm:py-10 lg:justify-center lg:px-14 lg:py-14"
-        style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
+        style={{ borderLeft: "1px solid var(--portal-line)" }}
       >
         {/* Mobile logo */}
         <div className="mb-8 flex items-center gap-3 lg:hidden">
@@ -176,19 +176,19 @@ export default function SignInPage() {
             priority
           />
           <div>
-            <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+            <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+            <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
           </div>
         </div>
 
         <div className="w-full max-w-[360px]">
           <h2
-            className="text-white font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
+            className="text-foreground font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
             style={{ fontSize: "1.875rem" }}
           >
             Welcome back
           </h2>
-          <p className="text-zinc-500 text-sm mb-8">
+          <p className="text-muted-foreground text-sm mb-8">
             Sign in to your Finanshels partner account
           </p>
 
@@ -197,7 +197,7 @@ export default function SignInPage() {
           <div className="mt-4 text-right">
             <Link
               href="/forgot-password"
-              className="text-[13px] text-zinc-500 hover:text-indigo-400 transition-colors"
+              className="text-[13px] text-muted-foreground hover:text-primary transition-colors"
             >
               Forgot password?
             </Link>
@@ -205,15 +205,15 @@ export default function SignInPage() {
 
           <div
             className="mt-8 space-y-3 pt-8 text-center"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ borderTop: "1px solid var(--portal-line)" }}
           >
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-muted-foreground/60">
               Not a partner yet?{" "}
-              <Link href="/register" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
+              <Link href="/register" className="text-primary font-semibold hover:text-primary transition-colors">
                 Apply to join
               </Link>
             </p>
-            <Link href="/" className="block text-xs text-zinc-700 hover:text-zinc-500 transition-colors">
+            <Link href="/" className="block text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               ← Back to home
             </Link>
           </div>

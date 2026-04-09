@@ -15,10 +15,10 @@ type ServiceRequest = {
 }
 
 const statusStyles: Record<string, string> = {
-  pending: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  in_progress: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
-  completed: "border border-white/20 bg-white/10 text-white",
-  cancelled: "border border-zinc-600/20 bg-zinc-500/10 text-zinc-300",
+  pending: "border border-border bg-secondary text-foreground/90",
+  in_progress: "border border-border bg-secondary text-foreground/90",
+  completed: "border border-border bg-secondary text-foreground",
+  cancelled: "border border-border bg-secondary text-[var(--portal-text-soft)]",
 }
 
 export default function ServiceRequestsPage() {
@@ -60,43 +60,43 @@ export default function ServiceRequestsPage() {
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="metric-card">
             <p className="metric-value">{requests.length}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Total requests</p>
-            <p className="mt-1 text-sm text-slate-400">All submitted client delivery requests.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">Total requests</p>
+            <p className="mt-1 text-sm text-muted-foreground">All submitted client delivery requests.</p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{activeRequests}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Active requests</p>
-            <p className="mt-1 text-sm text-slate-400">Requests still in progress or pending.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">Active requests</p>
+            <p className="mt-1 text-sm text-muted-foreground">Requests still in progress or pending.</p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{requests.length - activeRequests}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Closed requests</p>
-            <p className="mt-1 text-sm text-slate-400">Completed or cancelled delivery items.</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">Closed requests</p>
+            <p className="mt-1 text-sm text-muted-foreground">Completed or cancelled delivery items.</p>
           </div>
         </div>
       </section>
 
       <section className="table-shell">
-        <div className="border-b border-white/8 px-6 py-5">
-          <p className="font-heading text-xl font-semibold text-white">Request queue</p>
-          <p className="mt-1 text-sm text-slate-400">
+        <div className="border-b border-border px-6 py-5">
+          <p className="font-heading text-xl font-semibold text-foreground">Request queue</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             Intake records submitted by your partner account.
           </p>
         </div>
 
         {loading ? (
-          <div className="px-6 py-14 text-center text-sm text-slate-400">
+          <div className="px-6 py-14 text-center text-sm text-muted-foreground">
             Loading service requests...
           </div>
         ) : requests.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
               <ClipboardList className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-heading text-2xl font-semibold text-white">
+            <p className="mt-5 font-heading text-2xl font-semibold text-foreground">
               No service requests yet
             </p>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-400">
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
               Start a request when you already have a client conversation moving and need Finanshels to step into execution.
             </p>
             <Link href="/dashboard/service-requests/new" className="primary-button mt-6">
@@ -109,7 +109,7 @@ export default function ServiceRequestsPage() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Client</th>
                     <th className="px-6 py-4 font-medium">Contact</th>
                     <th className="px-6 py-4 font-medium">Service</th>
@@ -121,24 +121,24 @@ export default function ServiceRequestsPage() {
                   {requests.map((request) => (
                     <tr
                       key={request.id}
-                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                      className="border-b border-border transition-colors hover:bg-secondary/50"
                     >
-                      <td className="px-6 py-4 font-medium text-white">
+                      <td className="px-6 py-4 font-medium text-foreground">
                         {request.customerCompany}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-white">{request.customerContact}</p>
-                        <p className="text-xs text-slate-400">{request.customerEmail}</p>
+                        <p className="text-foreground">{request.customerContact}</p>
+                        <p className="text-xs text-muted-foreground">{request.customerEmail}</p>
                       </td>
-                      <td className="px-6 py-4 text-slate-300">{request.serviceName}</td>
+                      <td className="px-6 py-4 text-[var(--portal-text-soft)]">{request.serviceName}</td>
                       <td className="px-6 py-4">
                         <span
-                          className={`status-pill ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                          className={`status-pill ${statusStyles[request.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                         >
                           {request.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">
+                      <td className="px-6 py-4 text-muted-foreground">
                         {new Date(request.createdAt).toLocaleDateString("en-AE", {
                           day: "numeric",
                           month: "short",
@@ -155,26 +155,26 @@ export default function ServiceRequestsPage() {
               {requests.map((request) => (
                 <div
                   key={request.id}
-                  className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4"
+                  className="rounded-[1.5rem] border border-border bg-secondary/50 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-heading text-lg font-semibold text-white">
+                      <p className="font-heading text-lg font-semibold text-foreground">
                         {request.customerCompany}
                       </p>
-                      <p className="mt-1 text-sm text-slate-400">{request.serviceName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{request.serviceName}</p>
                     </div>
                     <span
-                      className={`status-pill shrink-0 ${statusStyles[request.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                      className={`status-pill shrink-0 ${statusStyles[request.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                     >
                       {request.status.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <div className="mt-4 rounded-[1.15rem] border border-white/8 bg-black/10 p-3">
-                    <p className="text-sm text-white">{request.customerContact}</p>
-                    <p className="mt-1 text-sm text-slate-400">{request.customerEmail}</p>
+                  <div className="mt-4 rounded-[1.15rem] border border-border bg-black/10 p-3">
+                    <p className="text-sm text-foreground">{request.customerContact}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{request.customerEmail}</p>
                   </div>
-                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-slate-500">
+                  <p className="mt-4 text-xs uppercase tracking-[0.18em] text-muted-foreground">
                     {new Date(request.createdAt).toLocaleDateString("en-AE", {
                       day: "numeric",
                       month: "short",

@@ -59,7 +59,7 @@ const PARTNER_MODELS = {
     description:
       "Best for consultants, accountants, and advisors who introduce clients to Finanshels.",
     badge: "Admin review",
-    badgeClass: "border border-white/20 bg-white/10 text-white",
+    badgeClass: "border border-border bg-secondary text-foreground",
     commission: {
       annual: "30% of first-year package",
       renewal: "20% of annual renewals",
@@ -73,7 +73,7 @@ const PARTNER_MODELS = {
     description:
       "Best for agencies and operators who want a deeper commercial relationship and service resale motion.",
     badge: "Admin review",
-    badgeClass: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
+    badgeClass: "border border-border bg-secondary text-foreground/90",
     commission: {
       annual: "30% of first-year package",
       renewal: "20% of annual renewals",
@@ -95,15 +95,15 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
             key={step.number}
             className={`flex items-center gap-3 rounded-full px-4 py-2 text-sm transition-all ${
               complete || active
-                ? "border border-indigo-400/25 bg-indigo-500/10 text-white"
-                : "border border-white/8 bg-white/[0.03] text-slate-400"
+                ? "border border-primary/25 bg-primary/10 text-foreground"
+                : "border border-border bg-secondary/50 text-muted-foreground"
             }`}
           >
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
                 complete || active
                   ? "bg-indigo-400 text-[#0f1027]"
-                  : "bg-white/6 text-slate-400"
+                  : "bg-secondary text-muted-foreground"
               }`}
             >
               {complete ? <Check className="h-3.5 w-3.5" /> : step.number}
@@ -145,12 +145,12 @@ function Step1ModelAndDetails({
               onClick={() => onChange("type", type)}
               className={`rounded-[1.75rem] border p-6 text-left transition-all ${
                 formData.type === type
-                  ? "border-indigo-400/35 bg-indigo-500/10 shadow-[0_20px_50px_rgba(99,102,241,0.16)]"
-                  : "border-white/8 bg-white/[0.03] hover:border-white/16 hover:bg-white/[0.05]"
+                  ? "border-primary/35 bg-primary/10 shadow-[0_20px_50px_rgba(99,102,241,0.16)]"
+                  : "border-border bg-secondary/50 hover:border-[var(--portal-line-strong)] hover:bg-secondary/70"
               }`}
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                   <config.icon className="h-5 w-5" />
                 </div>
                 {formData.type === type ? (
@@ -160,30 +160,30 @@ function Step1ModelAndDetails({
                 ) : null}
               </div>
 
-              <h3 className="font-heading mt-5 text-2xl font-semibold text-white">
+              <h3 className="font-heading mt-5 text-2xl font-semibold text-foreground">
                 {config.title}
               </h3>
-              <p className="mt-2 text-sm leading-6 text-slate-400">
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {config.description}
               </p>
 
               {/* Commission highlights */}
-              <div className="mt-4 space-y-1.5 rounded-xl border border-white/6 bg-white/[0.02] px-3.5 py-3">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500 mb-2">Commission structure</p>
+              <div className="mt-4 space-y-1.5 rounded-xl border border-border bg-secondary/30 px-3.5 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-2">Commission structure</p>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Initial commission</span>
-                  <span className="font-semibold text-white">{config.commission.annual}</span>
+                  <span className="text-muted-foreground">Initial commission</span>
+                  <span className="font-semibold text-foreground">{config.commission.annual}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Annual renewals</span>
-                  <span className="font-semibold text-white">{config.commission.renewal}</span>
+                  <span className="text-muted-foreground">Annual renewals</span>
+                  <span className="font-semibold text-foreground">{config.commission.renewal}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-400">Add-on services</span>
-                  <span className="font-semibold text-white">{config.commission.addon}</span>
+                  <span className="text-muted-foreground">Add-on services</span>
+                  <span className="font-semibold text-foreground">{config.commission.addon}</span>
                 </div>
-                <div className="mt-1.5 border-t border-white/6 pt-1.5 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Monthly/Quarterly alt.</span>
+                <div className="mt-1.5 border-t border-border pt-1.5 flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Monthly/Quarterly alt.</span>
                   <span className="font-medium text-indigo-300">{config.commission.altRate}</span>
                 </div>
               </div>
@@ -216,13 +216,13 @@ function Step1ModelAndDetails({
                 {isChannel ? (
                   <span className="ml-1 text-rose-300">*</span>
                 ) : (
-                  <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                  <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-muted-foreground">
                     optional
                   </span>
                 )}
               </label>
               <div className="relative">
-                <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Building2 className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   value={formData.companyName}
@@ -238,12 +238,12 @@ function Step1ModelAndDetails({
             <div>
               <label className="field-label">
                 Primary contact
-                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-muted-foreground">
                   from your account
                 </span>
               </label>
               <div className="relative">
-                <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="text"
                   value={lockedContact}
@@ -257,12 +257,12 @@ function Step1ModelAndDetails({
             <div className="sm:col-span-2">
               <label className="field-label">
                 Business email
-                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-slate-500">
+                <span className="ml-2 text-[10px] font-normal uppercase tracking-[0.18em] text-muted-foreground">
                   from your account
                 </span>
               </label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="email"
                   value={lockedEmail}
@@ -276,7 +276,7 @@ function Step1ModelAndDetails({
             <div className="sm:col-span-2">
               <label className="field-label">Phone number</label>
               <div className="relative">
-                <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="tel"
                   value={formData.phone}
@@ -486,7 +486,7 @@ function Step3Terms({
         Review the agreement summary, confirm the commercial terms, and sign here as the authorized representative.
       </p>
 
-      <div className="surface-card mt-8 overflow-hidden rounded-[1.75rem] border border-white/8">
+      <div className="surface-card mt-8 overflow-hidden rounded-[1.75rem] border border-border">
         <div className="relative max-h-[36rem] overflow-y-auto px-6 py-6 sm:px-8">
           <Image
             src="/brand-mark.png"
@@ -497,61 +497,61 @@ function Step3Terms({
           />
 
           <div className="relative">
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/8 pb-5">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-indigo-300">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">
                   Finanshels Partner Agreement
                 </p>
-                <h3 className="mt-3 font-heading text-2xl font-semibold text-white">
+                <h3 className="mt-3 font-heading text-2xl font-semibold text-foreground">
                   {partnerLabel} Agreement
                 </h3>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
+                <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
                   This agreement governs the commercial relationship between Finanshels Accounting
                   Technologies LLC and the {partnerLabel}.
                   By signing below, both parties confirm the particulars, commercial terms, and
                   conduct obligations described here.
                 </p>
               </div>
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+              <div className="rounded-2xl border border-border bg-secondary/50 px-4 py-3 text-sm text-[var(--portal-text-soft)]">
                 <div>Effective Date: Submission date</div>
                 <div className="mt-1">Jurisdiction: Dubai, UAE</div>
               </div>
             </div>
 
             <div className="mt-6 grid gap-6 lg:grid-cols-2">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-border bg-secondary/50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   First Party
                 </p>
-                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                  <p><span className="text-slate-500">Company:</span> Finanshels Accounting Technologies LLC</p>
-                  <p><span className="text-slate-500">Licensing Authority:</span> Sharjah Media City (Shams) Free Zone</p>
-                  <p><span className="text-slate-500">Trade License Number:</span> 2221700.01</p>
-                  <p><span className="text-slate-500">Registered Address:</span> Sharjah Media City, Sharjah, UAE</p>
-                  <p><span className="text-slate-500">Signatory:</span> Muhammed Shafeeq, CEO</p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--portal-text-soft)]">
+                  <p><span className="text-muted-foreground">Company:</span> Finanshels Accounting Technologies LLC</p>
+                  <p><span className="text-muted-foreground">Licensing Authority:</span> Sharjah Media City (Shams) Free Zone</p>
+                  <p><span className="text-muted-foreground">Trade License Number:</span> 2221700.01</p>
+                  <p><span className="text-muted-foreground">Registered Address:</span> Sharjah Media City, Sharjah, UAE</p>
+                  <p><span className="text-muted-foreground">Signatory:</span> Muhammed Shafeeq, CEO</p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-border bg-secondary/50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Second Party
                 </p>
-                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
-                  <p><span className="text-slate-500">Partner type:</span> {partnerLabel}</p>
+                <div className="mt-4 space-y-3 text-sm leading-6 text-[var(--portal-text-soft)]">
+                  <p><span className="text-muted-foreground">Partner type:</span> {partnerLabel}</p>
                   {formData.companyName ? (
-                    <p><span className="text-slate-500">Company:</span> {formData.companyName}</p>
+                    <p><span className="text-muted-foreground">Company:</span> {formData.companyName}</p>
                   ) : null}
-                  <p><span className="text-slate-500">Authorized signatory:</span> {contactName || "Your full name"}</p>
-                  <p><span className="text-slate-500">Email:</span> {contactEmail || "your@email.com"}</p>
-                  <p><span className="text-slate-500">Phone:</span> {formData.phone || "Not provided"}</p>
+                  <p><span className="text-muted-foreground">Authorized signatory:</span> {contactName || "Your full name"}</p>
+                  <p><span className="text-muted-foreground">Email:</span> {contactEmail || "your@email.com"}</p>
+                  <p><span className="text-muted-foreground">Phone:</span> {formData.phone || "Not provided"}</p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 space-y-5 text-sm leading-7 text-slate-300">
+            <div className="mt-6 space-y-5 text-sm leading-7 text-[var(--portal-text-soft)]">
               {agreementSections.map((section) => (
                 <div key={section.title}>
-                  <h4 className="font-semibold text-white">{section.title}</h4>
+                  <h4 className="font-semibold text-foreground">{section.title}</h4>
                   <div className="mt-2 space-y-2.5">
                     {section.clauses.map((clause) => (
                       <p key={clause}>{clause}</p>
@@ -562,21 +562,21 @@ function Step3Terms({
             </div>
 
             <div className="mt-8 space-y-5">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-border bg-secondary/50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Annexure I • Service List
                 </p>
-                <div className="mt-4 overflow-hidden rounded-xl border border-white/8">
-                  <div className="grid grid-cols-[88px_minmax(0,1fr)] bg-white/[0.04] text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                    <div className="border-r border-white/8 px-4 py-3">Sl. No.</div>
+                <div className="mt-4 overflow-hidden rounded-xl border border-border">
+                  <div className="grid grid-cols-[88px_minmax(0,1fr)] bg-secondary text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    <div className="border-r border-border px-4 py-3">Sl. No.</div>
                     <div className="px-4 py-3">Services</div>
                   </div>
                   {serviceList.map((service, index) => (
                     <div
                       key={service}
-                      className="grid grid-cols-[88px_minmax(0,1fr)] border-t border-white/8 text-sm text-slate-200"
+                      className="grid grid-cols-[88px_minmax(0,1fr)] border-t border-border text-sm text-foreground/90"
                     >
-                      <div className="border-r border-white/8 px-4 py-3 text-slate-400">
+                      <div className="border-r border-border px-4 py-3 text-muted-foreground">
                         {index + 1}
                       </div>
                       <div className="px-4 py-3">{service}</div>
@@ -586,41 +586,41 @@ function Step3Terms({
               </div>
 
               {modelConfig && (
-                <div className="rounded-2xl border border-indigo-400/15 bg-indigo-500/5 p-5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                <div className="rounded-2xl border border-primary/15 bg-primary/5 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                     {isChannel
                       ? "Annexure II • Channel Partner Commission Structure"
                       : "Annexure II • Referral Partner Commission Structure"}
                   </p>
                   <div className="mt-4 space-y-4">
-                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-sm font-semibold text-white">Annual Packages</p>
-                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+                    <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                      <p className="text-sm font-semibold text-foreground">Annual Packages</p>
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--portal-text-soft)]">
                         <li>Initial commission: {modelConfig.commission.annual}</li>
                         <li>Subsequent annual renewal commission: {modelConfig.commission.renewal}</li>
                       </ul>
                     </div>
-                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-sm font-semibold text-white">Add-on Services (Annual)</p>
-                      <p className="mt-3 text-sm leading-6 text-slate-300">
+                    <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                      <p className="text-sm font-semibold text-foreground">Add-on Services (Annual)</p>
+                      <p className="mt-3 text-sm leading-6 text-[var(--portal-text-soft)]">
                         {modelConfig.commission.addon} on all pre-approved add-on services.
                       </p>
                     </div>
-                    <div className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                      <p className="text-sm font-semibold text-white">
+                    <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                      <p className="text-sm font-semibold text-foreground">
                         Alternative Payment Plan
                       </p>
-                      <p className="text-xs leading-6 text-slate-500">
+                      <p className="text-xs leading-6 text-muted-foreground">
                         Applies to monthly or quarterly packages and recurring add-on services.
                       </p>
-                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
+                      <ul className="mt-3 space-y-2 text-sm leading-6 text-[var(--portal-text-soft)]">
                         <li>{partnerLabel} receives {modelConfig.commission.altRate}.</li>
                         <li>No commission on subsequent payments.</li>
                         <li>No commission on recurring add-on services.</li>
                       </ul>
                     </div>
                   </div>
-                  <p className="mt-4 text-xs leading-6 text-slate-400">
+                  <p className="mt-4 text-xs leading-6 text-muted-foreground">
                     Actual package pricing and approved add-on service fees will be shared separately.
                   </p>
                 </div>
@@ -628,33 +628,34 @@ function Step3Terms({
             </div>
 
             <div className="mt-8 grid gap-5 xl:grid-cols-2">
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-border bg-secondary/50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   First Party Signature
                 </p>
-                <div className="mt-4 rounded-2xl border border-white/8 bg-[#0b1020] p-4">
+                <div className="mt-4 rounded-2xl border border-border bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.2),transparent_45%),var(--portal-bg)] p-4">
                   <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_160px] sm:items-center">
-                    <div className="flex min-h-[118px] items-center rounded-xl border border-indigo-400/15 bg-indigo-500/6 px-4 py-4">
+                    <div className="flex min-h-[132px] items-center rounded-2xl border border-border bg-white px-5 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_18px_40px_rgba(15,23,42,0.35)]">
                       <Image
                         src="/finanshels-owner-signature.png"
                         alt="Muhammed Shafeeq signature"
                         width={320}
                         height={120}
-                        className="h-auto w-full max-w-[260px] rounded-lg bg-white/95 object-contain p-2"
+                        className="h-auto w-full max-w-[280px] object-contain [filter:contrast(1.35)_saturate(1.2)_drop-shadow(0_3px_10px_rgba(79,70,229,0.28))]"
+                        priority
                       />
                     </div>
-                    <div className="mx-auto w-full max-w-[150px]">
+                    <div className="mx-auto flex w-full max-w-[150px] items-center justify-center rounded-2xl border border-border bg-secondary/50 p-3">
                       <Image
                         src="/finanshels-owner-stamp.png"
                         alt="Finanshels company stamp"
                         width={220}
                         height={220}
-                        className="h-auto w-full object-contain opacity-90"
+                        className="h-auto w-full object-contain opacity-95 [filter:drop-shadow(0_10px_24px_rgba(99,102,241,0.2))]"
                       />
                     </div>
                   </div>
                 </div>
-                <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-300">
+                <div className="mt-4 border-t border-border pt-4 text-sm leading-6 text-[var(--portal-text-soft)]">
                   <p>Muhammed Shafeeq</p>
                   <p>CEO</p>
                   <p>Authorized Signatory</p>
@@ -662,8 +663,8 @@ function Step3Terms({
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+              <div className="rounded-2xl border border-border bg-secondary/50 p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
                   Second Party Signature
                 </p>
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -673,7 +674,7 @@ function Step3Terms({
                     className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                       formData.signatureMode === "typed"
                         ? "bg-indigo-400 text-[#101426]"
-                        : "border border-white/10 bg-white/[0.03] text-slate-300"
+                        : "border border-border bg-secondary/50 text-[var(--portal-text-soft)]"
                     }`}
                   >
                     Type signature
@@ -684,7 +685,7 @@ function Step3Terms({
                     className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
                       formData.signatureMode === "draw"
                         ? "bg-indigo-400 text-[#101426]"
-                        : "border border-white/10 bg-white/[0.03] text-slate-300"
+                        : "border border-border bg-secondary/50 text-[var(--portal-text-soft)]"
                     }`}
                   >
                     Draw signature
@@ -701,8 +702,8 @@ function Step3Terms({
                       className="field-input mt-2"
                       placeholder="Type your full name"
                     />
-                    <div className="mt-4 flex min-h-[176px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-[#0b1020] px-4 py-6 text-center">
-                      <p className="text-4xl leading-none text-indigo-200 [font-family:cursive] sm:text-5xl">
+                    <div className="mt-4 flex min-h-[176px] items-center justify-center rounded-xl border border-dashed border-border bg-[var(--portal-bg)] px-4 py-6 text-center">
+                      <p className="text-4xl leading-none text-primary [font-family:cursive] sm:text-5xl">
                         {typedSignatureValue || "Your signature"}
                       </p>
                     </div>
@@ -714,7 +715,7 @@ function Step3Terms({
                       <button
                         type="button"
                         onClick={clearSignature}
-                        className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 transition hover:text-white"
+                        className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground transition hover:text-foreground"
                       >
                         Clear
                       </button>
@@ -727,12 +728,12 @@ function Step3Terms({
                       onPointerMove={handlePointerMove}
                       onPointerUp={handlePointerUp}
                       onPointerLeave={handlePointerUp}
-                      className="mt-2 h-44 w-full rounded-2xl border border-dashed border-white/10 bg-[#0b1020] touch-none"
+                      className="mt-2 h-44 w-full rounded-2xl border border-dashed border-border bg-[var(--portal-bg)] touch-none"
                     />
                   </div>
                 )}
 
-                <div className="mt-4 border-t border-white/8 pt-4 text-sm leading-6 text-slate-300">
+                <div className="mt-4 border-t border-border pt-4 text-sm leading-6 text-[var(--portal-text-soft)]">
                   <p>{contactName || "Authorized signatory"}</p>
                   <p>Authorized Signatory</p>
                   {formData.companyName ? <p>{formData.companyName}</p> : null}
@@ -748,20 +749,20 @@ function Step3Terms({
         onClick={onToggle}
         className={`mt-6 flex w-full items-start gap-3 rounded-[1.4rem] border px-4 py-4 text-left transition-all ${
           formData.agreedToTerms
-            ? "border-indigo-400/30 bg-indigo-500/10"
-            : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+            ? "border-primary/30 bg-primary/10"
+            : "border-border bg-secondary/50 hover:bg-secondary/70"
         }`}
       >
         <div
-          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${
+          className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-2 shadow-sm transition ${
             formData.agreedToTerms
-              ? "border-indigo-400 bg-indigo-400 text-[#0f1027]"
-              : "border-slate-400 bg-transparent text-transparent"
+              ? "border-indigo-300 bg-indigo-300 text-[#0f1027] shadow-indigo-500/30"
+              : "border-[var(--portal-text-soft)] bg-[var(--portal-bg)] text-transparent"
           }`}
         >
-          <Check className="h-3 w-3" />
+          <Check className="h-3.5 w-3.5" />
         </div>
-        <span className="text-sm leading-6 text-slate-200">
+        <span className="text-sm leading-6 text-foreground/90">
           I have reviewed the agreement summary above, confirm that the signature is mine, and agree to the Finanshels Partner Agreement, commission structure, and Privacy Policy.
         </span>
       </button>
@@ -780,22 +781,22 @@ function Step4Success({
 
   return (
     <div className="py-6 text-center">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/12 text-primary">
         <CheckCircle2 className="h-10 w-10" />
       </div>
 
-      <h2 className="font-heading mt-6 text-3xl font-semibold text-white">
+      <h2 className="font-heading mt-6 text-3xl font-semibold text-foreground">
         Application submitted.
       </h2>
 
-      <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+      <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[var(--portal-text-soft)] sm:text-base">
         Your {typeLabel} partner application{companyName ? ` for ${companyName}` : ""} is now in review.
         Your agreement acknowledgement and signature were captured during onboarding, so the
         remaining step is admin approval before the revenue workspace unlocks.
       </p>
 
       <div className="mt-6">
-        <span className="inline-flex items-center gap-2 rounded-full border border-zinc-400/20 bg-zinc-400/10 px-4 py-2 text-sm font-semibold text-zinc-100">
+        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-4 py-2 text-sm font-semibold text-foreground/90">
           <ShieldCheck className="h-4 w-4" />
           Pending admin approval
         </span>
@@ -935,7 +936,7 @@ export default function OnboardingPage() {
     return (
       <div className="page-wrap min-h-screen px-5 py-5 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-7xl">
-          <div className="surface-card rounded-[2rem] p-10 text-center text-slate-400">
+          <div className="surface-card rounded-[2rem] p-10 text-center text-muted-foreground">
             Loading onboarding…
           </div>
         </div>
@@ -949,7 +950,7 @@ export default function OnboardingPage() {
         <div className="mb-5 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--portal-text-soft)] transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to profile
@@ -964,20 +965,20 @@ export default function OnboardingPage() {
               Onboarding
             </div>
 
-            <h1 className="font-heading mt-5 text-3xl font-semibold leading-tight text-white sm:text-4xl">
+            <h1 className="font-heading mt-5 text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
               Complete your partner onboarding.
             </h1>
 
-            <p className="mt-5 text-sm leading-7 text-slate-300 sm:text-base">
+            <p className="mt-5 text-sm leading-7 text-[var(--portal-text-soft)] sm:text-base">
               Your login is ready. Submit the partner application here, then wait for admin
               approval before the full workspace unlocks.
             </p>
 
-            <div className="mt-7 rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-5 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+            <div className="mt-7 rounded-[1.4rem] border border-border bg-secondary/50 px-5 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 What happens next
               </p>
-              <div className="mt-3 space-y-2.5 text-sm leading-6 text-slate-300">
+              <div className="mt-3 space-y-2.5 text-sm leading-6 text-[var(--portal-text-soft)]">
                 <p>1. Choose your partner model, fill in your details, and sign the agreement.</p>
                 <p>2. Finanshels reviews the application and verifies the onboarding details.</p>
                 <p>3. Once approved, the workspace unlocks immediately.</p>
@@ -985,31 +986,31 @@ export default function OnboardingPage() {
             </div>
 
             {selectedModel ? (
-              <div className="mt-6 rounded-[1.6rem] border border-indigo-400/18 bg-indigo-500/8 p-5">
+              <div className="mt-6 rounded-[1.6rem] border border-primary/18 bg-primary/8 p-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                     <selectedModel.icon className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                    <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
                       Selected model
                     </p>
-                    <p className="font-heading text-xl font-semibold text-white">
+                    <p className="font-heading text-xl font-semibold text-foreground">
                       {selectedModel.title}
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 text-sm leading-6 text-slate-300">
+                <p className="mt-4 text-sm leading-6 text-[var(--portal-text-soft)]">
                   {selectedModel.description}
                 </p>
-                <div className="mt-4 border-t border-white/8 pt-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-300">
+                <div className="mt-4 border-t border-border pt-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
                     Core commission
                   </p>
-                  <p className="mt-2 text-sm text-white">
+                  <p className="mt-2 text-sm text-foreground">
                     {selectedModel.commission.annual}
                   </p>
-                  <p className="mt-1 text-sm text-slate-400">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     Renewals: {selectedModel.commission.renewal}
                   </p>
                 </div>
@@ -1048,7 +1049,7 @@ export default function OnboardingPage() {
             ) : null}
 
             {error ? (
-              <div className="mt-6 rounded-[1.25rem] border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mt-6 rounded-[1.25rem] border border-rose-300/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200 dark:text-rose-100">
                 {error}
               </div>
             ) : null}

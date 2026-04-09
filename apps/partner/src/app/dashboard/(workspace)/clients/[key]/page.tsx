@@ -45,13 +45,13 @@ function Field({
   value: string | null | undefined
 }) {
   return (
-    <div className="border-b border-white/8 py-4 last:border-b-0">
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+    <div className="border-b border-border py-4 last:border-b-0">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" />
         <span>{label}</span>
       </div>
-      <p className="mt-2 text-sm font-medium leading-6 text-white break-words">
-        {value || <span className="text-slate-600">—</span>}
+      <p className="mt-2 text-sm font-medium leading-6 text-foreground break-words">
+        {value || <span className="text-muted-foreground/60">—</span>}
       </p>
     </div>
   )
@@ -142,7 +142,7 @@ export default async function ClientDetailPage({
       <div>
         <Link
           href="/dashboard/clients"
-          className="inline-flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to client book
@@ -163,15 +163,15 @@ export default async function ClientDetailPage({
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="metric-card min-w-[160px]">
               <p className="metric-value">{client.leadCount}</p>
-              <p className="mt-2 text-sm font-semibold text-white">Leads</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">Leads</p>
             </div>
             <div className="metric-card min-w-[160px]">
               <p className="metric-value">{client.requestCount}</p>
-              <p className="mt-2 text-sm font-semibold text-white">Service requests</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">Service requests</p>
             </div>
             <div className="metric-card min-w-[160px]">
               <p className="metric-value text-lg">{formatDate(client.lastActivity)}</p>
-              <p className="mt-2 text-sm font-semibold text-white">Last activity</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">Last activity</p>
             </div>
           </div>
         </div>
@@ -180,8 +180,8 @@ export default async function ClientDetailPage({
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_420px]">
         <div className="space-y-6">
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <h2 className="font-heading text-2xl font-semibold text-white">Client details</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <h2 className="font-heading text-2xl font-semibold text-foreground">Client details</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               The saved profile or best-known activity profile for this client.
             </p>
 
@@ -219,19 +219,19 @@ export default async function ClientDetailPage({
               />
             </div>
 
-            <div className="mt-6 border-t border-white/8 pt-6">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500">
+            <div className="mt-6 border-t border-border pt-6">
+              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 Notes
               </p>
-              <p className="mt-3 text-sm leading-7 text-slate-200">
+              <p className="mt-3 text-sm leading-7 text-foreground/90">
                 {client.notes?.trim() || "No notes saved for this client yet."}
               </p>
             </div>
           </section>
 
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <h2 className="font-heading text-2xl font-semibold text-white">Lead activity</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <h2 className="font-heading text-2xl font-semibold text-foreground">Lead activity</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Every matched lead record associated with this client.
             </p>
 
@@ -240,25 +240,25 @@ export default async function ClientDetailPage({
                 matchingLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4"
+                    className="rounded-[1.4rem] border border-border bg-secondary/50 p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {lead.customerName || client.displayName}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           Created {formatDate(lead.createdAt)}
                         </p>
                       </div>
-                      <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-200">
+                      <span className="status-pill border border-border bg-secondary/70 text-foreground/90">
                         {formatLabel(lead.status)}
                       </span>
                     </div>
                     <div className="mt-4">
                       <Link
                         href={`/dashboard/leads/${lead.id}`}
-                        className="tag-pill border-indigo-400/20 bg-indigo-500/10 text-indigo-100"
+                        className="tag-pill border-primary/20 bg-primary/10 text-primary"
                       >
                         View lead
                       </Link>
@@ -266,14 +266,14 @@ export default async function ClientDetailPage({
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-500">No lead activity for this client.</p>
+                <p className="text-sm text-muted-foreground">No lead activity for this client.</p>
               )}
             </div>
           </section>
 
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <h2 className="font-heading text-2xl font-semibold text-white">Service activity</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <h2 className="font-heading text-2xl font-semibold text-foreground">Service activity</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Recent service requests associated with this client.
             </p>
 
@@ -282,25 +282,25 @@ export default async function ClientDetailPage({
                 matchingRequests.map((request) => (
                   <div
                     key={request.id}
-                    className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4"
+                    className="rounded-[1.4rem] border border-border bg-secondary/50 p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-white">
+                        <p className="text-sm font-semibold text-foreground">
                           {request.serviceName}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           Created {formatDate(request.createdAt)}
                         </p>
                       </div>
-                      <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-200">
+                      <span className="status-pill border border-border bg-secondary/70 text-foreground/90">
                         {formatLabel(request.status)}
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-500">No service activity for this client.</p>
+                <p className="text-sm text-muted-foreground">No service activity for this client.</p>
               )}
             </div>
           </section>
@@ -308,8 +308,8 @@ export default async function ClientDetailPage({
 
         <aside className="space-y-6">
           <section className="surface-card rounded-[2rem] p-6">
-            <h2 className="font-heading text-2xl font-semibold text-white">Snapshot</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <h2 className="font-heading text-2xl font-semibold text-foreground">Snapshot</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               A quick read on what is happening with this client.
             </p>
 

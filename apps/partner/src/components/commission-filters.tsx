@@ -44,10 +44,10 @@ export function CommissionFilters({
       <select
         value={status}
         onChange={(e) => update("status", e.target.value)}
-        className="min-w-0 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-slate-300 outline-none focus:border-indigo-400/40 focus:bg-white/[0.08] sm:min-w-[170px]"
+        className="min-w-0 rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-[var(--portal-text-soft)] outline-none focus:border-primary/40 focus:bg-secondary/80 sm:min-w-[170px]"
       >
         {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value} className="bg-zinc-900 text-white">
+          <option key={o.value} value={o.value} className="bg-card text-foreground">
             {o.label}
           </option>
         ))}
@@ -55,10 +55,10 @@ export function CommissionFilters({
       <select
         value={type}
         onChange={(e) => update("type", e.target.value)}
-        className="min-w-0 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-slate-300 outline-none focus:border-indigo-400/40 focus:bg-white/[0.08] sm:min-w-[170px]"
+        className="min-w-0 rounded-xl border border-border bg-secondary px-3 py-2 text-sm text-[var(--portal-text-soft)] outline-none focus:border-primary/40 focus:bg-secondary/80 sm:min-w-[170px]"
       >
         {TYPE_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value} className="bg-zinc-900 text-white">
+          <option key={o.value} value={o.value} className="bg-card text-foreground">
             {o.label}
           </option>
         ))}

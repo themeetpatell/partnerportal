@@ -11,7 +11,7 @@ import { getCurrentPartnerRecord } from "@/lib/partner-record"
 const statusConfig: Record<string, { label: string; style: string; hint: string }> = {
   pending: {
     label: "Calculating",
-    style: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-300",
+    style: "border border-border bg-secondary text-[var(--portal-text-soft)]",
     hint: "We are verifying the deal and calculating your commission amount.",
   },
   approved: {
@@ -37,7 +37,7 @@ const statusConfig: Record<string, { label: string; style: string; hint: string 
 }
 
 const payoutStatusConfig: Record<string, { label: string; style: string }> = {
-  pending: { label: "Pending", style: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-300" },
+  pending: { label: "Pending", style: "border border-border bg-secondary text-[var(--portal-text-soft)]" },
   processing: { label: "Processing", style: "border border-amber-400/20 bg-amber-500/10 text-amber-200" },
   paid: { label: "Paid", style: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-200" },
   failed: { label: "Failed", style: "border border-rose-400/20 bg-rose-500/10 text-rose-200" },
@@ -216,12 +216,12 @@ export default async function CommissionsPage({
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="metric-card">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
               <TrendingUp className="h-5 w-5" />
             </div>
             <p className="metric-value mt-5">{formatAed(totalEarned)}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Total earned</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Total earned</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               All confirmed commissions across your leads.
             </p>
           </div>
@@ -230,8 +230,8 @@ export default async function CommissionsPage({
               <CircleDollarSign className="h-5 w-5" />
             </div>
             <p className="metric-value mt-5">{formatAed(totalAwaiting)}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Awaiting payout</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Awaiting payout</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Approved by Finanshels — transfer in progress.
             </p>
           </div>
@@ -240,8 +240,8 @@ export default async function CommissionsPage({
               <Wallet className="h-5 w-5" />
             </div>
             <p className="metric-value mt-5">{formatAed(totalPaid)}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Paid out</p>
-            <p className="mt-1 text-sm leading-6 text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Paid out</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Settled and transferred to your account.
             </p>
           </div>
@@ -250,10 +250,10 @@ export default async function CommissionsPage({
 
       {/* Commission records */}
       <section className="table-shell">
-        <div className="flex flex-col gap-4 border-b border-white/8 px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border px-6 py-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="font-heading text-xl font-semibold text-white">Commission records</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="font-heading text-xl font-semibold text-foreground">Commission records</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Each entry tied to a specific lead or service request, sorted by most recent.
             </p>
           </div>
@@ -265,13 +265,13 @@ export default async function CommissionsPage({
 
         {filteredRows.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
               <CircleDollarSign className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-heading text-2xl font-semibold text-white">
+            <p className="mt-5 font-heading text-2xl font-semibold text-foreground">
               {rows.length === 0 ? "No commissions yet" : "No matching records"}
             </p>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
               {rows.length === 0
                 ? "Commission entries appear once your leads convert into won deals and are reviewed by Finanshels."
                 : "Try a different status or type filter."}
@@ -292,7 +292,7 @@ export default async function CommissionsPage({
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Client</th>
                     <th className="px-6 py-4 font-medium">Type</th>
                     <th className="px-6 py-4 font-medium">Amount</th>
@@ -302,39 +302,39 @@ export default async function CommissionsPage({
                 </thead>
                 <tbody>
                   {filteredRows.map((c) => {
-                    const status = statusConfig[c.status] ?? { label: c.status, style: "border border-white/10 bg-white/[0.05] text-slate-300", hint: "" }
+                    const status = statusConfig[c.status] ?? { label: c.status, style: "border border-border bg-secondary/70 text-[var(--portal-text-soft)]", hint: "" }
                     const breakdown = parseBreakdown(c.breakdown)
                     return (
-                      <tr key={c.id} className="border-b border-white/6 transition-colors hover:bg-white/[0.03]">
+                      <tr key={c.id} className="border-b border-border transition-colors hover:bg-secondary/50">
                         <td className="px-6 py-4">
                           {c.leadId ? (
                             <Link href={`/dashboard/leads/${c.leadId}`} className="group flex items-start gap-2">
                               <div>
-                                <p className="font-medium text-white group-hover:text-indigo-200">
+                                <p className="font-medium text-foreground group-hover:text-primary">
                                   {c.clientName ?? "Unknown client"}
                                 </p>
                                 {c.clientCompany ? (
-                                  <p className="mt-0.5 text-xs text-slate-400">{c.clientCompany}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{c.clientCompany}</p>
                                 ) : null}
                               </div>
-                              <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-600 group-hover:text-indigo-400" />
+                              <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/60 group-hover:text-primary" />
                             </Link>
                           ) : (
                             <div>
-                              <p className="font-medium text-white">Service request</p>
-                              <p className="mt-0.5 text-xs text-slate-500">Not linked to a lead</p>
+                              <p className="font-medium text-foreground">Service request</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">Not linked to a lead</p>
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="status-pill border border-white/10 bg-white/[0.05] text-slate-300">
+                          <span className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]">
                             {c.sourceType === "lead" ? "Lead" : "Service req."}
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="font-semibold text-white">{formatAed(c.amount)}</p>
+                          <p className="font-semibold text-foreground">{formatAed(c.amount)}</p>
                           {breakdown && formatBreakdownLine(breakdown) ? (
-                            <p className="mt-0.5 text-xs text-slate-500">
+                            <p className="mt-0.5 text-xs text-muted-foreground">
                               {formatBreakdownLine(breakdown)}
                             </p>
                           ) : null}
@@ -342,10 +342,10 @@ export default async function CommissionsPage({
                         <td className="px-6 py-4">
                           <span className={`status-pill ${status.style}`}>{status.label}</span>
                           {status.hint ? (
-                            <p className="mt-1.5 max-w-[180px] text-xs leading-5 text-slate-500">{status.hint}</p>
+                            <p className="mt-1.5 max-w-[180px] text-xs leading-5 text-muted-foreground">{status.hint}</p>
                           ) : null}
                         </td>
-                        <td className="px-6 py-4 text-slate-400">
+                        <td className="px-6 py-4 text-muted-foreground">
                           <p>{formatDate(c.calculatedAt)}</p>
                           {c.paidAt ? (
                             <p className="mt-0.5 text-xs text-emerald-400">Paid {formatDate(c.paidAt)}</p>
@@ -363,30 +363,30 @@ export default async function CommissionsPage({
             {/* Mobile */}
             <div className="grid gap-4 p-4 md:hidden">
               {filteredRows.map((c) => {
-                const status = statusConfig[c.status] ?? { label: c.status, style: "border border-white/10 bg-white/[0.05] text-slate-300", hint: "" }
+                const status = statusConfig[c.status] ?? { label: c.status, style: "border border-border bg-secondary/70 text-[var(--portal-text-soft)]", hint: "" }
                 return (
-                  <div key={c.id} className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
+                  <div key={c.id} className="rounded-[1.5rem] border border-border bg-secondary/50 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         {c.leadId ? (
-                          <Link href={`/dashboard/leads/${c.leadId}`} className="font-heading text-base font-semibold text-white hover:text-indigo-200">
+                          <Link href={`/dashboard/leads/${c.leadId}`} className="font-heading text-base font-semibold text-foreground hover:text-primary">
                             {c.clientName ?? "Unknown client"}
                           </Link>
                         ) : (
-                          <p className="font-heading text-base font-semibold text-white">Service request</p>
+                          <p className="font-heading text-base font-semibold text-foreground">Service request</p>
                         )}
                         {c.clientCompany ? (
-                          <p className="mt-0.5 text-sm text-slate-400">{c.clientCompany}</p>
+                          <p className="mt-0.5 text-sm text-muted-foreground">{c.clientCompany}</p>
                         ) : null}
                       </div>
-                      <p className="shrink-0 text-lg font-semibold text-white">{formatAed(c.amount)}</p>
+                      <p className="shrink-0 text-lg font-semibold text-foreground">{formatAed(c.amount)}</p>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className={`status-pill ${status.style}`}>{status.label}</span>
-                      <span className="text-xs text-slate-500">{formatDate(c.calculatedAt)}</span>
+                      <span className="text-xs text-muted-foreground">{formatDate(c.calculatedAt)}</span>
                     </div>
                     {status.hint ? (
-                      <p className="mt-2 text-xs leading-5 text-slate-500">{status.hint}</p>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">{status.hint}</p>
                     ) : null}
                   </div>
                 )
@@ -399,16 +399,16 @@ export default async function CommissionsPage({
       {/* Payout requests */}
       {payouts.length > 0 ? (
         <section className="table-shell">
-          <div className="border-b border-white/8 px-6 py-5">
-            <p className="font-heading text-xl font-semibold text-white">Payout batches</p>
-            <p className="mt-1 text-sm text-slate-400">
+          <div className="border-b border-border px-6 py-5">
+            <p className="font-heading text-xl font-semibold text-foreground">Payout batches</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Batched payment transfers from Finanshels to your account.
             </p>
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-white/8 text-slate-500">
+                <tr className="border-b border-border text-muted-foreground">
                   <th className="px-6 py-4 font-medium">Amount</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium">Requested</th>
@@ -416,14 +416,14 @@ export default async function CommissionsPage({
               </thead>
               <tbody>
                 {payouts.map((p) => {
-                  const ps = payoutStatusConfig[p.status] ?? { label: p.status, style: "border border-white/10 bg-white/[0.05] text-slate-300" }
+                  const ps = payoutStatusConfig[p.status] ?? { label: p.status, style: "border border-border bg-secondary/70 text-[var(--portal-text-soft)]" }
                   return (
-                    <tr key={p.id} className="border-b border-white/6 hover:bg-white/[0.03]">
-                      <td className="px-6 py-4 font-semibold text-white">{formatAed(p.amount)}</td>
+                    <tr key={p.id} className="border-b border-border hover:bg-secondary/50">
+                      <td className="px-6 py-4 font-semibold text-foreground">{formatAed(p.amount)}</td>
                       <td className="px-6 py-4">
                         <span className={`status-pill ${ps.style}`}>{ps.label}</span>
                       </td>
-                      <td className="px-6 py-4 text-slate-400">{formatDate(p.createdAt)}</td>
+                      <td className="px-6 py-4 text-muted-foreground">{formatDate(p.createdAt)}</td>
                     </tr>
                   )
                 })}
@@ -432,12 +432,12 @@ export default async function CommissionsPage({
           </div>
           <div className="grid gap-4 p-4 md:hidden">
             {payouts.map((p) => {
-              const ps = payoutStatusConfig[p.status] ?? { label: p.status, style: "border border-white/10 bg-white/[0.05] text-slate-300" }
+              const ps = payoutStatusConfig[p.status] ?? { label: p.status, style: "border border-border bg-secondary/70 text-[var(--portal-text-soft)]" }
               return (
-                <div key={p.id} className="flex items-center justify-between rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-4">
+                <div key={p.id} className="flex items-center justify-between rounded-[1.5rem] border border-border bg-secondary/50 p-4">
                   <div>
-                    <p className="font-semibold text-white">{formatAed(p.amount)}</p>
-                    <p className="mt-1 text-xs text-slate-500">{formatDate(p.createdAt)}</p>
+                    <p className="font-semibold text-foreground">{formatAed(p.amount)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{formatDate(p.createdAt)}</p>
                   </div>
                   <span className={`status-pill ${ps.style}`}>{ps.label}</span>
                 </div>

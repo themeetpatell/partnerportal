@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react"
 import { useAuthClient } from "@repo/auth/client"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, createHref: undefined },
@@ -121,28 +122,28 @@ function NavLink({
         onClick={onClick}
         className={`group flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
           active
-            ? "border border-indigo-400/30 bg-indigo-500/15 text-indigo-200"
-            : "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+            ? "border border-primary/30 bg-primary/15 text-primary"
+            : "text-muted-foreground hover:bg-secondary hover:text-foreground"
         }`}
       >
         <div
           className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
             active
-              ? "bg-indigo-500/20 text-indigo-200"
-              : "bg-zinc-800 text-zinc-500 group-hover:text-zinc-300"
+              ? "bg-primary/20 text-primary"
+              : "bg-secondary text-muted-foreground group-hover:text-foreground"
           }`}
         >
           <item.icon className="h-4 w-4" />
         </div>
         <span className="flex-1">{item.label}</span>
-        {active ? <ChevronRight className="h-3.5 w-3.5 text-indigo-400" /> : null}
+        {active ? <ChevronRight className="h-3.5 w-3.5 text-primary" /> : null}
       </Link>
       {item.createHref ? (
         <Link
           href={item.createHref}
           onClick={onClick}
           title="Create new"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-white"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <Plus className="h-4 w-4" />
         </Link>
@@ -157,12 +158,12 @@ function DisabledNavLink({
   item: { label: string; href: string; icon: React.ComponentType<{ className?: string }>; createHref?: string }
 }) {
   return (
-    <div className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-white/6 bg-white/[0.025] px-3 py-2.5 text-sm font-medium text-zinc-600">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-zinc-700">
+    <div className="flex cursor-not-allowed items-center gap-3 rounded-xl border border-border bg-muted/50 px-3 py-2.5 text-sm font-medium text-muted-foreground">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
         <item.icon className="h-4 w-4" />
       </div>
       <span className="flex-1">{item.label}</span>
-      <Lock className="h-3.5 w-3.5 text-zinc-700" />
+      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
     </div>
   )
 }
@@ -183,15 +184,15 @@ function MobileNavLink({
       <div
         className={`flex h-10 w-10 items-center justify-center rounded-2xl transition-colors ${
           active
-            ? "bg-indigo-500/18 text-indigo-100"
-            : "bg-white/[0.04] text-slate-400"
+            ? "bg-primary/18 text-primary"
+            : "bg-secondary text-muted-foreground"
         }`}
       >
         <item.icon className="h-4.5 w-4.5" />
       </div>
       <span
         className={`text-[11px] font-medium tracking-[0.04em] ${
-          active ? "text-white" : "text-slate-500"
+          active ? "text-foreground" : "text-muted-foreground"
         }`}
       >
         {item.label}
@@ -266,7 +267,7 @@ function SidebarContent({
     <div className="flex h-full flex-col">
       <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
         <div>
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Revenue
           </p>
           <div className="mt-3 space-y-1.5">
@@ -284,17 +285,17 @@ function SidebarContent({
             )}
           </div>
           {!hasWorkspaceAccess ? (
-            <div className="mt-3 rounded-xl border border-indigo-400/12 bg-indigo-500/6 px-3 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200">
+            <div className="mt-3 rounded-xl border border-primary/12 bg-primary/6 px-3 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
                 {statusLabel}
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{lockedHint}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--portal-text-soft)]">{lockedHint}</p>
             </div>
           ) : null}
         </div>
 
         <div>
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Resources
           </p>
           <div className="mt-3 space-y-1.5">
@@ -307,7 +308,7 @@ function SidebarContent({
         </div>
 
         <div>
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Account
           </p>
           <div className="mt-3 space-y-1.5">
@@ -323,21 +324,25 @@ function SidebarContent({
         </div>
       </nav>
 
-      <div className="border-t border-zinc-800 p-3">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+      <div className="border-t border-border p-3">
+        <div className="rounded-xl border border-border bg-card p-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-indigo-400/30 bg-indigo-500/15 text-xs font-semibold text-indigo-200">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/15 text-xs font-semibold text-primary">
               {userInitials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-white">{userName}</p>
-              <p className="truncate text-xs text-slate-400">{userEmail}</p>
+              <p className="truncate text-sm font-semibold text-foreground">{userName}</p>
+              <p className="truncate text-xs text-muted-foreground">{userEmail}</p>
             </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between">
+            <ThemeToggle />
           </div>
 
           <button
             onClick={() => signOut({ redirectUrl: "/" })}
-            className="secondary-button mt-4 w-full justify-center"
+            className="secondary-button mt-3 w-full justify-center"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -393,10 +398,10 @@ export function SidebarNav({
 
       <div className="workspace-mobile-topbar sticky top-3 z-30 mb-3 flex items-center justify-between rounded-[1.6rem] px-5 py-4 lg:hidden">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200/70">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70">
             {mobileTopbar.section}
           </p>
-          <p className="mt-1 truncate font-heading text-lg font-semibold text-white">
+          <p className="mt-1 truncate font-heading text-lg font-semibold text-foreground">
             {mobileTopbar.title}
           </p>
         </div>
@@ -404,7 +409,7 @@ export function SidebarNav({
         <Link
           href="/dashboard/profile"
           aria-label="Open profile"
-          className="workspace-mobile-topbar-avatar flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] text-sm font-semibold text-white transition-colors hover:border-indigo-300/35 hover:bg-indigo-400/18"
+          className="workspace-mobile-topbar-avatar flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] text-sm font-semibold text-foreground transition-colors hover:border-primary/35 hover:bg-primary/18"
         >
           {userInitials}
         </Link>
@@ -412,7 +417,7 @@ export function SidebarNav({
 
       {mobileOpen ? (
         <div
-          className="fixed inset-0 z-40 bg-[#050505]/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 dark:bg-black/80 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       ) : null}
@@ -430,9 +435,9 @@ export function SidebarNav({
           <button
             onClick={() => setMobileOpen(true)}
             aria-label="Open more navigation options"
-            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-slate-500 transition-colors hover:text-white"
+            className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/[0.04] text-slate-300">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-secondary text-[var(--portal-text-soft)]">
               <Menu className="h-4.5 w-4.5" />
             </div>
             <span className="text-[11px] font-medium tracking-[0.04em]">More</span>
@@ -446,15 +451,15 @@ export function SidebarNav({
         }`}
       >
         <div className="surface-card-strong relative max-h-[78vh] overflow-hidden rounded-[1.75rem] sm:rounded-[2rem]">
-          <div className="flex items-center justify-between border-b border-white/8 px-4 py-4">
+          <div className="flex items-center justify-between border-b border-border px-4 py-4">
             <div>
-              <p className="text-sm font-semibold text-white">More</p>
-              <p className="text-xs text-slate-500">Account, commissions, resources</p>
+              <p className="text-sm font-semibold text-foreground">More</p>
+              <p className="text-xs text-muted-foreground">Account, commissions, resources</p>
             </div>
             <button
               onClick={() => setMobileOpen(false)}
               aria-label="Close navigation"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.05] text-slate-300 hover:bg-white/[0.08] hover:text-white"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>

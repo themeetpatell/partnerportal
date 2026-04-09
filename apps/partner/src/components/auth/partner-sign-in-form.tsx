@@ -76,7 +76,7 @@ function AuthField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-[13px] font-medium text-zinc-400 mb-2">
+      <label htmlFor={id} className="block text-[13px] font-medium text-muted-foreground mb-2">
         {label}
       </label>
       <div className="relative">
@@ -92,9 +92,9 @@ function AuthField({
             height: "46px",
             padding: isPasswordField ? "0 48px 0 14px" : "0 14px",
             borderRadius: "10px",
-            border: focused ? "1px solid rgba(129,140,248,0.55)" : "1px solid rgba(255,255,255,0.08)",
-            background: focused ? "rgba(129,140,248,0.06)" : "rgba(255,255,255,0.04)",
-            color: "#f4f4f5",
+            border: focused ? "1px solid var(--portal-indigo)" : "1px solid var(--portal-line)",
+            background: focused ? "var(--portal-indigo-muted)" : "var(--portal-surface-soft)",
+            color: "var(--portal-fg)",
             fontSize: "14px",
             outline: "none",
             boxShadow: focused ? "0 0 0 3px rgba(99,102,241,0.1)" : "none",
@@ -106,7 +106,7 @@ function AuthField({
             type="button"
             aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword((value) => !value)}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-zinc-500 transition-colors hover:text-white"
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>

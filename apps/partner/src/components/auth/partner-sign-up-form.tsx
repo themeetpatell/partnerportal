@@ -175,11 +175,11 @@ export function PartnerSignUpForm({
         style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.16)" }}
       >
         <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-        <p className="text-sm font-medium text-white mb-1">Email verified</p>
-        <p className="text-sm text-zinc-400 leading-relaxed">{success}</p>
+        <p className="text-sm font-medium text-foreground mb-1">Email verified</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{success}</p>
         <Link
           href="/sign-in"
-          className="mt-4 inline-flex text-sm font-semibold text-indigo-300 transition-colors hover:text-indigo-200"
+          className="mt-4 inline-flex text-sm font-semibold text-primary transition-colors hover:text-primary/80"
         >
           Continue to sign in
         </Link>
@@ -196,9 +196,9 @@ export function PartnerSignUpForm({
           style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.16)" }}
         >
           <Mail className="h-10 w-10 text-indigo-400 mx-auto mb-3" />
-          <p className="text-sm font-medium text-white mb-1">Check your email</p>
-          <p className="text-sm text-zinc-400 leading-relaxed">
-            We sent a 6-digit code to <strong className="text-zinc-300">{email}</strong>
+          <p className="text-sm font-medium text-foreground mb-1">Check your email</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            We sent a 6-digit code to <strong className="text-[var(--portal-text-soft)]">{email}</strong>
           </p>
 
           <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
@@ -271,7 +271,7 @@ export function PartnerSignUpForm({
                 setOtpError(null)
                 setChallenge("")
               }}
-              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+              className="text-xs text-muted-foreground/70 hover:text-muted-foreground transition-colors"
             >
               Use a different email
             </button>
@@ -317,7 +317,7 @@ export function PartnerSignUpForm({
         Create account
       </button>
 
-      <p className="text-[11px] text-zinc-700 text-center">
+      <p className="text-[11px] text-muted-foreground/60 text-center">
         By creating an account you agree to our Terms of Service and Privacy Policy.
       </p>
     </form>
@@ -336,7 +336,7 @@ function AuthField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-[13px] font-medium text-zinc-400 mb-2">
+      <label htmlFor={id} className="block text-[13px] font-medium text-muted-foreground mb-2">
         {label}
       </label>
       <div className="relative">
@@ -352,9 +352,9 @@ function AuthField({
             height: "46px",
             padding: isPasswordField ? "0 48px 0 14px" : "0 14px",
             borderRadius: "10px",
-            border: focused ? "1px solid rgba(129,140,248,0.55)" : "1px solid rgba(255,255,255,0.08)",
-            background: focused ? "rgba(129,140,248,0.06)" : "rgba(255,255,255,0.04)",
-            color: "#f4f4f5",
+            border: focused ? "1px solid var(--portal-indigo)" : "1px solid var(--portal-line)",
+            background: focused ? "var(--portal-indigo-muted)" : "var(--portal-surface-soft)",
+            color: "var(--portal-fg)",
             fontSize: "14px",
             outline: "none",
             boxShadow: focused ? "0 0 0 3px rgba(99,102,241,0.1)" : "none",
@@ -366,7 +366,7 @@ function AuthField({
             type="button"
             aria-label={showPassword ? "Hide password" : "Show password"}
             onClick={() => setShowPassword((value) => !value)}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-zinc-500 transition-colors hover:text-white"
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>

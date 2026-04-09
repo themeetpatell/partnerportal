@@ -45,7 +45,7 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#080810] px-5 py-10">
+    <div className="flex min-h-screen items-center justify-center bg-background px-5 py-10">
       <div className="w-full max-w-[400px]">
         {/* Logo */}
         <div className="mb-10 flex items-center gap-3">
@@ -58,8 +58,8 @@ export default function ResetPasswordPage() {
             priority
           />
           <div>
-            <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+            <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+            <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
           </div>
         </div>
 
@@ -69,13 +69,13 @@ export default function ResetPasswordPage() {
             style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.16)" }}
           >
             <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-            <p className="text-sm font-medium text-white mb-1">Password updated</p>
-            <p className="text-sm text-zinc-400 leading-relaxed">
+            <p className="text-sm font-medium text-foreground mb-1">Password updated</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">
               Your password has been changed successfully. Sign in with your new password.
             </p>
             <Link
               href="/sign-in"
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-300 transition-colors hover:text-indigo-200"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary transition-colors hover:text-primary"
             >
               Continue to sign in
             </Link>
@@ -83,12 +83,12 @@ export default function ResetPasswordPage() {
         ) : (
           <>
             <h2
-              className="text-white font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
+              className="text-foreground font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
               style={{ fontSize: "1.875rem" }}
             >
               Set a new password
             </h2>
-            <p className="text-zinc-500 text-sm mb-8">
+            <p className="text-muted-foreground text-sm mb-8">
               Choose a strong password for your partner account.
             </p>
 
@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-foreground transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{
                   height: "46px",
                   borderRadius: "10px",
@@ -155,7 +155,7 @@ function PasswordField({
 
   return (
     <div>
-      <label htmlFor={id} className="block text-[13px] font-medium text-zinc-400 mb-2">
+      <label htmlFor={id} className="block text-[13px] font-medium text-muted-foreground mb-2">
         {label}
       </label>
       <div className="relative">
@@ -171,9 +171,9 @@ function PasswordField({
             height: "46px",
             padding: "0 48px 0 14px",
             borderRadius: "10px",
-            border: focused ? "1px solid rgba(129,140,248,0.55)" : "1px solid rgba(255,255,255,0.08)",
-            background: focused ? "rgba(129,140,248,0.06)" : "rgba(255,255,255,0.04)",
-            color: "#f4f4f5",
+            border: focused ? "1px solid rgba(129,140,248,0.55)" : "1px solid var(--portal-line)",
+            background: focused ? "rgba(129,140,248,0.06)" : "var(--portal-surface-soft)",
+            color: "var(--portal-fg)",
             fontSize: "14px",
             outline: "none",
             boxShadow: focused ? "0 0 0 3px rgba(99,102,241,0.1)" : "none",
@@ -184,7 +184,7 @@ function PasswordField({
           type="button"
           aria-label={showPassword ? "Hide password" : "Show password"}
           onClick={() => setShowPassword((v) => !v)}
-          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-zinc-500 transition-colors hover:text-white"
+          className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
         >
           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
         </button>

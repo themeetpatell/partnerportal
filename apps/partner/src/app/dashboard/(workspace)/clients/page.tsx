@@ -24,31 +24,31 @@ import { getCurrentPartnerRecord } from "@/lib/partner-record"
 const CLIENTS_PER_PAGE = 12
 
 const leadStatusStyles: Record<string, string> = {
-  submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  qualified: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-100",
-  proposal_sent: "border border-zinc-600/20 bg-zinc-600/10 text-zinc-100",
-  deal_won: "border border-white/20 bg-white/10 text-white",
-  deal_lost: "border border-zinc-700/20 bg-zinc-700/10 text-zinc-300",
+  submitted: "border border-border bg-secondary text-foreground/90",
+  qualified: "border border-border bg-secondary text-foreground/90",
+  proposal_sent: "border border-border bg-secondary/60 text-foreground/90",
+  deal_won: "border border-border bg-secondary text-foreground",
+  deal_lost: "border border-border bg-secondary/60 text-[var(--portal-text-soft)]",
 }
 
 const requestStatusStyles: Record<string, string> = {
-  pending: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
-  in_progress: "border border-zinc-400/20 bg-zinc-400/10 text-zinc-100",
-  completed: "border border-white/20 bg-white/10 text-white",
-  cancelled: "border border-zinc-600/20 bg-zinc-500/10 text-zinc-300",
+  pending: "border border-border bg-secondary text-foreground/90",
+  in_progress: "border border-border bg-secondary text-foreground/90",
+  completed: "border border-border bg-secondary text-foreground",
+  cancelled: "border border-border bg-secondary text-[var(--portal-text-soft)]",
 }
 
 const clientStatusStyles: Record<string, string> = {
   active: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
   watchlist: "border border-amber-400/20 bg-amber-500/10 text-amber-100",
-  inactive: "border border-zinc-500/20 bg-zinc-500/10 text-zinc-200",
+  inactive: "border border-border bg-secondary text-foreground/90",
 }
 
 const renewalStyles: Record<string, string> = {
   overdue: "border border-rose-400/20 bg-rose-500/10 text-rose-100",
   due_soon: "border border-amber-400/20 bg-amber-500/10 text-amber-100",
   upcoming: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
-  not_set: "border border-white/10 bg-white/[0.05] text-slate-300",
+  not_set: "border border-border bg-secondary/70 text-[var(--portal-text-soft)]",
 }
 
 type ClientRecord = ReturnType<typeof buildClientRecords>[number]
@@ -319,22 +319,22 @@ export default async function ClientsPage({
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           <div className="metric-card">
             <p className="metric-value">{trackedClients}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Tracked clients</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Tracked clients</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               First-class client records owned by your partner workspace.
             </p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{renewalAttentionCount}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Renewal attention</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Renewal attention</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Clients with overdue or upcoming renewal dates in the next 30 days.
             </p>
           </div>
           <div className="metric-card">
             <p className="metric-value">{activityOnlyCount}</p>
-            <p className="mt-2 text-sm font-semibold text-white">Unlinked activity</p>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-2 text-sm font-semibold text-foreground">Unlinked activity</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               Lead or request activity that has not been saved as a client record yet.
             </p>
           </div>
@@ -342,16 +342,16 @@ export default async function ClientsPage({
       </section>
 
       <section className="table-shell">
-        <div className="border-b border-white/8 px-5 py-5 sm:px-6">
+        <div className="border-b border-border px-5 py-5 sm:px-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="font-heading text-xl font-semibold text-white">Client book</p>
-              <p className="mt-1 max-w-2xl text-sm text-slate-400">
+              <p className="font-heading text-xl font-semibold text-foreground">Client book</p>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
                 Search, filter, and page through your saved clients and activity-only records instead of scrolling through oversized cards forever.
               </p>
             </div>
             <span className="tag-pill w-fit">
-              <RefreshCw className="h-4 w-4 text-indigo-300" />
+              <RefreshCw className="h-4 w-4 text-primary" />
               Renewal-aware
             </span>
           </div>
@@ -362,7 +362,7 @@ export default async function ClientsPage({
                 <input type="hidden" name="scope" value={activeScope} />
               ) : null}
               <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="search"
                   name="q"
@@ -389,12 +389,12 @@ export default async function ClientsPage({
                     href={buildClientsPageHref({ scope: option.value, query })}
                     className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors ${
                       isActive
-                        ? "border border-indigo-400/30 bg-indigo-500/16 text-indigo-100"
-                        : "border border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/16 hover:bg-white/[0.06] hover:text-white"
+                        ? "border border-primary/30 bg-primary/16 text-primary"
+                        : "border border-border bg-secondary/50 text-[var(--portal-text-soft)] hover:border-border hover:bg-secondary/80 hover:text-foreground"
                     }`}
                   >
                     <span>{option.label}</span>
-                    <span className="rounded-full bg-black/20 px-2 py-0.5 text-[11px] text-slate-300">
+                    <span className="rounded-full bg-black/20 px-2 py-0.5 text-[11px] text-[var(--portal-text-soft)]">
                       {option.count}
                     </span>
                   </Link>
@@ -406,13 +406,13 @@ export default async function ClientsPage({
 
         {filteredClients.length === 0 ? (
           <div className="empty-state m-4">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-indigo-500/12 text-indigo-200">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
               <Users className="h-6 w-6" />
             </div>
-            <p className="mt-5 font-heading text-2xl font-semibold text-white">
+            <p className="mt-5 font-heading text-2xl font-semibold text-foreground">
               {clients.length === 0 ? "No clients yet" : "No matching clients"}
             </p>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-400">
+            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
               {clients.length === 0
                 ? "Save your first client to start a partner-owned client book independent of lead and service activity."
                 : "Try a different filter or search term to find the client record you need."}
@@ -433,7 +433,7 @@ export default async function ClientsPage({
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/8 text-slate-500">
+                  <tr className="border-b border-border text-muted-foreground">
                     <th className="px-6 py-4 font-medium">Client</th>
                     <th className="px-6 py-4 font-medium">Snapshot</th>
                     <th className="px-6 py-4 font-medium">Renewal</th>
@@ -445,42 +445,42 @@ export default async function ClientsPage({
                   {pageClients.map((client) => (
                     <tr
                       key={client.key}
-                      className="border-b border-white/6 transition-colors hover:bg-white/[0.03]"
+                      className="border-b border-border transition-colors hover:bg-secondary/50"
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium text-white">{client.displayName}</p>
-                          <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                          <p className="font-medium text-foreground">{client.displayName}</p>
+                          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                             {client.source === "saved" ? "Saved" : "Activity only"}
                           </span>
                           {client.status ? (
                             <span
-                              className={`status-pill ${clientStatusStyles[client.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                              className={`status-pill ${clientStatusStyles[client.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                             >
                               {formatLabel(client.status)}
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {client.contactName || "No contact"} · {client.email || client.phone || "No contact details"}
                         </p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {[client.city, client.country, client.nationality].filter(Boolean).join(", ") || "No location"}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-400">
+                      <td className="px-6 py-4 text-xs text-muted-foreground">
                         <div className="space-y-1.5">
                           <p>
-                            <span className="text-slate-500">Trade license:</span>{" "}
-                            <span className="text-slate-300">{client.tradeLicenseNumber || "—"}</span>
+                            <span className="text-muted-foreground">Trade license:</span>{" "}
+                            <span className="text-[var(--portal-text-soft)]">{client.tradeLicenseNumber || "—"}</span>
                           </p>
                           <p>
-                            <span className="text-slate-500">Nationality:</span>{" "}
-                            <span className="text-slate-300">{client.nationality || "—"}</span>
+                            <span className="text-muted-foreground">Nationality:</span>{" "}
+                            <span className="text-[var(--portal-text-soft)]">{client.nationality || "—"}</span>
                           </p>
                           <p>
-                            <span className="text-slate-500">Last activity:</span>{" "}
-                            <span className="text-slate-300">{formatDate(client.lastActivity)}</span>
+                            <span className="text-muted-foreground">Last activity:</span>{" "}
+                            <span className="text-[var(--portal-text-soft)]">{formatDate(client.lastActivity)}</span>
                           </p>
                         </div>
                       </td>
@@ -488,7 +488,7 @@ export default async function ClientsPage({
                         <span className={`status-pill ${renewalStyles[client.renewalState]}`}>
                           {formatLabel(client.renewalState)}
                         </span>
-                        <p className="mt-2 text-xs text-slate-500">
+                        <p className="mt-2 text-xs text-muted-foreground">
                           {getRenewalLabel(client.renewalDate, client.renewalState)}
                         </p>
                       </td>
@@ -498,33 +498,33 @@ export default async function ClientsPage({
                             {client.latestLeadStatus ? (
                               <>
                                 <span
-                                  className={`status-pill ${leadStatusStyles[client.latestLeadStatus] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                                  className={`status-pill ${leadStatusStyles[client.latestLeadStatus] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                                 >
                                   {formatLabel(client.latestLeadStatus)}
                                 </span>
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-xs text-muted-foreground">
                                   {client.leadCount} lead{client.leadCount === 1 ? "" : "s"}
                                 </p>
                               </>
                             ) : (
-                              <span className="text-slate-500">No lead activity</span>
+                              <span className="text-muted-foreground">No lead activity</span>
                             )}
                           </div>
                           <div>
                             {client.latestRequestStatus ? (
                               <>
                                 <span
-                                  className={`status-pill ${requestStatusStyles[client.latestRequestStatus] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                                  className={`status-pill ${requestStatusStyles[client.latestRequestStatus] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                                 >
                                   {formatLabel(client.latestRequestStatus)}
                                 </span>
-                                <p className="mt-2 text-xs text-slate-500">
+                                <p className="mt-2 text-xs text-muted-foreground">
                                   {client.latestServiceName || "Service request"} · {client.requestCount} request
                                   {client.requestCount === 1 ? "" : "s"}
                                 </p>
                               </>
                             ) : (
-                              <span className="text-slate-500">No service activity</span>
+                              <span className="text-muted-foreground">No service activity</span>
                             )}
                           </div>
                         </div>
@@ -533,7 +533,7 @@ export default async function ClientsPage({
                         <div className="flex flex-wrap gap-2">
                           <Link
                             href={buildClientDetailHref(client)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition-colors hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/50 text-foreground/90 transition-colors hover:border-border hover:bg-secondary/90 hover:text-foreground"
                             aria-label="View client details"
                             title="View client details"
                           >
@@ -541,14 +541,14 @@ export default async function ClientsPage({
                           </Link>
                           <Link
                             href={buildLeadHref(client)}
-                            className="tag-pill border-white/10 bg-white/[0.04] text-slate-200"
+                            className="tag-pill border-border bg-secondary/50 text-foreground/90"
                           >
                             Create lead
                           </Link>
                           {client.source === "activity_only" ? (
                             <Link
                               href={buildSaveHref(client)}
-                              className="tag-pill border-indigo-400/20 bg-indigo-500/10 text-indigo-100"
+                              className="tag-pill border-primary/20 bg-primary/10 text-primary"
                             >
                               Save client
                             </Link>
@@ -565,28 +565,28 @@ export default async function ClientsPage({
               {pageClients.map((client) => (
                 <div
                   key={client.key}
-                  className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4"
+                  className="rounded-[1.4rem] border border-border bg-secondary/50 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-heading text-lg font-semibold text-white">
+                        <p className="font-heading text-lg font-semibold text-foreground">
                           {client.displayName}
                         </p>
-                        <span className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+                        <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                           {client.source === "saved" ? "Saved" : "Activity only"}
                         </span>
                       </div>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         {client.contactName || "No contact"} · {client.email || client.phone || "No contact details"}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {[client.city, client.country, client.nationality].filter(Boolean).join(", ") || "No location"}
                       </p>
                     </div>
                     {client.status ? (
                       <span
-                        className={`status-pill shrink-0 ${clientStatusStyles[client.status] || "border border-white/10 bg-white/[0.05] text-slate-300"}`}
+                        className={`status-pill shrink-0 ${clientStatusStyles[client.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
                       >
                         {formatLabel(client.status)}
                       </span>
@@ -594,27 +594,27 @@ export default async function ClientsPage({
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-[1.1rem] border border-white/8 bg-black/10 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Renewal</p>
-                      <p className="mt-2 font-medium text-white">
+                    <div className="rounded-[1.1rem] border border-border bg-black/10 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Renewal</p>
+                      <p className="mt-2 font-medium text-foreground">
                         {getRenewalLabel(client.renewalDate, client.renewalState)}
                       </p>
                     </div>
-                    <div className="rounded-[1.1rem] border border-white/8 bg-black/10 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Last activity</p>
-                      <p className="mt-2 font-medium text-white">{formatDate(client.lastActivity)}</p>
+                    <div className="rounded-[1.1rem] border border-border bg-black/10 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Last activity</p>
+                      <p className="mt-2 font-medium text-foreground">{formatDate(client.lastActivity)}</p>
                     </div>
-                    <div className="rounded-[1.1rem] border border-white/8 bg-black/10 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Lead activity</p>
-                      <p className="mt-2 font-medium text-white">
+                    <div className="rounded-[1.1rem] border border-border bg-black/10 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Lead activity</p>
+                      <p className="mt-2 font-medium text-foreground">
                         {client.latestLeadStatus
                           ? `${formatLabel(client.latestLeadStatus)} · ${client.leadCount}`
                           : "None"}
                       </p>
                     </div>
-                    <div className="rounded-[1.1rem] border border-white/8 bg-black/10 p-3">
-                      <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">Service activity</p>
-                      <p className="mt-2 font-medium text-white">
+                    <div className="rounded-[1.1rem] border border-border bg-black/10 p-3">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Service activity</p>
+                      <p className="mt-2 font-medium text-foreground">
                         {client.latestRequestStatus
                           ? `${formatLabel(client.latestRequestStatus)} · ${client.requestCount}`
                           : "None"}
@@ -622,14 +622,14 @@ export default async function ClientsPage({
                     </div>
                   </div>
 
-                  <div className="mt-3 grid gap-2 rounded-[1.1rem] border border-white/8 bg-black/10 p-3 text-sm">
+                  <div className="mt-3 grid gap-2 rounded-[1.1rem] border border-border bg-black/10 p-3 text-sm">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-slate-500">Trade license</span>
-                      <span className="text-right text-white">{client.tradeLicenseNumber || "—"}</span>
+                      <span className="text-muted-foreground">Trade license</span>
+                      <span className="text-right text-foreground">{client.tradeLicenseNumber || "—"}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-slate-500">Nationality</span>
-                      <span className="text-right text-white">{client.nationality || "—"}</span>
+                      <span className="text-muted-foreground">Nationality</span>
+                      <span className="text-right text-foreground">{client.nationality || "—"}</span>
                     </div>
                   </div>
 
@@ -660,10 +660,10 @@ export default async function ClientsPage({
               ))}
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-white/8 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-slate-400">
-                Showing <span className="text-white">{rangeStart}-{rangeEnd}</span> of{" "}
-                <span className="text-white">{filteredClients.length}</span> clients
+            <div className="flex flex-col gap-4 border-t border-border px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing <span className="text-foreground">{rangeStart}-{rangeEnd}</span> of{" "}
+                <span className="text-foreground">{filteredClients.length}</span> clients
               </p>
               <div className="flex items-center gap-2">
                 <PaginationButton
@@ -677,7 +677,7 @@ export default async function ClientsPage({
                   <ChevronLeft className="h-4 w-4" />
                   Prev
                 </PaginationButton>
-                <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-slate-300">
+                <span className="rounded-full border border-border bg-secondary/50 px-3 py-2 text-sm text-[var(--portal-text-soft)]">
                   Page {currentPage} of {totalPages}
                 </span>
                 <PaginationButton

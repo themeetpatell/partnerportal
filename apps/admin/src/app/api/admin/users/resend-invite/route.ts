@@ -7,7 +7,7 @@ import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { USER_MANAGEMENT_ROLES, getTeamRoleMeta, hasAnyTeamRole } from "@/lib/rbac"
-import { sendTeamMemberInviteEmail } from "@repo/notifications"
+import { getAdminPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -42,8 +42,7 @@ export async function POST(req: NextRequest) {
   }
 
   const supabaseAdmin = getSupabaseAdminClient()
-  const adminPortalUrl =
-    process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || "http://localhost:3001"
+  const adminPortalUrl = getAdminPortalUrl()
 
   const { data: linkData, error: linkError } =
     await supabaseAdmin.auth.admin.generateLink({

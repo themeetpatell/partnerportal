@@ -56,7 +56,7 @@ export default function RegisterPage() {
         <div className="mb-5 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-300 transition-colors hover:text-white"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--portal-text-soft)] transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to home
@@ -64,7 +64,7 @@ export default function RegisterPage() {
           <div className="flex items-center justify-between gap-3 sm:justify-start">
             <Link
               href="/sign-in"
-              className="text-sm font-medium text-slate-300 transition-colors hover:text-white"
+              className="text-sm font-medium text-[var(--portal-text-soft)] transition-colors hover:text-foreground"
             >
               Sign in
             </Link>
@@ -80,17 +80,17 @@ export default function RegisterPage() {
                 Clear onboarding flow
               </div>
 
-              <h1 className="font-heading mt-5 text-4xl font-semibold leading-tight text-white sm:text-5xl">
+              <h1 className="font-heading mt-5 text-4xl font-semibold leading-tight text-foreground sm:text-5xl">
                 Choose your partner model first.
               </h1>
 
-              <p className="mt-5 text-sm leading-7 text-slate-300 sm:text-base">
+              <p className="mt-5 text-sm leading-7 text-[var(--portal-text-soft)] sm:text-base">
                 This is the start of the actual journey. Select the model, create your account,
                 verify your email, sign in, complete onboarding, and then wait for admin approval
                 before the full workspace unlocks.
               </p>
 
-              <div className="mt-8 space-y-3 rounded-[1.5rem] border border-white/8 bg-white/[0.03] p-5">
+              <div className="mt-8 space-y-3 rounded-[1.5rem] border border-border bg-secondary/50 p-5">
                 {[
                   "1. Select referral or channel partner",
                   "2. Create your login with that model attached",
@@ -100,9 +100,9 @@ export default function RegisterPage() {
                 ].map((step) => (
                   <div key={step} className="flex items-center gap-3">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/15">
-                      <Check className="h-3.5 w-3.5 text-indigo-300" />
+                      <Check className="h-3.5 w-3.5 text-primary" />
                     </div>
-                    <p className="text-sm text-slate-300">{step}</p>
+                    <p className="text-sm text-[var(--portal-text-soft)]">{step}</p>
                   </div>
                 ))}
               </div>
@@ -112,29 +112,29 @@ export default function RegisterPage() {
               {models.map((model) => (
                 <div
                   key={model.type}
-                  className="rounded-[1.9rem] border border-white/8 bg-white/[0.03] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
+                  className="rounded-[1.9rem] border border-border bg-secondary/50 p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)]"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/12 text-indigo-200">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/12 text-primary">
                       <model.icon className="h-5 w-5" />
                     </div>
-                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+                    <span className="rounded-full border border-border bg-secondary/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--portal-text-soft)]">
                       {model.badge}
                     </span>
                   </div>
 
-                  <h2 className="font-heading mt-5 text-2xl font-semibold text-white">
+                  <h2 className="font-heading mt-5 text-2xl font-semibold text-foreground">
                     {model.title}
                   </h2>
-                  <p className="mt-3 text-sm leading-6 text-slate-400">
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
                     {model.description}
                   </p>
 
-                  <div className="mt-5 space-y-2 rounded-[1.25rem] border border-white/8 bg-black/10 p-4">
+                  <div className="mt-5 space-y-2 rounded-[1.25rem] border border-border bg-black/10 p-4">
                     {model.points.map((point) => (
                       <div key={point} className="flex items-start gap-2.5">
                         <div className="mt-2 h-1.5 w-1.5 rounded-full bg-indigo-300" />
-                        <p className="text-sm text-slate-300">{point}</p>
+                        <p className="text-sm text-[var(--portal-text-soft)]">{point}</p>
                       </div>
                     ))}
                   </div>

@@ -43,11 +43,11 @@ export default function SignUpPage() {
   const selectedTypeLabel = type === "channel" ? "Channel Partner" : "Referral Partner"
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#080810] lg:flex-row">
+    <div className="flex min-h-screen flex-col bg-background lg:flex-row">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex w-[54%] relative overflow-hidden flex-col p-14 xl:p-16">
         {/* Background */}
-        <div className="absolute inset-0 bg-[#080810]" />
+        <div className="absolute inset-0 bg-background" />
         <div
           className="absolute inset-0 opacity-[0.35]"
           style={{
@@ -80,8 +80,8 @@ export default function SignUpPage() {
               priority
             />
             <div>
-              <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+              <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+              <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
             </div>
           </div>
 
@@ -92,13 +92,13 @@ export default function SignUpPage() {
               style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="text-[10px] font-semibold text-indigo-400 uppercase tracking-[0.2em]">
+              <span className="text-[10px] font-semibold text-primary uppercase tracking-[0.2em]">
                 Partner account setup
               </span>
             </div>
 
             <h1
-              className="text-white font-extrabold leading-[1.06] tracking-[-0.04em]"
+              className="text-foreground font-extrabold leading-[1.06] tracking-[-0.04em]"
               style={{ fontSize: "clamp(2rem, 3vw, 2.7rem)" }}
             >
               Start your
@@ -110,7 +110,7 @@ export default function SignUpPage() {
               <span style={{ color: "#818cf8" }}>Finish inside.</span>
             </h1>
 
-            <p className="mt-5 text-zinc-400 text-[15px] leading-[1.7]">
+            <p className="mt-5 text-muted-foreground text-[15px] leading-[1.7]">
               This step creates your login. After that, you will complete the actual partner registration and submit the details needed for review.
             </p>
 
@@ -122,11 +122,11 @@ export default function SignUpPage() {
                     className="h-9 w-9 rounded-xl flex-shrink-0 flex items-center justify-center"
                     style={{ background: "rgba(99,102,241,0.12)", border: "1px solid rgba(99,102,241,0.18)" }}
                   >
-                    <Icon className="h-4 w-4 text-indigo-400" />
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-white text-sm font-semibold">{label}</p>
-                    <p className="text-zinc-600 text-xs">{sub}</p>
+                    <p className="text-foreground text-sm font-semibold">{label}</p>
+                    <p className="text-muted-foreground/60 text-xs">{sub}</p>
                   </div>
                 </div>
               ))}
@@ -138,12 +138,12 @@ export default function SignUpPage() {
       {/* ── Right form panel ── */}
       <div
         className="flex flex-1 flex-col items-center justify-start px-5 py-8 sm:px-6 sm:py-10 lg:justify-center lg:px-14 lg:py-14"
-        style={{ borderLeft: "1px solid rgba(255,255,255,0.05)" }}
+        style={{ borderLeft: "1px solid var(--portal-line)" }}
       >
         <div className="mb-6 flex w-full max-w-[400px] justify-start sm:mb-8 sm:justify-end">
           <Link
             href="/sign-in"
-            className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Already have an account? Sign in
           </Link>
@@ -160,45 +160,45 @@ export default function SignUpPage() {
             priority
           />
           <div>
-            <p className="text-white font-bold text-sm tracking-tight">Finanshels</p>
-            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.28em]">Partner Portal</p>
+            <p className="text-foreground font-bold text-sm tracking-tight">Finanshels</p>
+            <p className="text-[9px] text-muted-foreground/60 uppercase tracking-[0.28em]">Partner Portal</p>
           </div>
         </div>
 
         <div className="w-full max-w-[400px]">
           <h2
-            className="text-white font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
+            className="text-foreground font-extrabold tracking-[-0.04em] leading-tight mb-1.5"
             style={{ fontSize: "1.875rem" }}
           >
             Create your account
           </h2>
-          <p className="text-zinc-500 text-sm mb-8">
+          <p className="text-muted-foreground text-sm mb-8">
             {selectedTypeLabel} selected. After signup, you&apos;ll complete onboarding and wait for admin approval.
           </p>
 
           <div className="mb-5 rounded-2xl border border-indigo-400/18 bg-indigo-500/8 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-indigo-300">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
               Selected partner model
             </p>
-            <p className="mt-1 text-sm font-semibold text-white">{selectedTypeLabel}</p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{selectedTypeLabel}</p>
           </div>
 
           <PartnerSignUpForm selectedType={type} />
 
           <div
             className="mt-8 pt-8 text-center space-y-3"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+            style={{ borderTop: "1px solid var(--portal-line)" }}
           >
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-muted-foreground/60">
               Already have an account?{" "}
-              <Link href="/sign-in" className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">
+              <Link href="/sign-in" className="text-primary font-semibold hover:text-primary transition-colors">
                 Sign in
               </Link>
             </p>
-            <Link href="/register" className="block text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+            <Link href="/register" className="block text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               Change partner model
             </Link>
-            <Link href="/" className="block text-xs text-zinc-700 hover:text-zinc-500 transition-colors">
+            <Link href="/" className="block text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors">
               ← Back to home
             </Link>
           </div>

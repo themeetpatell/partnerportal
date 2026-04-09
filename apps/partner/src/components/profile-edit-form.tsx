@@ -52,7 +52,7 @@ function TextField({
 }) {
   return (
     <div>
-      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500 block mb-1.5">
+      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
         {label}
       </label>
       <input
@@ -60,7 +60,7 @@ function TextField({
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors"
+        className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
       />
     </div>
   )
@@ -83,13 +83,13 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500 block mb-1.5">
+      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
         {label}
       </label>
       <select
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
-        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500 transition-colors"
+        className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary transition-colors"
       >
         <option value="">{placeholder ?? "Select…"}</option>
         {options.map((o) => (
@@ -119,9 +119,9 @@ function CheckboxField({
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(name, e.target.checked)}
-        className="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-indigo-600 focus:ring-indigo-500"
+        className="h-4 w-4 rounded border-border bg-secondary text-indigo-600 focus:ring-indigo-500"
       />
-      <span className="text-sm text-zinc-200">{label}</span>
+      <span className="text-sm text-foreground">{label}</span>
     </label>
   )
 }
@@ -141,7 +141,7 @@ function TextareaField({
 }) {
   return (
     <div className="sm:col-span-2">
-      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-slate-500 block mb-1.5">
+      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
         {label}
       </label>
       <textarea
@@ -149,7 +149,7 @@ function TextareaField({
         value={value}
         onChange={(e) => onChange(name, e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
+        className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors resize-none"
       />
     </div>
   )
@@ -170,8 +170,8 @@ function SectionEditButton({
       onClick={onToggle}
       className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:w-auto ${
         editing
-          ? "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-          : "bg-white/6 text-slate-400 hover:text-white hover:bg-white/10"
+          ? "bg-secondary text-muted-foreground hover:text-foreground"
+          : "bg-secondary/50 text-muted-foreground hover:text-foreground hover:bg-secondary"
       }`}
     >
       {editing ? <X className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
@@ -269,9 +269,9 @@ export function ProfileEditForm({
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-white">{title}</h2>
+            <h2 className="text-base font-semibold text-foreground">{title}</h2>
             {description ? (
-              <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p>
+              <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</p>
             ) : null}
           </div>
           <div className="w-full sm:w-auto">
@@ -287,8 +287,8 @@ export function ProfileEditForm({
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold text-white">{title}</h2>
-          <p className="mt-1 text-xs font-medium text-indigo-400">Editing — make changes below</p>
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
+          <p className="mt-1 text-xs font-medium text-primary">Editing — make changes below</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <SectionEditButton editing onToggle={handleCancel} />
@@ -296,7 +296,7 @@ export function ProfileEditForm({
             type="button"
             onClick={handleSave}
             disabled={isPending}
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-500 disabled:opacity-50 sm:w-auto"
+            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 sm:w-auto"
           >
             {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             Save
