@@ -1,9 +1,7 @@
-import { currentUser } from "@repo/auth/server"
 import {
   db,
   leads,
   partnerClients,
-  partners,
   serviceRequests,
   services,
 } from "@repo/db"
@@ -21,6 +19,7 @@ import {
 import { buildClientRecords } from "@/lib/client-records"
 import { DatabaseFallbackCard } from "@/components/database-fallback-card"
 import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const CLIENTS_PER_PAGE = 12
 
@@ -193,19 +192,12 @@ export default async function ClientsPage({
   searchParams: Promise<{ page?: string; scope?: string; q?: string }>
 }) {
   const { page, scope, q } = await searchParams
-  const user = await currentUser()
+  const partner = await getCurrentPartnerRecord()
   let clients = [] as ReturnType<typeof buildClientRecords>
 
   try {
-    if (user) {
-      const [partner] = await db
-        .select()
-        .from(partners)
-        .where(eq(partners.authUserId, user.id))
-        .limit(1)
-
-      if (partner) {
-        const [savedClientRows, leadRows, requestRows] = await Promise.all([
+    if (partner) {
+      const [savedClientRows, leadRows, requestRows] = await Promise.all([
           db
             .select({
               id: partnerClients.id,
@@ -252,8 +244,7 @@ export default async function ClientsPage({
             .orderBy(desc(serviceRequests.createdAt)),
         ])
 
-        clients = buildClientRecords(savedClientRows, leadRows, requestRows)
-      }
+      clients = buildClientRecords(savedClientRows, leadRows, requestRows)
     }
   } catch (error) {
     if (isDatabaseConnectivityError(error)) {

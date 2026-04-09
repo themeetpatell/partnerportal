@@ -3,7 +3,7 @@ import { db, commissions, partners } from "@repo/db"
 import { count, eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
 import { auth } from "@repo/auth/server"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole } from "@/lib/rbac"
 
 function StatusBadge({ status }: { status: string }) {
@@ -55,8 +55,10 @@ export default async function CommissionsPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string }>
 }) {
-  const { userId } = await auth()
-  const member = userId ? await getActiveTeamMember(userId) : null
+  const [, member] = await Promise.all([
+    auth(),
+    getCurrentActiveTeamMember(),
+  ])
   const canManageCommissions = member
     ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
     : false

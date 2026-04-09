@@ -1,11 +1,11 @@
-import { currentUser } from "@repo/auth/server"
-import { db, commissions, leads, partners, payoutRequests } from "@repo/db"
-import { and, desc, eq } from "drizzle-orm"
+import { db, commissions, leads, payoutRequests } from "@repo/db"
+import { and, desc, eq, inArray } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowUpRight, CircleDollarSign, TrendingUp, Wallet } from "lucide-react"
 import { CommissionFilters } from "@/components/commission-filters"
 import { DatabaseFallbackCard } from "@/components/database-fallback-card"
 import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 // Partner-facing status labels and styles
 const statusConfig: Record<string, { label: string; style: string; hint: string }> = {
@@ -104,7 +104,7 @@ export default async function CommissionsPage({
   searchParams: Promise<{ status?: string; type?: string }>
 }) {
   const { status: filterStatus, type: filterType } = await searchParams
-  const user = await currentUser()
+  const partner = await getCurrentPartnerRecord()
 
   type CommissionRow = typeof commissions.$inferSelect & { clientName: string | null; clientCompany: string | null; leadId: string | null }
   type PayoutRow = typeof payoutRequests.$inferSelect
@@ -113,16 +113,8 @@ export default async function CommissionsPage({
   let payouts: PayoutRow[] = []
 
   try {
-    if (user) {
-      const [partner] = await db
-        .select()
-        .from(partners)
-        .where(eq(partners.authUserId, user.id))
-        .limit(1)
-
-      if (partner) {
-        // Fetch commissions and payout requests in parallel
-        const [commissionRows, payoutRows] = await Promise.all([
+    if (partner) {
+      const [commissionRows, payoutRows] = await Promise.all([
           db
             .select()
             .from(commissions)
@@ -135,39 +127,46 @@ export default async function CommissionsPage({
             .orderBy(desc(payoutRequests.createdAt)),
         ])
 
-        payouts = payoutRows
+      payouts = payoutRows
 
-        // For lead-sourced commissions, resolve client names
-        const leadIds = commissionRows
-          .filter((c) => c.sourceType === "lead")
-          .map((c) => c.sourceId)
+      const leadIds = [...new Set(
+        commissionRows
+          .filter((commission) => commission.sourceType === "lead")
+          .map((commission) => commission.sourceId)
+      )]
 
-        const leadMap = new Map<string, { customerName: string; customerCompany: string | null }>()
-        if (leadIds.length > 0) {
-          const leadRows = await db
-            .select({
-              id: leads.id,
-              customerName: leads.customerName,
-              customerCompany: leads.customerCompany,
-            })
-            .from(leads)
-            .where(and(eq(leads.partnerId, partner.id)))
+      const leadMap = new Map<string, { customerName: string; customerCompany: string | null }>()
+      if (leadIds.length > 0) {
+        const leadRows = await db
+          .select({
+            id: leads.id,
+            customerName: leads.customerName,
+            customerCompany: leads.customerCompany,
+          })
+          .from(leads)
+          .where(and(eq(leads.partnerId, partner.id), inArray(leads.id, leadIds)))
 
-          for (const lead of leadRows) {
-            leadMap.set(lead.id, { customerName: lead.customerName, customerCompany: lead.customerCompany })
-          }
+        for (const lead of leadRows) {
+          leadMap.set(lead.id, {
+            customerName: lead.customerName,
+            customerCompany: lead.customerCompany,
+          })
         }
-
-        rows = commissionRows.map((c) => {
-          const leadInfo = c.sourceType === "lead" ? (leadMap.get(c.sourceId) ?? null) : null
-          return {
-            ...c,
-            clientName: leadInfo?.customerName ?? null,
-            clientCompany: leadInfo?.customerCompany ?? null,
-            leadId: c.sourceType === "lead" ? c.sourceId : null,
-          }
-        })
       }
+
+      rows = commissionRows.map((commission) => {
+        const leadInfo =
+          commission.sourceType === "lead"
+            ? (leadMap.get(commission.sourceId) ?? null)
+            : null
+
+        return {
+          ...commission,
+          clientName: leadInfo?.customerName ?? null,
+          clientCompany: leadInfo?.customerCompany ?? null,
+          leadId: commission.sourceType === "lead" ? commission.sourceId : null,
+        }
+      })
     }
   } catch (error) {
     if (isDatabaseConnectivityError(error)) {

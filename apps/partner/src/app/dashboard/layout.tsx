@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
 import {
-  getPartnerRecordForAuthenticatedUser,
+  getCurrentPartnerRecord,
   hasApprovedWorkspaceAccess,
 } from "@/lib/partner-record"
 
@@ -13,16 +13,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await currentUser()
+  const [user, partnerRecord] = await Promise.all([
+    currentUser(),
+    getCurrentPartnerRecord(),
+  ])
 
   if (!user) {
     redirect("/sign-in")
   }
-
-  const partnerRecord = await getPartnerRecordForAuthenticatedUser({
-    userId: user.id,
-    email: user.email,
-  })
 
   if (!partnerRecord) {
     redirect("/onboarding")

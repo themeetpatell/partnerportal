@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, partners, leads, commissions } from "@repo/db"
-import { eq, count, sum } from "drizzle-orm"
+import { desc, eq, sql, sum } from "drizzle-orm"
 import {
   UserCheck,
   Clock,
@@ -39,16 +39,18 @@ export default async function AdminOverviewPage() {
 
   try {
     dashboardData = await Promise.all([
-      db.select({ count: count() }).from(partners),
       db
-        .select({ count: count() })
-        .from(partners)
-        .where(eq(partners.status, "pending")),
-      db.select({ count: count() }).from(leads),
+        .select({
+          total: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${partners.status} = 'pending')`,
+        })
+        .from(partners),
       db
-        .select({ count: count() })
-        .from(leads)
-        .where(eq(leads.status, "submitted")),
+        .select({
+          total: sql<number>`count(*)`,
+          submitted: sql<number>`count(*) filter (where ${leads.status} = 'submitted')`,
+        })
+        .from(leads),
       db
         .select({ total: sum(commissions.amount) })
         .from(commissions)
@@ -63,7 +65,7 @@ export default async function AdminOverviewPage() {
         })
         .from(partners)
         .where(eq(partners.status, "pending"))
-        .orderBy(partners.createdAt)
+        .orderBy(desc(partners.createdAt))
         .limit(5),
       db
         .select({
@@ -75,7 +77,7 @@ export default async function AdminOverviewPage() {
           createdAt: leads.createdAt,
         })
         .from(leads)
-        .orderBy(leads.createdAt)
+        .orderBy(desc(leads.createdAt))
         .limit(5),
     ])
   } catch (error) {
@@ -94,19 +96,17 @@ export default async function AdminOverviewPage() {
   }
 
   const [
-    totalPartnersResult,
-    pendingPartnersResult,
-    totalLeadsResult,
-    submittedLeadsResult,
+    partnerMetricsResult,
+    leadMetricsResult,
     pendingCommissionsResult,
     pendingPartnersList,
     recentLeadsList,
   ] = dashboardData
 
-  const totalPartners = totalPartnersResult[0]?.count ?? 0
-  const pendingPartners = pendingPartnersResult[0]?.count ?? 0
-  const totalLeads = totalLeadsResult[0]?.count ?? 0
-  const submittedLeads = submittedLeadsResult[0]?.count ?? 0
+  const totalPartners = Number(partnerMetricsResult[0]?.total ?? 0)
+  const pendingPartners = Number(partnerMetricsResult[0]?.pending ?? 0)
+  const totalLeads = Number(leadMetricsResult[0]?.total ?? 0)
+  const submittedLeads = Number(leadMetricsResult[0]?.submitted ?? 0)
   const pendingCommissionsTotal = Number(
     pendingCommissionsResult[0]?.total ?? 0
   ).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })

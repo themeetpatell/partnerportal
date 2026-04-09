@@ -6,6 +6,7 @@ import { Loader2, CheckCircle2, ArrowRight, Eye, EyeOff, Mail, RefreshCw } from 
 import { getAuthBrowserClient } from "@repo/auth/client"
 import { buildAuthContinueHref } from "@/lib/auth-continue"
 
+
 type PartnerType = "referral" | "channel"
 type FormStep = "credentials" | "otp" | "success"
 
@@ -59,34 +60,17 @@ export function PartnerSignUpForm({
 
     setLoading(true)
     try {
-      const client = getAuthBrowserClient()
-      const { error: signUpError } = await client.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(" "),
-            partner_type: selectedType,
-          },
-        },
-      })
-
-      if (signUpError) {
-        const msg = signUpError.message.toLowerCase()
-        const isEmailError = msg.includes("email") || msg.includes("smtp") || msg.includes("mail")
-        if (!isEmailError) {
-          throw signUpError
-        }
-      }
-
-      // Send OTP
+      // Create user + send OTP in a single server-side call
       const otpRes = await fetch("/api/auth/send-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          partnerType: selectedType,
+        }),
       })
       const otpData = await otpRes.json()
 

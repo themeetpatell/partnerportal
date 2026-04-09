@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@repo/auth/server"
+import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import {
   db,
@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
 import { AvatarUploadWrapper } from "@/components/avatar-upload-wrapper"
-import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 function LifecyclePill({
   label,
@@ -143,17 +143,13 @@ export default async function ProfilePage({
   searchParams: Promise<{ contract?: string; reason?: string }>
 }) {
   const { contract: contractQuery, reason: contractReason } = await searchParams
-  const [user, { userId }] = await Promise.all([currentUser(), auth()])
+  const [user, partnerRecord] = await Promise.all([
+    currentUser(),
+    getCurrentPartnerRecord(),
+  ])
 
   const fullName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner"
-
-  const partnerRecord = userId
-    ? await getPartnerRecordForAuthenticatedUser({
-        userId,
-        email: user?.email,
-      })
-    : null
 
   if (!partnerRecord) {
     redirect("/onboarding")

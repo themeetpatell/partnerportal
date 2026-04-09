@@ -3,7 +3,7 @@ import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 
 // Dashboard pages use cookies + DB — must be dynamic.
 // Placed here (not root layout) so auth pages like sign-in can still be static.
@@ -25,14 +25,14 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const user = await currentUser()
+  const [user, teamMember] = await Promise.all([
+    currentUser(),
+    getCurrentActiveTeamMember(),
+  ])
 
   if (!user?.id) {
     redirect("/sign-in")
   }
-
-  const userId = user.id
-  const teamMember = await getActiveTeamMember(userId, user.email)
 
   if (!teamMember) {
     redirect("/sign-in")

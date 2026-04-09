@@ -17,7 +17,7 @@ import {
   User,
   Tag,
 } from "lucide-react"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole } from "@/lib/rbac"
 
 function StatusBadge({ status }: { status: string }) {
@@ -188,7 +188,7 @@ export default async function LeadDetailPage({
       .select()
       .from(documents)
       .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id))),
-    userId ? getActiveTeamMember(userId) : Promise.resolve(null),
+    userId ? getCurrentActiveTeamMember() : Promise.resolve(null),
   ])
 
   if (!leadRow) notFound()

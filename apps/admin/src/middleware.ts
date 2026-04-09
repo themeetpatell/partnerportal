@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { PUBLIC_ADMIN_ROUTES } from "@repo/auth"
+import { PUBLIC_ADMIN_ROUTES } from "@repo/auth/public-routes"
 import { createRouteMatcher, updateSession } from "@repo/auth/middleware"
 
 const isPublicRoute = createRouteMatcher(PUBLIC_ADMIN_ROUTES)

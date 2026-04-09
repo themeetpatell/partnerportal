@@ -5,7 +5,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { Plus, Users } from "lucide-react"
 import { UserActionsMenu } from "./actions"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import {
   USER_MANAGEMENT_ROLES,
@@ -14,12 +14,15 @@ import {
 } from "@/lib/rbac"
 
 export default async function UsersPage() {
-  const { userId } = await auth()
+  const [{ userId }, member] = await Promise.all([
+    auth(),
+    getCurrentActiveTeamMember(),
+  ])
+
   if (!userId) {
     redirect("/sign-in")
   }
 
-  const member = await getActiveTeamMember(userId)
   if (!member || !hasAnyTeamRole(member.role, USER_MANAGEMENT_ROLES)) {
     redirect("/")
   }

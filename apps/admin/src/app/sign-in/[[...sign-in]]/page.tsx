@@ -2,13 +2,13 @@ import { auth } from "@repo/auth/server"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import { AdminSignInForm } from "@/components/admin-sign-in-form"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 
 export default async function SignInPage() {
   const { userId } = await auth()
 
   if (userId) {
-    const teamMember = await getActiveTeamMember(userId)
+    const teamMember = await getCurrentActiveTeamMember()
 
     if (teamMember) {
       redirect("/dashboard")

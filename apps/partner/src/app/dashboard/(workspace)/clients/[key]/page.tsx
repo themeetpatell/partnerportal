@@ -1,9 +1,7 @@
-import { currentUser } from "@repo/auth/server"
 import {
   db,
   leads,
   partnerClients,
-  partners,
   serviceRequests,
   services,
 } from "@repo/db"
@@ -22,6 +20,7 @@ import {
   User,
 } from "lucide-react"
 import { buildClientKey, buildClientRecords } from "@/lib/client-records"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—"
@@ -63,17 +62,9 @@ export default async function ClientDetailPage({
 }: {
   params: Promise<{ key: string }>
 }) {
-  const user = await currentUser()
-  if (!user) notFound()
-
   const { key } = await params
   const decodedKey = decodeURIComponent(key)
-
-  const [partner] = await db
-    .select()
-    .from(partners)
-    .where(eq(partners.authUserId, user.id))
-    .limit(1)
+  const partner = await getCurrentPartnerRecord()
 
   if (!partner) notFound()
 

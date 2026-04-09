@@ -4,16 +4,16 @@ import {
   commissions,
   leads,
   partnerClients,
-  partners,
   serviceRequests,
   services,
 } from "@repo/db"
-import { and, count, desc, eq, isNull, notInArray, sql, sum } from "drizzle-orm"
+import { and, count, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowRight, CircleDollarSign, ClipboardList, Plus, Users, Wallet } from "lucide-react"
 import { buildClientRecords } from "@/lib/client-records"
 import { DatabaseFallbackCard } from "@/components/database-fallback-card"
 import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const leadStatusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
@@ -47,9 +47,11 @@ function formatLabel(value: string) {
 }
 
 export default async function DashboardPage() {
-  const user = await currentUser()
+  const [user, partnerRecord] = await Promise.all([
+    currentUser(),
+    getCurrentPartnerRecord(),
+  ])
   const firstName = user?.firstName || "Partner"
-  let partnerRecord: typeof partners.$inferSelect | null = null
 
   let totalClients = 0
   let unlinkedClientActivity = 0
@@ -67,18 +69,10 @@ export default async function DashboardPage() {
   let recentClients: ReturnType<typeof buildClientRecords> = []
 
   try {
-    if (user) {
-      const [partner] = await db
-        .select()
-        .from(partners)
-        .where(eq(partners.authUserId, user.id))
-        .limit(1)
-
-      if (partner) {
-        partnerRecord = partner
-        const pid = partner.id
-        const [savedClientRows, leadRows, requestRows, paidResult, pendingResult, clientCountResult, activeRequestCountResult, unlinkedLeadCountResult] =
-          await Promise.all([
+    if (partnerRecord) {
+      const pid = partnerRecord.id
+      const [savedClientRows, leadRows, requestRows, paidResult, pendingResult, clientCountResult, activeRequestCountResult, unlinkedLeadCountResult] =
+        await Promise.all([
             // Recent 5 saved clients (for display)
             db
               .select({
@@ -157,22 +151,20 @@ export default async function DashboardPage() {
               .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt))),
           ])
 
-        activeRequests = Number(activeRequestCountResult[0]?.value ?? 0)
-        totalEarned = Number(paidResult[0]?.total ?? 0)
-        pendingPayout = Number(pendingResult[0]?.total ?? 0)
-        const clientRecords = buildClientRecords(
-          savedClientRows,
-          leadRows,
-          requestRows
-        )
+      activeRequests = Number(activeRequestCountResult[0]?.value ?? 0)
+      totalEarned = Number(paidResult[0]?.total ?? 0)
+      pendingPayout = Number(pendingResult[0]?.total ?? 0)
+      const clientRecords = buildClientRecords(
+        savedClientRows,
+        leadRows,
+        requestRows
+      )
 
-        recentRequests = requestRows.slice(0, 5)
-        recentClients = clientRecords.slice(0, 5)
-        totalClients = Number(clientCountResult[0]?.value ?? 0)
-        // Approximate: total leads minus saved clients gives activity-only count
-        const totalLeads = Number(unlinkedLeadCountResult[0]?.value ?? 0)
-        unlinkedClientActivity = Math.max(0, totalLeads - totalClients)
-      }
+      recentRequests = requestRows.slice(0, 5)
+      recentClients = clientRecords.slice(0, 5)
+      totalClients = Number(clientCountResult[0]?.value ?? 0)
+      const totalLeads = Number(unlinkedLeadCountResult[0]?.value ?? 0)
+      unlinkedClientActivity = Math.max(0, totalLeads - totalClients)
     }
   } catch (error) {
     if (isDatabaseConnectivityError(error)) {

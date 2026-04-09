@@ -18,32 +18,75 @@ export async function POST(request: NextRequest) {
   const emailLimited = rateLimit(`send-otp-email:${email}`, 3, 300_000)
   if (emailLimited) return emailLimited
 
-  try {
-    const { code, challenge } = generateOtp(email)
+  // Optional sign-up fields (only present on initial sign-up, not resends)
+  const password = typeof body?.password === "string" ? body.password : ""
+  const firstName = typeof body?.firstName === "string" ? body.firstName.trim() : ""
+  const lastName = typeof body?.lastName === "string" ? body.lastName.trim() : ""
+  const partnerType = typeof body?.partnerType === "string" ? body.partnerType : ""
 
-    // Look up partner name from Supabase user metadata
+  try {
+    const admin = getSupabaseAdminClient()
     let partnerName = "Partner"
-    try {
-      const admin = getSupabaseAdminClient()
-      let page = 1
-      let found = false
-      while (!found) {
-        const { data: usersData } = await admin.auth.admin.listUsers({ page, perPage: 100 })
-        const users = usersData?.users ?? []
-        if (users.length === 0) break
-        const user = users.find((u) => u.email?.toLowerCase() === email)
-        if (user) {
-          const meta = user.user_metadata ?? {}
-          partnerName =
-            [meta.first_name, meta.last_name].filter(Boolean).join(" ") || "Partner"
-          found = true
-        }
-        page++
+
+    // If sign-up data provided, ensure the user exists in Supabase
+    if (password) {
+      if (password.length < 8) {
+        return NextResponse.json(
+          { error: "Password must be at least 8 characters" },
+          { status: 400 }
+        )
       }
-    } catch {
-      // Non-critical — fall back to "Partner"
+
+      const fullName = [firstName, lastName].filter(Boolean).join(" ")
+      partnerName = fullName || "Partner"
+
+      const { error: createError } = await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: false,
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+          full_name: fullName,
+          partner_type: partnerType,
+        },
+      })
+
+      if (createError) {
+        // "User already registered" is fine — they may be retrying
+        const msg = createError.message?.toLowerCase() ?? ""
+        if (!msg.includes("already") && !msg.includes("exists")) {
+          console.error("[send-otp] createUser error:", createError)
+          return NextResponse.json(
+            { error: createError.message || "Failed to create account" },
+            { status: 400 }
+          )
+        }
+      }
+    } else {
+      // Resend flow — look up partner name from existing user
+      try {
+        let page = 1
+        let found = false
+        while (!found) {
+          const { data: usersData } = await admin.auth.admin.listUsers({ page, perPage: 100 })
+          const users = usersData?.users ?? []
+          if (users.length === 0) break
+          const user = users.find((u) => u.email?.toLowerCase() === email)
+          if (user) {
+            const meta = user.user_metadata ?? {}
+            partnerName =
+              [meta.first_name, meta.last_name].filter(Boolean).join(" ") || "Partner"
+            found = true
+          }
+          page++
+        }
+      } catch {
+        // Non-critical — fall back to "Partner"
+      }
     }
 
+    const { code, challenge } = generateOtp(email)
     await sendOtpEmail(email, code, partnerName)
 
     return NextResponse.json({ ok: true, challenge })

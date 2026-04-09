@@ -1,5 +1,4 @@
-import { currentUser } from "@repo/auth/server"
-import { db, leads, partners, documents } from "@repo/db"
+import { db, leads, documents } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { notFound } from "next/navigation"
@@ -9,11 +8,10 @@ import {
   Calendar,
   ExternalLink,
   FileText,
-  Mail,
-  Phone,
   Tag,
   User,
 } from "lucide-react"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const statusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
@@ -82,14 +80,7 @@ export default async function LeadDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const user = await currentUser()
-  if (!user) notFound()
-
-  const [partner] = await db
-    .select()
-    .from(partners)
-    .where(eq(partners.authUserId, user.id))
-    .limit(1)
+  const partner = await getCurrentPartnerRecord()
 
   if (!partner) notFound()
 

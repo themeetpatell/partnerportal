@@ -1,10 +1,10 @@
-import { currentUser } from "@repo/auth/server"
-import { db, leads, partners } from "@repo/db"
+import { db, leads } from "@repo/db"
 import { and, desc, eq, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { Plus, Users } from "lucide-react"
 import { DatabaseFallbackCard } from "@/components/database-fallback-card"
 import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
+import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const statusStyles: Record<string, string> = {
   submitted: "border border-zinc-300/20 bg-zinc-300/10 text-zinc-100",
@@ -37,26 +37,18 @@ function parseServices(raw: string): string[] {
 }
 
 export default async function LeadsPage() {
-  const user = await currentUser()
+  const partner = await getCurrentPartnerRecord()
 
   type LeadRow = typeof leads.$inferSelect
   let rows: LeadRow[] = []
 
   try {
-    if (user) {
-      const [partner] = await db
+    if (partner) {
+      rows = await db
         .select()
-        .from(partners)
-        .where(eq(partners.authUserId, user.id))
-        .limit(1)
-
-      if (partner) {
-        rows = await db
-          .select()
-          .from(leads)
-          .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
-          .orderBy(desc(leads.createdAt))
-      }
+        .from(leads)
+        .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
+        .orderBy(desc(leads.createdAt))
     }
   } catch (error) {
     if (isDatabaseConnectivityError(error)) {
