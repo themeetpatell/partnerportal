@@ -1,31 +1,52 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Loader2, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { Loader2, CheckCircle2, ArrowRight, Eye, EyeOff, Mail, RefreshCw } from "lucide-react"
 import { getAuthBrowserClient } from "@repo/auth/client"
 import { buildAuthContinueHref } from "@/lib/auth-continue"
 
 type PartnerType = "referral" | "channel"
+type FormStep = "credentials" | "otp" | "success"
 
 export function PartnerSignUpForm({
   selectedType,
 }: {
   selectedType: PartnerType
 }) {
+  const [step, setStep] = useState<FormStep>("credentials")
+
+  // Credentials state
   const [firstName, setFirstName] = useState("")
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+
+  // OTP state
+  const [challenge, setChallenge] = useState("")
+  const [otpCode, setOtpCode] = useState("")
+  const [otpError, setOtpError] = useState<string | null>(null)
+  const [resendCooldown, setResendCooldown] = useState(0)
+
+  // Shared state
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  // Resend cooldown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
+
+  // ── Step 1: Create account + send OTP ──
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
-    setSuccess(null)
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.")
@@ -39,7 +60,7 @@ export function PartnerSignUpForm({
     setLoading(true)
     try {
       const client = getAuthBrowserClient()
-      const { data, error: signUpError } = await client.auth.signUp({
+      const { error: signUpError } = await client.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -53,49 +74,29 @@ export function PartnerSignUpForm({
         },
       })
 
-      // If signUp returned an error unrelated to email sending, throw it.
-      // Email-related errors are expected when Supabase SMTP isn't configured
-      // — the user is still created, we just need to confirm manually.
       if (signUpError) {
         const msg = signUpError.message.toLowerCase()
         const isEmailError = msg.includes("email") || msg.includes("smtp") || msg.includes("mail")
         if (!isEmailError) {
           throw signUpError
         }
-        console.warn("[sign-up] Supabase email error (expected):", signUpError.message)
       }
 
-      // Auto-confirm email and send welcome via SendGrid
-      try {
-        const confirmRes = await fetch("/api/auth/confirm", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: email.trim() }),
-        })
-        const confirmData = await confirmRes.json().catch(() => ({}))
-        console.log("[sign-up] confirm response:", confirmRes.status, confirmData)
-      } catch (fetchErr) {
-        console.error("[sign-up] confirm fetch failed:", fetchErr)
-      }
-
-      if (data.session) {
-        window.location.assign(buildAuthContinueHref())
-        return
-      }
-
-      // Sign in automatically now that email is confirmed
-      const { error: signInError } = await client.auth.signInWithPassword({
-        email: email.trim(),
-        password,
+      // Send OTP
+      const otpRes = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
       })
+      const otpData = await otpRes.json()
 
-      if (!signInError) {
-        window.location.assign(buildAuthContinueHref())
-        return
+      if (!otpRes.ok || !otpData.challenge) {
+        throw new Error(otpData.error || "Failed to send verification code")
       }
 
-      // Fallback: show success and let them sign in manually
-      setSuccess("Account created. Sign in to complete your partner onboarding.")
+      setChallenge(otpData.challenge)
+      setResendCooldown(60)
+      setStep("otp")
       setLoading(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to create your account right now.")
@@ -103,14 +104,94 @@ export function PartnerSignUpForm({
     }
   }
 
-  if (success) {
+  // ── Step 2: Verify OTP ──
+  async function handleVerifyOtp(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setOtpError(null)
+
+    if (otpCode.length !== 6) {
+      setOtpError("Please enter the 6-digit code.")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const verifyRes = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: otpCode, challenge }),
+      })
+      const verifyData = await verifyRes.json()
+
+      if (!verifyRes.ok) {
+        if (verifyData.reason === "expired") {
+          setOtpError("Code has expired. Please request a new one.")
+        } else {
+          setOtpError(verifyData.error || "Incorrect code. Please try again.")
+        }
+        setLoading(false)
+        return
+      }
+
+      // Auto sign-in then clear password from memory
+      const client = getAuthBrowserClient()
+      const { error: signInError } = await client.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      })
+      setPassword("")
+      setConfirmPassword("")
+
+      if (!signInError) {
+        window.location.assign(buildAuthContinueHref())
+        return
+      }
+
+      // Fallback: show success and let them sign in manually
+      setSuccess("Account verified. Sign in to complete your partner onboarding.")
+      setStep("success")
+      setLoading(false)
+    } catch {
+      setOtpError("Verification failed. Please try again.")
+      setLoading(false)
+    }
+  }
+
+  // ── Resend OTP ──
+  const handleResendOtp = useCallback(async () => {
+    if (resendCooldown > 0) return
+    setOtpError(null)
+
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      })
+      const data = await res.json()
+
+      if (!res.ok || !data.challenge) {
+        setOtpError(data.error || "Failed to resend code. Try again shortly.")
+        return
+      }
+
+      setChallenge(data.challenge)
+      setOtpCode("")
+      setResendCooldown(60)
+    } catch {
+      setOtpError("Failed to resend code. Try again shortly.")
+    }
+  }, [email, resendCooldown])
+
+  // ── Render: Success ──
+  if (step === "success" && success) {
     return (
       <div
         className="rounded-2xl p-7 text-center"
         style={{ background: "rgba(16,185,129,0.06)", border: "1px solid rgba(16,185,129,0.16)" }}
       >
         <CheckCircle2 className="h-10 w-10 text-emerald-400 mx-auto mb-3" />
-        <p className="text-sm font-medium text-white mb-1">Check your inbox</p>
+        <p className="text-sm font-medium text-white mb-1">Email verified</p>
         <p className="text-sm text-zinc-400 leading-relaxed">{success}</p>
         <Link
           href="/sign-in"
@@ -122,6 +203,101 @@ export function PartnerSignUpForm({
     )
   }
 
+  // ── Render: OTP Input ──
+  if (step === "otp") {
+    return (
+      <div>
+        <div
+          className="rounded-2xl p-7 text-center"
+          style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.16)" }}
+        >
+          <Mail className="h-10 w-10 text-indigo-400 mx-auto mb-3" />
+          <p className="text-sm font-medium text-white mb-1">Check your email</p>
+          <p className="text-sm text-zinc-400 leading-relaxed">
+            We sent a 6-digit code to <strong className="text-zinc-300">{email}</strong>
+          </p>
+
+          <form onSubmit={handleVerifyOtp} className="mt-6 space-y-4">
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              autoComplete="one-time-code"
+              autoFocus
+              placeholder="000000"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="block w-full text-center outline-none transition-all duration-150"
+              style={{
+                height: "56px",
+                fontSize: "28px",
+                fontWeight: 800,
+                letterSpacing: "0.3em",
+                fontFamily: "'Courier New', Courier, monospace",
+                borderRadius: "12px",
+                border: "1px solid rgba(129,140,248,0.3)",
+                background: "rgba(129,140,248,0.06)",
+                color: "#a5b4fc",
+              }}
+            />
+
+            {otpError && (
+              <div
+                className="rounded-xl px-4 py-3 text-sm text-rose-300"
+                style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.16)" }}
+              >
+                {otpError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || otpCode.length !== 6}
+              className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-60 disabled:cursor-not-allowed"
+              style={{
+                height: "46px",
+                borderRadius: "10px",
+                background: "linear-gradient(135deg,#818cf8 0%,#6366f1 55%,#4f46e5 100%)",
+                boxShadow: "0 4px 18px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
+              }}
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              Verify code
+            </button>
+          </form>
+
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={resendCooldown > 0}
+              className="inline-flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ color: resendCooldown > 0 ? "#71717a" : "#818cf8" }}
+            >
+              <RefreshCw className="h-3 w-3" />
+              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep("credentials")
+                setOtpCode("")
+                setOtpError(null)
+                setChallenge("")
+              }}
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Render: Credentials Form ──
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-3">

@@ -1,4 +1,5 @@
 export { rateLimit, getClientIp } from "./rate-limit"
+export { generateOtp, verifyOtp } from "./otp"
 
 export type TeamRole = "admin" | "sales" | "ops" | "finance"
 export type PortalType = "partner" | "admin"
@@ -17,6 +18,8 @@ export const PUBLIC_PARTNER_ROUTES = [
   "/api/auth/confirm",
   "/api/auth/forgot-password",
   "/api/auth/test-email",
+  "/api/auth/send-otp",
+  "/api/auth/verify-otp",
 ]
 
 export const PUBLIC_ADMIN_ROUTES = [

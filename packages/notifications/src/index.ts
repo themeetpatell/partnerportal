@@ -1148,6 +1148,42 @@ export async function sendPartnerWelcomeEmail(
   }
 }
 
+export async function sendOtpEmail(
+  to: string,
+  code: string,
+  partnerName: string
+): Promise<void> {
+  try {
+    const safeName = escapeHtml(partnerName)
+    const safeCode = escapeHtml(code)
+
+    await sendEmail({
+      to,
+      subject: `${code} is your Finanshels verification code`,
+      html: buildPartnerEmailShell({
+        eyebrow: "Verify your email",
+        title: "Your verification code",
+        body: `
+          <p>Hi ${safeName},</p>
+          <p>Enter this code in the partner portal to verify your email address:</p>
+          <div style="margin:24px 0;text-align:center;">
+            <span style="display:inline-block;padding:16px 32px;border-radius:14px;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);font-size:32px;font-weight:800;letter-spacing:0.3em;color:#a5b4fc;font-family:'Courier New',Courier,monospace;">
+              ${safeCode}
+            </span>
+          </div>
+          <p>This code expires in 10 minutes. If you didn't create an account, you can safely ignore this email.</p>
+        `,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendOtpEmail failed", {
+      to,
+      error: String(error),
+    })
+    throw error
+  }
+}
+
 export async function sendPartnerPasswordResetEmail(
   to: string,
   partnerName: string,
