@@ -14,7 +14,7 @@ import {
   hasAnyTeamRole,
   normalizeTeamRole,
 } from "@/lib/rbac"
-import { getAdminPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
+import { buildPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
@@ -96,8 +96,6 @@ export async function POST(req: NextRequest) {
 
   // Create Supabase auth account (no Supabase email — we use SendGrid)
   const supabaseAdmin = getSupabaseAdminClient()
-  const adminPortalUrl = getAdminPortalUrl()
-
   let authUserId: string
 
   // Try to create a new auth user
@@ -168,7 +166,7 @@ export async function POST(req: NextRequest) {
   const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
     type: "recovery",
     email,
-    options: { redirectTo: `${adminPortalUrl}/sign-in` },
+    options: { redirectTo: buildPortalUrl("admin", "/reset-password") },
   })
 
   if (linkData?.properties?.action_link) {

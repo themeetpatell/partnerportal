@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email,
-        options: { redirectTo: buildPortalUrl("partner", "/auth/callback") },
+        options: { redirectTo: buildPortalUrl("partner", "/reset-password") },
       })
 
     if (linkError || !linkData?.properties?.action_link) {

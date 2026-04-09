@@ -16,4 +16,5 @@ export const PUBLIC_PARTNER_ROUTES = [
 
 export const PUBLIC_ADMIN_ROUTES = [
   "/sign-in(.*)",
+  "/reset-password(.*)",
 ]

@@ -7,7 +7,7 @@ import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { USER_MANAGEMENT_ROLES, hasAnyTeamRole } from "@/lib/rbac"
-import { getAdminPortalUrl, sendTeamMemberPasswordResetEmail } from "@repo/notifications"
+import { buildPortalUrl, sendTeamMemberPasswordResetEmail } from "@repo/notifications"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -42,13 +42,11 @@ export async function POST(req: NextRequest) {
   }
 
   const supabaseAdmin = getSupabaseAdminClient()
-  const adminPortalUrl = getAdminPortalUrl()
-
   const { data: linkData, error: linkError } =
     await supabaseAdmin.auth.admin.generateLink({
       type: "recovery",
       email: member.email,
-      options: { redirectTo: `${adminPortalUrl}/sign-in` },
+      options: { redirectTo: buildPortalUrl("admin", "/reset-password") },
     })
 
   if (linkError) {
