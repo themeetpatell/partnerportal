@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import { RecoverySessionRedirect } from "@repo/auth/recovery"
 import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
@@ -41,6 +42,7 @@ export default function RootLayout({
     >
       <body className="min-h-screen font-sans text-foreground antialiased">
         <ThemeProvider>
+          <RecoverySessionRedirect resetPath="/reset-password" />
           {children}
           <Toaster
             position="bottom-right"

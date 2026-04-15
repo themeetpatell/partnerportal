@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
+import { RecoverySessionRedirect } from "@repo/auth/recovery"
 import { Toaster } from "sonner"
 import "./globals.css"
 
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="min-h-screen text-white antialiased font-sans">
+        <RecoverySessionRedirect resetPath="/reset-password" />
         {children}
         <Toaster
           position="bottom-right"

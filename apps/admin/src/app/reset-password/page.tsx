@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react"
@@ -9,13 +9,68 @@ import { getAuthBrowserClient } from "@repo/auth/client"
 export default function AdminResetPasswordPage() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [checkingSession, setCheckingSession] = useState(true)
+  const [sessionReady, setSessionReady] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  useEffect(() => {
+    let active = true
+
+    async function prepareRecoverySession() {
+      try {
+        const client = getAuthBrowserClient()
+        const { data, error: sessionError } = await client.auth.getSession()
+
+        if (!active) {
+          return
+        }
+
+        if (sessionError) {
+          throw sessionError
+        }
+
+        if (!data.session) {
+          setError("This reset link is invalid or expired. Ask an admin to send a new reset email.")
+          setSessionReady(false)
+          return
+        }
+
+        setSessionReady(true)
+      } catch (sessionError) {
+        if (!active) {
+          return
+        }
+
+        setError(
+          sessionError instanceof Error
+            ? sessionError.message
+            : "Unable to verify your reset link. Ask an admin to send a new reset email."
+        )
+        setSessionReady(false)
+      } finally {
+        if (active) {
+          setCheckingSession(false)
+        }
+      }
+    }
+
+    void prepareRecoverySession()
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+
+    if (!sessionReady) {
+      setError("This reset link is invalid or expired. Ask an admin to send a new reset email.")
+      return
+    }
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.")
@@ -85,7 +140,14 @@ export default function AdminResetPasswordPage() {
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-          ) : (
+          ) : checkingSession ? (
+            <StatusCard
+              title="Verifying reset link"
+              description="Confirming your recovery session before you set a new password."
+              footer={null}
+              tone="info"
+            />
+          ) : sessionReady ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <PasswordField
                 id="admin-rp-password"
@@ -126,9 +188,50 @@ export default function AdminResetPasswordPage() {
                 Update password
               </button>
             </form>
+          ) : (
+            <StatusCard
+              title="Reset link unavailable"
+              description={error || "This reset link is invalid or expired. Ask an admin to send a new reset email."}
+              footer={
+                <Link
+                  href="/sign-in"
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-indigo-300 transition-colors hover:text-indigo-200"
+                >
+                  Return to sign in
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              }
+              tone="error"
+            />
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function StatusCard({
+  title,
+  description,
+  footer,
+  tone,
+}: {
+  title: string
+  description: string
+  footer: React.ReactNode
+  tone: "info" | "error"
+}) {
+  const borderClass = tone === "error" ? "border-rose-400/20 bg-rose-500/10" : "border-indigo-400/20 bg-indigo-500/10"
+  const iconClass = tone === "error" ? "text-rose-200" : "text-indigo-300"
+
+  return (
+    <div className={`rounded-2xl border px-4 py-5 text-center ${borderClass}`}>
+      {tone === "info" ? (
+        <Loader2 className={`mx-auto mb-3 h-10 w-10 animate-spin ${iconClass}`} />
+      ) : null}
+      <p className="text-sm font-medium text-white">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-slate-300">{description}</p>
+      {footer}
     </div>
   )
 }
