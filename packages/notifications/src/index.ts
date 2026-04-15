@@ -1120,12 +1120,13 @@ function buildAdminEmailShell({
   ctaLabel?: string
   ctaHref?: string
 }) {
+  const safeCtaHref = ctaHref ? escapeHtml(ctaHref) : undefined
   const ctaMarkup =
-    ctaLabel && ctaHref
+    ctaLabel && safeCtaHref
       ? `
         <div style="margin-top: 28px;">
           <a
-            href="${ctaHref}"
+            href="${safeCtaHref}"
             style="display:inline-block;padding:12px 20px;border-radius:9999px;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;"
           >
             ${ctaLabel}
@@ -1156,6 +1157,92 @@ function buildAdminEmailShell({
   `
 }
 
+function buildAuthEmailShell({
+  preheader,
+  eyebrow,
+  title,
+  body,
+  ctaLabel,
+  ctaHref,
+  footer,
+  portalLabel,
+}: {
+  preheader: string
+  eyebrow: string
+  title: string
+  body: string
+  ctaLabel: string
+  ctaHref: string
+  footer: string
+  portalLabel?: string
+}) {
+  const safePreheader = escapeHtml(preheader)
+  const safeEyebrow = escapeHtml(eyebrow)
+  const safeTitle = escapeHtml(title)
+  const safeCtaLabel = escapeHtml(ctaLabel)
+  const safeCtaHref = escapeHtml(ctaHref)
+  const safeFooter = escapeHtml(footer)
+  const safePortalLabel = portalLabel ? escapeHtml(portalLabel) : null
+
+  return `
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+      ${safePreheader}
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0;padding:0;background:#f6f3ee;">
+      <tr>
+        <td align="center" style="padding:40px 16px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background:#fffaf4;border:1px solid #eadfce;border-radius:24px;overflow:hidden;">
+            <tr>
+              <td style="padding:40px 36px 18px 36px;font-family:Helvetica,Arial,sans-serif;color:#161616;">
+                <div style="font-size:12px;line-height:12px;letter-spacing:0.22em;text-transform:uppercase;color:#b05a2b;font-weight:700;">
+                  Finanshels
+                </div>
+                ${
+                  safePortalLabel
+                    ? `<div style="margin-top:8px;font-size:11px;line-height:11px;letter-spacing:0.22em;text-transform:uppercase;color:#8a6b56;">${safePortalLabel}</div>`
+                    : ""
+                }
+                <div style="margin-top:22px;font-size:11px;line-height:16px;letter-spacing:0.22em;text-transform:uppercase;color:#b05a2b;font-weight:700;">
+                  ${safeEyebrow}
+                </div>
+                <div style="margin-top:14px;font-size:38px;line-height:40px;font-weight:700;letter-spacing:-0.04em;color:#111111;">
+                  ${safeTitle}
+                </div>
+                <div style="margin-top:16px;font-size:16px;line-height:28px;color:#4a4a4a;">
+                  ${body}
+                </div>
+
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:30px;">
+                  <tr>
+                    <td align="center" bgcolor="#e23744" style="border-radius:999px;">
+                      <a href="${safeCtaHref}" style="display:inline-block;padding:14px 24px;font-family:Helvetica,Arial,sans-serif;font-size:15px;font-weight:700;line-height:15px;color:#ffffff;text-decoration:none;">
+                        ${safeCtaLabel}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="margin-top:26px;font-size:13px;line-height:22px;color:#7a7a7a;">
+                  If the button doesn’t work, open this link directly:
+                </div>
+
+                <div style="margin-top:10px;word-break:break-all;font-size:13px;line-height:22px;color:#111111;">
+                  <a href="${safeCtaHref}" style="color:#111111;text-decoration:underline;">${safeCtaHref}</a>
+                </div>
+
+                <div style="margin-top:34px;padding-top:18px;border-top:1px solid #eadfce;font-size:12px;line-height:20px;color:#8a8a8a;">
+                  ${safeFooter}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `
+}
+
 export async function sendTeamMemberInviteEmail(
   to: string,
   memberName: string,
@@ -1168,17 +1255,20 @@ export async function sendTeamMemberInviteEmail(
 
     await sendEmail({
       to,
-      subject: "You've been added to the Finanshels Admin Portal",
-      html: buildAdminEmailShell({
+      subject: "You've been invited to Finanshels",
+      html: buildAuthEmailShell({
+        preheader: "Your Finanshels invite is ready.",
         eyebrow: "Team invitation",
-        title: `Welcome to the team, ${safeName}.`,
+        portalLabel: "Admin Portal",
+        title: "Your seat is ready.",
         body: `
-          <p>You've been added to the Finanshels Admin Portal as <strong>${safeRole}</strong>.</p>
-          <p>Click the button below to set your password and sign in for the first time.</p>
-          <p style="margin-top:12px;font-size:13px;color:#94a3b8;">This link expires in 24 hours. If it expires, ask your admin to resend the invitation.</p>
+          <p style="margin:0 0 12px;">Hi ${safeName},</p>
+          <p style="margin:0 0 12px;">You’ve been invited to join Finanshels as <strong>${safeRole}</strong>.</p>
+          <p style="margin:0;">Accept the invitation to set your password and access the admin portal.</p>
         `,
-        ctaLabel: "Set your password",
+        ctaLabel: "Accept invitation",
         ctaHref: inviteUrl,
+        footer: `Sent to ${to}. If this invite wasn’t expected, you can ignore this email.`,
       }),
     })
   } catch (error) {
@@ -1200,17 +1290,19 @@ export async function sendTeamMemberPasswordResetEmail(
 
     await sendEmail({
       to,
-      subject: "Reset your Finanshels Admin Portal password",
-      html: buildAdminEmailShell({
+      subject: "Reset your Finanshels password",
+      html: buildAuthEmailShell({
+        preheader: "Reset your Finanshels password securely.",
         eyebrow: "Password reset",
-        title: "Reset your password.",
+        portalLabel: "Admin Portal",
+        title: "Let’s get you back in.",
         body: `
-          <p>Hi ${safeName},</p>
-          <p>An admin has triggered a password reset for your account. Click the button below to set a new password.</p>
-          <p style="margin-top:12px;font-size:13px;color:#94a3b8;">This link expires in 24 hours. If you didn't request this, you can safely ignore this email.</p>
+          <p style="margin:0 0 12px;">Hi ${safeName},</p>
+          <p style="margin:0;">An admin triggered a password reset for your account. Continue below to set a new one.</p>
         `,
         ctaLabel: "Reset password",
         ctaHref: resetUrl,
+        footer: `If you didn’t request this, no action is needed. Sent to ${to}.`,
       }),
     })
   } catch (error) {
@@ -1302,17 +1394,19 @@ export async function sendPartnerPasswordResetEmail(
 
     await sendEmail({
       to,
-      subject: "Reset your Finanshels Partner Portal password",
-      html: buildPartnerEmailShell({
+      subject: "Reset your Finanshels password",
+      html: buildAuthEmailShell({
+        preheader: "Reset your Finanshels password securely.",
         eyebrow: "Password reset",
-        title: "Reset your password.",
+        portalLabel: "Partner Portal",
+        title: "Let’s get you back in.",
         body: `
-          <p>Hi ${safeName},</p>
-          <p>We received a request to reset your password. Click the button below to choose a new one.</p>
-          <p style="margin-top:12px;font-size:13px;color:#94a3b8;">This link will expire shortly. If you didn't request this, you can safely ignore this email.</p>
+          <p style="margin:0 0 12px;">Hi ${safeName},</p>
+          <p style="margin:0;">We received a request to reset your password. Continue below to set a new one.</p>
         `,
         ctaLabel: "Reset password",
         ctaHref: safeResetUrl,
+        footer: `If you didn’t request this, no action is needed. Sent to ${to}.`,
       }),
     })
   } catch (error) {
