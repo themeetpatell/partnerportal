@@ -57,6 +57,25 @@ function normalizeBaseUrl(value: string | null | undefined) {
   }
 }
 
+function normalizeAbsoluteUrl(value: string | null | undefined) {
+  const trimmed = value?.trim()
+
+  if (!trimmed) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null
+    }
+
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 function resolvePortalBaseUrl(target: keyof typeof CANONICAL_PORTAL_URLS) {
   const envCandidates =
     target === "partner"
@@ -90,6 +109,35 @@ export function buildPortalUrl(
   pathname: string
 ) {
   return new URL(pathname, `${resolvePortalBaseUrl(target)}/`).toString()
+}
+
+type GeneratedAuthLinkProperties = {
+  action_link?: string | null
+  hashed_token?: string | null
+  redirect_to?: string | null
+  verification_type?: string | null
+}
+
+export function buildSupabaseVerificationUrl(
+  target: keyof typeof CANONICAL_PORTAL_URLS,
+  pathname: string,
+  link: GeneratedAuthLinkProperties | null | undefined
+) {
+  const redirectTo = buildPortalUrl(target, pathname)
+  const supabaseBaseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)
+  const hashedToken = link?.hashed_token?.trim()
+  const verificationType = link?.verification_type?.trim()
+
+  if (supabaseBaseUrl && hashedToken && verificationType) {
+    const verifyUrl = new URL("/auth/v1/verify", `${supabaseBaseUrl}/`)
+    verifyUrl.searchParams.set("type", verificationType)
+    verifyUrl.searchParams.set("token", hashedToken)
+    verifyUrl.searchParams.set("redirect_to", redirectTo)
+    return verifyUrl.toString()
+  }
+
+  const fallbackActionLink = normalizeAbsoluteUrl(link?.action_link)
+  return fallbackActionLink || redirectTo
 }
 
 async function sendEmail(message: {

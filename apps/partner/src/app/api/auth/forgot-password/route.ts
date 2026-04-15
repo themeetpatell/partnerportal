@@ -3,7 +3,11 @@ import { getSupabaseAdminClient } from "@repo/auth/admin"
 import { rateLimit, getClientIp } from "@repo/auth"
 import { db, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { buildPortalUrl, sendPartnerPasswordResetEmail } from "@repo/notifications"
+import {
+  buildPortalUrl,
+  buildSupabaseVerificationUrl,
+  sendPartnerPasswordResetEmail,
+} from "@repo/notifications"
 
 export async function POST(request: NextRequest) {
   const limited = rateLimit(`forgot-password:${getClientIp(request.headers)}`, 3, 60_000)
@@ -44,10 +48,16 @@ export async function POST(request: NextRequest) {
 
     const partnerName = partner?.contactName || "Partner"
 
+    const resetUrl = buildSupabaseVerificationUrl(
+      "partner",
+      "/reset-password",
+      linkData.properties
+    )
+
     await sendPartnerPasswordResetEmail(
       email,
       partnerName,
-      linkData.properties.action_link
+      resetUrl
     )
   } catch (err) {
     console.error("[POST /api/auth/forgot-password] Error:", err)

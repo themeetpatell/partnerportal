@@ -4,7 +4,11 @@ import { getSupabaseAdminClient } from "@repo/auth/admin"
 import { rateLimit } from "@repo/auth"
 import { db, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
-import { buildPortalUrl, sendPartnerPasswordResetEmail } from "@repo/notifications"
+import {
+  buildPortalUrl,
+  buildSupabaseVerificationUrl,
+  sendPartnerPasswordResetEmail,
+} from "@repo/notifications"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole } from "@/lib/rbac"
 
@@ -58,10 +62,16 @@ export async function POST(
     )
   }
 
+  const resetUrl = buildSupabaseVerificationUrl(
+    "partner",
+    "/reset-password",
+    linkData.properties
+  )
+
   await sendPartnerPasswordResetEmail(
     partner.email,
     partner.contactName || partner.companyName || "Partner",
-    linkData.properties.action_link
+    resetUrl
   )
 
   const user = await currentUser()

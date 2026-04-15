@@ -14,7 +14,11 @@ import {
   hasAnyTeamRole,
   normalizeTeamRole,
 } from "@/lib/rbac"
-import { buildPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
+import {
+  buildPortalUrl,
+  buildSupabaseVerificationUrl,
+  sendTeamMemberInviteEmail,
+} from "@repo/notifications"
 
 export async function GET(req: NextRequest) {
   const { userId } = await auth()
@@ -170,11 +174,16 @@ export async function POST(req: NextRequest) {
   })
 
   if (linkData?.properties?.action_link) {
+    const inviteUrl = buildSupabaseVerificationUrl(
+      "admin",
+      "/reset-password",
+      linkData.properties
+    )
     await sendTeamMemberInviteEmail(
       email,
       name,
       roleMeta.label,
-      linkData.properties.action_link
+      inviteUrl
     )
   }
 

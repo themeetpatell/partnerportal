@@ -7,7 +7,11 @@ import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { USER_MANAGEMENT_ROLES, getTeamRoleMeta, hasAnyTeamRole } from "@/lib/rbac"
-import { buildPortalUrl, sendTeamMemberInviteEmail } from "@repo/notifications"
+import {
+  buildPortalUrl,
+  buildSupabaseVerificationUrl,
+  sendTeamMemberInviteEmail,
+} from "@repo/notifications"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -59,11 +63,16 @@ export async function POST(req: NextRequest) {
 
   const roleMeta = getTeamRoleMeta(member.role)
   if (linkData?.properties?.action_link) {
+    const inviteUrl = buildSupabaseVerificationUrl(
+      "admin",
+      "/reset-password",
+      linkData.properties
+    )
     await sendTeamMemberInviteEmail(
       member.email,
       member.name,
       roleMeta.label,
-      linkData.properties.action_link
+      inviteUrl
     )
   }
 
