@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, ShieldCheck } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { VerifyConfirmButton } from "./verify-confirm-button"
 
 function getSafeValue(value: string | string[] | undefined) {
   if (typeof value !== "string") {
@@ -43,25 +44,7 @@ export default async function AdminVerifyPage({
           </div>
 
           {hasRequiredParams ? (
-            <form action="/auth/verify/confirm" method="POST" className="space-y-5">
-              <input type="hidden" name="token_hash" value={tokenHash} />
-              <input type="hidden" name="type" value={type} />
-              <input type="hidden" name="next" value={next} />
-
-              <div className="rounded-2xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-5 text-center">
-                <ShieldCheck className="mx-auto mb-3 h-10 w-10 text-indigo-300" />
-                <p className="text-sm font-medium text-white">Verification required</p>
-                <p className="mt-1 text-sm leading-relaxed text-slate-300">
-                  This extra step prevents email scanners from consuming your one-time reset link
-                  before you do.
-                </p>
-              </div>
-
-              <button type="submit" className="primary-button w-full justify-center">
-                Continue to reset password
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+            <VerifyConfirmButton tokenHash={tokenHash} type={type} nextPath={next} />
           ) : (
             <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-5 text-center">
               <p className="text-sm font-medium text-white">Verification link unavailable</p>

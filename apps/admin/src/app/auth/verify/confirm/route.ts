@@ -13,6 +13,20 @@ function getSafeNextPath(candidate: FormDataEntryValue | null, fallback: string)
   return candidate
 }
 
+function jsonRedirect(url: URL, error?: string) {
+  return NextResponse.json(
+    {
+      redirectTo: `${url.pathname}${url.search}`,
+      ...(error ? { error } : {}),
+    },
+    {
+      headers: {
+        "Cache-Control": "no-store",
+      },
+    },
+  )
+}
+
 export async function POST(request: Request) {
   const url = new URL(request.url)
   const formData = await request.formData()
@@ -25,9 +39,9 @@ export async function POST(request: Request) {
     typeof type !== "string" ||
     !ALLOWED_EMAIL_OTP_TYPES.has(type as EmailOtpType)
   ) {
-    return NextResponse.redirect(
+    return jsonRedirect(
       new URL("/sign-in?auth_error=Invalid+or+expired+verification+link.", url.origin),
-      303,
+      "Invalid or expired verification link.",
     )
   }
 
@@ -62,8 +76,8 @@ export async function POST(request: Request) {
     })
     const signInUrl = new URL("/sign-in", url.origin)
     signInUrl.searchParams.set("auth_error", "Invalid or expired verification link.")
-    return NextResponse.redirect(signInUrl, 303)
+    return jsonRedirect(signInUrl, "Invalid or expired verification link.")
   }
 
-  return NextResponse.redirect(new URL(nextPath, url.origin), 303)
+  return jsonRedirect(new URL(nextPath, url.origin))
 }

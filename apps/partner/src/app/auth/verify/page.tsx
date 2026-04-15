@@ -1,6 +1,7 @@
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, ShieldCheck } from "lucide-react"
+import { ArrowRight } from "lucide-react"
+import { VerifyConfirmButton } from "./verify-confirm-button"
 
 function getSafeValue(value: string | string[] | undefined) {
   if (typeof value !== "string") {
@@ -51,37 +52,7 @@ export default async function PartnerVerifyPage({
               Confirm to continue. This prevents email scanners from consuming your one-time link.
             </p>
 
-            <form action="/auth/verify/confirm" method="POST" className="space-y-4">
-              <input type="hidden" name="token_hash" value={tokenHash} />
-              <input type="hidden" name="type" value={type} />
-              <input type="hidden" name="next" value={next} />
-
-              <div
-                className="rounded-2xl p-7 text-center"
-                style={{ background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.16)" }}
-              >
-                <ShieldCheck className="mx-auto mb-3 h-10 w-10 text-indigo-300" />
-                <p className="mb-1 text-sm font-medium text-foreground">Verification required</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Confirm this action to continue to your password reset screen.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-2 text-sm font-semibold text-foreground transition-all duration-150"
-                style={{
-                  height: "46px",
-                  borderRadius: "10px",
-                  background: "linear-gradient(135deg,#818cf8 0%,#6366f1 55%,#4f46e5 100%)",
-                  boxShadow: "0 4px 18px rgba(99,102,241,0.3), inset 0 1px 0 rgba(255,255,255,0.12)",
-                  marginTop: "8px",
-                }}
-              >
-                Continue to reset password
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+            <VerifyConfirmButton tokenHash={tokenHash} type={type} nextPath={next} />
           </>
         ) : (
           <div
