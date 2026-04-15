@@ -3,27 +3,32 @@ import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 import type { EmailOtpType } from "@supabase/supabase-js"
 
-const ALLOWED_EMAIL_OTP_TYPES = new Set(["email", "recovery", "invite", "email_change"])
+const ALLOWED_EMAIL_OTP_TYPES = new Set<EmailOtpType>(["email", "recovery", "invite", "email_change"])
 
-function getSafeNextPath(candidate: string | null, fallback: string) {
-  if (!candidate || !candidate.startsWith("/")) {
+function getSafeNextPath(candidate: FormDataEntryValue | null, fallback: string) {
+  if (typeof candidate !== "string" || !candidate.startsWith("/")) {
     return fallback
   }
 
   return candidate
 }
 
-export async function GET(request: Request) {
+export async function POST(request: Request) {
   const url = new URL(request.url)
-  const tokenHash = url.searchParams.get("token_hash")
-  const type = url.searchParams.get("type")
-  const nextPath = getSafeNextPath(url.searchParams.get("next"), "/reset-password")
+  const formData = await request.formData()
+  const tokenHash = formData.get("token_hash")
+  const type = formData.get("type")
+  const nextPath = getSafeNextPath(formData.get("next"), "/reset-password")
 
-  if (!tokenHash || !type || !ALLOWED_EMAIL_OTP_TYPES.has(type)) {
-    return NextResponse.redirect(new URL("/sign-in?auth_error=Invalid+or+expired+verification+link.", url.origin))
+  if (
+    typeof tokenHash !== "string" ||
+    typeof type !== "string" ||
+    !ALLOWED_EMAIL_OTP_TYPES.has(type as EmailOtpType)
+  ) {
+    const signInUrl = new URL("/sign-in", url.origin)
+    signInUrl.searchParams.set("auth_error", "Invalid or expired verification link.")
+    return NextResponse.redirect(signInUrl)
   }
-
-  const otpType = type as EmailOtpType
 
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -45,10 +50,15 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.auth.verifyOtp({
     token_hash: tokenHash,
-    type: otpType,
+    type: type as EmailOtpType,
   })
 
   if (error) {
+    console.error("[partner auth verify] verifyOtp failed", {
+      message: error.message,
+      status: error.status,
+      type,
+    })
     const signInUrl = new URL("/sign-in", url.origin)
     signInUrl.searchParams.set("auth_error", "Invalid or expired verification link.")
     return NextResponse.redirect(signInUrl)
