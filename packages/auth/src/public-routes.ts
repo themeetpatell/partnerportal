@@ -2,6 +2,7 @@ export const PUBLIC_PARTNER_ROUTES = [
   "/",
   "/auth/continue(.*)",
   "/auth/callback(.*)",
+  "/auth/verify(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/register(.*)",
@@ -15,6 +16,7 @@ export const PUBLIC_PARTNER_ROUTES = [
 ]
 
 export const PUBLIC_ADMIN_ROUTES = [
+  "/auth/verify(.*)",
   "/sign-in(.*)",
   "/reset-password(.*)",
 ]

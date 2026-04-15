@@ -124,15 +124,14 @@ export function buildSupabaseVerificationUrl(
   link: GeneratedAuthLinkProperties | null | undefined
 ) {
   const redirectTo = buildPortalUrl(target, pathname)
-  const supabaseBaseUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)
   const hashedToken = link?.hashed_token?.trim()
   const verificationType = link?.verification_type?.trim()
 
-  if (supabaseBaseUrl && hashedToken && verificationType) {
-    const verifyUrl = new URL("/auth/v1/verify", `${supabaseBaseUrl}/`)
+  if (hashedToken && verificationType) {
+    const verifyUrl = new URL("/auth/verify", `${resolvePortalBaseUrl(target)}/`)
     verifyUrl.searchParams.set("type", verificationType)
-    verifyUrl.searchParams.set("token", hashedToken)
-    verifyUrl.searchParams.set("redirect_to", redirectTo)
+    verifyUrl.searchParams.set("token_hash", hashedToken)
+    verifyUrl.searchParams.set("next", pathname)
     return verifyUrl.toString()
   }
 
