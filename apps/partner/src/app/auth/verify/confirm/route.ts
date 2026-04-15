@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   ) {
     const signInUrl = new URL("/sign-in", url.origin)
     signInUrl.searchParams.set("auth_error", "Invalid or expired verification link.")
-    return NextResponse.redirect(signInUrl)
+    return NextResponse.redirect(signInUrl, 303)
   }
 
   const cookieStore = await cookies()
@@ -61,8 +61,8 @@ export async function POST(request: Request) {
     })
     const signInUrl = new URL("/sign-in", url.origin)
     signInUrl.searchParams.set("auth_error", "Invalid or expired verification link.")
-    return NextResponse.redirect(signInUrl)
+    return NextResponse.redirect(signInUrl, 303)
   }
 
-  return NextResponse.redirect(new URL(nextPath, url.origin))
+  return NextResponse.redirect(new URL(nextPath, url.origin), 303)
 }
