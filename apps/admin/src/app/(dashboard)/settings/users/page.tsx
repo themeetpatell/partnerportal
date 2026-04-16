@@ -19,11 +19,15 @@ export default async function UsersPage() {
     getCurrentActiveTeamMember(),
   ])
 
+  console.log("[UsersPage] userId:", userId, "member:", member?.id, "role:", member?.role, "hasRole:", member ? hasAnyTeamRole(member.role, USER_MANAGEMENT_ROLES) : "no-member")
+
   if (!userId) {
+    console.log("[UsersPage] REDIRECTING to /sign-in — no userId")
     redirect("/sign-in")
   }
 
   if (!member || !hasAnyTeamRole(member.role, USER_MANAGEMENT_ROLES)) {
+    console.log("[UsersPage] REDIRECTING to / — member:", !!member, "role:", member?.role)
     redirect("/")
   }
 

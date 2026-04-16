@@ -179,6 +179,64 @@ export function getDefaultPermissionsForRole(role: unknown) {
   return ROLE_DEFAULT_PERMISSIONS[normalized]
 }
 
+export function parseTeamPermissions(value: unknown): Partial<
+  Record<AccessModule, AccessLevel>
+> {
+  if (!value) {
+    return {}
+  }
+
+  try {
+    const parsed =
+      typeof value === "string"
+        ? JSON.parse(value)
+        : value
+
+    if (!parsed || typeof parsed !== "object") {
+      return {}
+    }
+
+    const resolved: Partial<Record<AccessModule, AccessLevel>> = {}
+
+    for (const accessModule of ACCESS_MODULES) {
+      const level = (parsed as Record<string, unknown>)[accessModule]
+      if (level === "" || level === "r" || level === "rw") {
+        resolved[accessModule] = level
+      }
+    }
+
+    return resolved
+  } catch {
+    return {}
+  }
+}
+
+export function getResolvedPermissions(
+  role: unknown,
+  permissions?: unknown,
+): Record<AccessModule, AccessLevel> {
+  return {
+    ...ROLE_DEFAULT_PERMISSIONS.viewer,
+    ...(getDefaultPermissionsForRole(role) ?? {}),
+    ...parseTeamPermissions(permissions),
+  }
+}
+
+export function hasModuleAccess(
+  role: unknown,
+  permissions: unknown,
+  module: AccessModule,
+  requiredLevel: AccessLevel = "r",
+) {
+  const level = getResolvedPermissions(role, permissions)[module]
+
+  if (requiredLevel === "rw") {
+    return level === "rw"
+  }
+
+  return level === "r" || level === "rw"
+}
+
 export function getTeamRoleLabel(role: unknown) {
   const normalized = normalizeTeamRole(role)
   if (!normalized) {

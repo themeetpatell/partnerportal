@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { db, commissions, partners } from "@repo/db"
-import { count, eq, sum } from "drizzle-orm"
+import { and, count, eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
 import { auth } from "@repo/auth/server"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
@@ -53,7 +53,7 @@ const tabs = [
 export default async function CommissionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>
+  searchParams: Promise<{ status?: string; page?: string; partnerId?: string }>
 }) {
   const [, member] = await Promise.all([
     auth(),
@@ -63,11 +63,12 @@ export default async function CommissionsPage({
     ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
     : false
 
-  const { status, page } = await searchParams
+  const { status, page, partnerId } = await searchParams
   const activeStatus = status ?? "pending"
   const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1)
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
+  const partnerFilter = partnerId ? eq(commissions.partnerId, partnerId) : undefined
 
   const [rows, [countResult], pendingSum, approvedSum, processingSum, paidSum] = await Promise.all([
     db
@@ -88,27 +89,30 @@ export default async function CommissionsPage({
       })
       .from(commissions)
       .leftJoin(partners, eq(commissions.partnerId, partners.id))
-      .where(eq(commissions.status, activeStatus))
+      .where(and(eq(commissions.status, activeStatus), partnerFilter))
       .orderBy(commissions.calculatedAt)
       .limit(pageSize)
       .offset(pageOffset),
-    db.select({ total: count() }).from(commissions).where(eq(commissions.status, activeStatus)),
+    db
+      .select({ total: count() })
+      .from(commissions)
+      .where(and(eq(commissions.status, activeStatus), partnerFilter)),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(eq(commissions.status, "pending")),
+      .where(and(eq(commissions.status, "pending"), partnerFilter)),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(eq(commissions.status, "approved")),
+      .where(and(eq(commissions.status, "approved"), partnerFilter)),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(eq(commissions.status, "processing")),
+      .where(and(eq(commissions.status, "processing"), partnerFilter)),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(eq(commissions.status, "paid")),
+      .where(and(eq(commissions.status, "paid"), partnerFilter)),
   ])
 
   const total = countResult?.total ?? 0
@@ -159,6 +163,14 @@ export default async function CommissionsPage({
         <p className="text-slate-400 text-sm mt-1">
           Review, approve, and process partner commission payouts
         </p>
+        {partnerId ? (
+          <div className="mt-3 flex items-center gap-3 rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200 w-fit">
+            <span>Showing commission history for one partner</span>
+            <Link href="/commissions" className="font-medium text-emerald-300 hover:text-white transition-colors">
+              Clear filter
+            </Link>
+          </div>
+        ) : null}
       </div>
 
       {/* Summary Cards */}
@@ -190,7 +202,10 @@ export default async function CommissionsPage({
           return (
             <Link
               key={tab.value}
-              href={`/commissions?status=${tab.value}`}
+              href={`/commissions?${new URLSearchParams({
+                status: tab.value,
+                ...(partnerId ? { partnerId } : {}),
+              })}`}
               className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 isActive
                   ? "bg-white/6 text-white"
@@ -338,10 +353,22 @@ export default async function CommissionsPage({
                           </form>
                         )}
                         <Link
-                          href={`/leads/${commission.sourceId}`}
+                          href={
+                            commission.sourceType === "service_request"
+                              ? `/service-requests/${commission.sourceId}`
+                              : `/leads/${commission.sourceId}`
+                          }
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-slate-400 transition-colors hover:border-white/20 hover:text-white"
-                          aria-label="View lead details"
-                          title="View lead details"
+                          aria-label={
+                            commission.sourceType === "service_request"
+                              ? "View service request details"
+                              : "View lead details"
+                          }
+                          title={
+                            commission.sourceType === "service_request"
+                              ? "View service request details"
+                              : "View lead details"
+                          }
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
@@ -361,7 +388,11 @@ export default async function CommissionsPage({
             <div className="flex gap-2">
               {pageNum > 1 && (
                 <Link
-                  href={`?${new URLSearchParams({ status: activeStatus, page: String(pageNum - 1) })}`}
+                  href={`?${new URLSearchParams({
+                    status: activeStatus,
+                    ...(partnerId ? { partnerId } : {}),
+                    page: String(pageNum - 1),
+                  })}`}
                   className="px-3 py-1.5 rounded-md text-sm text-slate-400 hover:text-slate-200 border border-white/10 hover:border-white/20 transition-colors"
                 >
                   Previous
@@ -369,7 +400,11 @@ export default async function CommissionsPage({
               )}
               {pageOffset + pageSize < total && (
                 <Link
-                  href={`?${new URLSearchParams({ status: activeStatus, page: String(pageNum + 1) })}`}
+                  href={`?${new URLSearchParams({
+                    status: activeStatus,
+                    ...(partnerId ? { partnerId } : {}),
+                    page: String(pageNum + 1),
+                  })}`}
                   className="px-3 py-1.5 rounded-md text-sm text-slate-400 hover:text-slate-200 border border-white/10 hover:border-white/20 transition-colors"
                 >
                   Next

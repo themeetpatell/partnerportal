@@ -6,7 +6,27 @@ const isPublicRoute = createRouteMatcher(PUBLIC_PARTNER_ROUTES)
 const ADMIN_PORTAL_FALLBACK_URL = "https://finanshels-admin.vercel.app"
 
 function getAdminPortalUrl() {
-  return process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim() || ADMIN_PORTAL_FALLBACK_URL
+  const candidate = process.env.NEXT_PUBLIC_ADMIN_APP_URL?.trim()
+  const isProductionLike = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
+
+  if (!candidate) {
+    return ADMIN_PORTAL_FALLBACK_URL
+  }
+
+  try {
+    const parsed = new URL(candidate)
+
+    if (
+      isProductionLike &&
+      (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1" || parsed.hostname === "0.0.0.0")
+    ) {
+      return ADMIN_PORTAL_FALLBACK_URL
+    }
+
+    return parsed.toString().replace(/\/$/, "")
+  } catch {
+    return ADMIN_PORTAL_FALLBACK_URL
+  }
 }
 
 export default async function middleware(req: NextRequest) {

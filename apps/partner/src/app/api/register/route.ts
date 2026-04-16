@@ -2,10 +2,15 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
-import { partners, tenants } from "@repo/db"
+import { documents, partners, tenants } from "@repo/db"
 import { eq } from "drizzle-orm"
 import { sendPartnerApplicationReceivedEmail } from "@repo/notifications"
 import { rateLimit, getClientIp } from "@repo/auth"
+import {
+  createSignedAgreementPdf,
+  getAgreementFilePath,
+  getAgreementTitle,
+} from "@/lib/signed-agreement"
 
 function getTenantId(): string {
   const id = process.env.DEFAULT_TENANT_ID
@@ -41,6 +46,31 @@ async function ensureDefaultTenantExists(tenantId: string) {
       isActive: true,
     })
     .onConflictDoNothing()
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+function parseSignatureDataUrl(dataUrl: string | null | undefined) {
+  const value = dataUrl?.trim()
+  if (!value || !value.startsWith("data:")) {
+    return null
+  }
+
+  const match = value.match(/^data:(.+?);base64,(.+)$/)
+  if (!match) {
+    return null
+  }
+
+  const [, mimeType, base64Payload] = match
+  return {
+    mimeType,
+    bytes: Buffer.from(base64Payload, "base64"),
+  }
 }
 
 const registerSchema = z.object({
@@ -136,6 +166,7 @@ export async function POST(request: NextRequest) {
     } = parsed.data
     const tenantId = getTenantId()
     const now = new Date()
+    const normalizedEmail = email.trim().toLowerCase()
 
     await ensureDefaultTenantExists(tenantId)
 
@@ -148,7 +179,7 @@ export async function POST(request: NextRequest) {
         type,
         companyName,
         contactName,
-        email,
+        email: normalizedEmail,
         phone: phone || null,
         status: "pending",
         contractStatus: "signed",
@@ -159,6 +190,51 @@ export async function POST(request: NextRequest) {
         agreementUrl: "/onboarding",
       })
       .returning()
+
+    const parsedSignature = parseSignatureDataUrl(signatureDataUrl)
+    const signedPdf = await createSignedAgreementPdf({
+      agreementFilePath: getAgreementFilePath(type),
+      agreementTitle: getAgreementTitle(type),
+      partnerCompanyName: companyName,
+      partnerTypeLabel: type === "channel" ? "Channel Partner" : "Referral Partner",
+      partner: {
+        type,
+        companyName,
+        contactName,
+        email: normalizedEmail,
+        designation: null,
+        partnerAddress: null,
+        emirateIdPassport: null,
+        tradeLicense: null,
+        beneficiaryName: null,
+        bankName: null,
+        bankCountry: null,
+        accountNoIban: null,
+        swiftBicCode: null,
+        contractSentAt: now,
+      },
+      signerName: signatureName,
+      signerDesignation: null,
+      signerEmail: normalizedEmail,
+      signatureType: parsedSignature ? "upload" : "typed",
+      signedAt: now,
+      signatureImageBytes: parsedSignature?.bytes ?? null,
+      signatureImageMimeType: parsedSignature?.mimeType ?? null,
+    })
+
+    await db.insert(documents).values({
+      tenantId,
+      ownerType: "partner",
+      ownerId: newPartner.id,
+      documentType: "signed_agreement_pdf",
+      fileName: `${slugify(companyName) || "partner"}-signed-agreement.pdf`,
+      zohoWorkdriveId: `in-app:${newPartner.id}:signed_agreement`,
+      zohoWorkdriveUrl: `db://documents/${newPartner.id}/signed-agreement`,
+      storageProvider: "database",
+      mimeType: "application/pdf",
+      fileDataBase64: signedPdf.toString("base64"),
+      uploadedBy: userId,
+    })
 
     await sendPartnerApplicationReceivedEmail(
       newPartner.email,

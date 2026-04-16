@@ -1,4 +1,5 @@
 import { currentUser } from "@repo/auth/server"
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
   db,
@@ -23,6 +24,8 @@ import {
   Phone,
   ShieldCheck,
   User,
+  Download,
+  Eye,
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
 import { AvatarUploadWrapper } from "@/components/avatar-upload-wrapper"
@@ -37,8 +40,8 @@ function LifecyclePill({
 }) {
   const tones = {
     indigo: "border-primary/20 bg-primary/12 text-primary",
-    emerald: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300",
-    amber: "border-amber-400/20 bg-amber-400/10 text-amber-300",
+    emerald: "border-emerald-400/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    amber: "border-amber-400/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
     slate: "border-border bg-secondary/50 text-muted-foreground",
   }
 
@@ -230,9 +233,9 @@ export default async function ProfilePage({
               : null
   const contractFlashTone =
     contractQuery === "signed"
-      ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"
+      ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-100"
       : contractQuery === "declined" || contractQuery === "missing-fields" || contractQuery === "unavailable"
-        ? "border-amber-400/20 bg-amber-400/10 text-amber-100"
+        ? "border-amber-400/20 bg-amber-500/10 text-amber-700 dark:text-amber-100"
         : contractQuery === "later" || contractQuery === "ready"
           ? "border-primary/20 bg-primary/10 text-primary"
           : ""
@@ -331,7 +334,7 @@ export default async function ProfilePage({
             <StatCard
               label="Member since"
               value={memberSince}
-              accent="text-sky-300"
+              accent="text-sky-700 dark:text-sky-300"
             />
             <StatCard
               label="Partner type"
@@ -342,11 +345,11 @@ export default async function ProfilePage({
 
           {/* Activation hint */}
           {operationalStatus === "yet_to_activate" && (
-            <div className="mt-5 flex items-center gap-3 rounded-xl border border-amber-400/15 bg-amber-400/5 px-4 py-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-400/10">
-                <ArrowUpRight className="h-4 w-4 text-amber-400" />
+            <div className="mt-5 flex items-center gap-3 rounded-xl border border-amber-400/20 bg-amber-50 px-4 py-3 dark:bg-amber-400/5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-400/10">
+                <ArrowUpRight className="h-4 w-4 text-amber-700 dark:text-amber-300" />
               </div>
-              <p className="text-sm leading-snug text-amber-200/80">
+              <p className="text-sm leading-snug text-amber-800 dark:text-amber-200/80">
                 Your partnership will be activated once you refer your first lead to Finanshels.
               </p>
             </div>
@@ -405,6 +408,25 @@ export default async function ProfilePage({
               <p className="mt-4 text-sm leading-6 text-muted-foreground">
                 Your partner agreement is digitally signed during onboarding with a two-party signature (Finanshels Accounting Technologies + your authorized signatory). This is the sole required legal document for partnership activation.
               </p>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  href="/api/profile/contract/download?disposition=inline"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:border-primary/30 hover:text-primary"
+                >
+                  <Eye className="h-4 w-4" />
+                  View agreement
+                </Link>
+                <Link
+                  href="/api/profile/contract/download"
+                  className="inline-flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/10 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/15"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Link>
+              </div>
             </div>
           </section>
 
@@ -545,11 +567,11 @@ export default async function ProfilePage({
 
           {partnerRecord.rejectionReason && (
             <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-              <div className="rounded-[1.4rem] border border-rose-400/20 bg-rose-400/10 px-5 py-4">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-rose-400">
+              <div className="rounded-[1.4rem] border border-rose-400/20 bg-rose-50 px-5 py-4 dark:bg-rose-400/10">
+                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-rose-700 dark:text-rose-400">
                   Rejection reason
                 </p>
-                <p className="mt-2 text-sm leading-6 text-rose-200">
+                <p className="mt-2 text-sm leading-6 text-rose-800 dark:text-rose-200">
                   {partnerRecord.rejectionReason}
                 </p>
               </div>

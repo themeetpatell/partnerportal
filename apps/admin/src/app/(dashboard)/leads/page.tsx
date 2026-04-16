@@ -32,14 +32,18 @@ const tabs = [
 export default async function LeadsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>
+  searchParams: Promise<{ status?: string; page?: string; partnerId?: string }>
 }) {
-  const { status, page } = await searchParams
+  const { status, page, partnerId } = await searchParams
   const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1)
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
 
-  const whereClause = and(isNull(leads.deletedAt), status ? eq(leads.status, status) : undefined)
+  const whereClause = and(
+    isNull(leads.deletedAt),
+    status ? eq(leads.status, status) : undefined,
+    partnerId ? eq(leads.partnerId, partnerId) : undefined,
+  )
 
   const [rows, [countResult]] = await Promise.all([
     db
@@ -76,6 +80,14 @@ export default async function LeadsPage({
           <p className="text-zinc-400 text-sm mt-1">
             Review partner-submitted leads and sync their status from Zoho CRM
           </p>
+          {partnerId ? (
+            <div className="mt-3 flex items-center gap-3 rounded-lg border border-indigo-800/40 bg-indigo-950/20 px-3 py-2 text-xs text-indigo-200 w-fit">
+              <span>Showing leads for one partner</span>
+              <Link href="/leads" className="font-medium text-indigo-300 hover:text-white transition-colors">
+                Clear filter
+              </Link>
+            </div>
+          ) : null}
         </div>
         <Link
           href="/leads/new"
@@ -255,7 +267,11 @@ export default async function LeadsPage({
             <div className="flex gap-2">
               {pageNum > 1 && (
                 <Link
-                  href={`?${new URLSearchParams({ ...(status ? { status } : {}), page: String(pageNum - 1) })}`}
+                  href={`?${new URLSearchParams({
+                    ...(status ? { status } : {}),
+                    ...(partnerId ? { partnerId } : {}),
+                    page: String(pageNum - 1),
+                  })}`}
                   className="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-600 transition-colors"
                 >
                   Previous
@@ -263,7 +279,11 @@ export default async function LeadsPage({
               )}
               {pageOffset + pageSize < total && (
                 <Link
-                  href={`?${new URLSearchParams({ ...(status ? { status } : {}), page: String(pageNum + 1) })}`}
+                  href={`?${new URLSearchParams({
+                    ...(status ? { status } : {}),
+                    ...(partnerId ? { partnerId } : {}),
+                    page: String(pageNum + 1),
+                  })}`}
                   className="px-3 py-1.5 rounded-md text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 hover:border-zinc-600 transition-colors"
                 >
                   Next

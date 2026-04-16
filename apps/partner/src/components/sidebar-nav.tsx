@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu,
   Plus,
+  Settings,
   User,
   Users,
   Wrench,
@@ -31,6 +32,7 @@ const primaryItems = [
 
 const secondaryItems = [
   { label: "Profile", href: "/dashboard/profile", icon: User },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
 const mobilePrimaryItems = [
@@ -51,6 +53,10 @@ function getMobileTopbarMeta(pathname: string) {
 
   if (pathname === "/dashboard/profile") {
     return { section: "Account", title: "Profile" }
+  }
+
+  if (pathname === "/dashboard/settings") {
+    return { section: "Account", title: "Settings" }
   }
 
   if (pathname.startsWith("/dashboard/leads/new")) {

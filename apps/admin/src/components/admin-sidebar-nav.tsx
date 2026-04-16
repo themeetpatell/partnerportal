@@ -17,10 +17,26 @@ import {
   X,
   ChevronRight,
   LogOut,
+  type LucideIcon,
 } from "lucide-react"
 import { useAuthClient } from "@repo/auth/client"
+import {
+  hasModuleAccess,
+  hasAnyTeamRole,
+  type AccessModule,
+  type CanonicalTeamRole,
+  USER_MANAGEMENT_ROLES,
+} from "@/lib/rbac"
 
-const navItems = [
+type NavItem = {
+  label: string
+  href: string
+  icon: LucideIcon
+  module?: AccessModule
+  roles?: CanonicalTeamRole[]
+}
+
+const navItems: NavItem[] = [
   {
     label: "Overview",
     href: "/",
@@ -30,36 +46,43 @@ const navItems = [
     label: "Analytics",
     href: "/analytics",
     icon: BarChart3,
+    module: "analytics",
   },
   {
     label: "Partners",
     href: "/partners",
     icon: UserCheck,
+    module: "partners",
   },
   {
     label: "Leads",
     href: "/leads",
     icon: Users,
+    module: "leads",
   },
   {
     label: "Service Requests",
     href: "/service-requests",
     icon: ClipboardList,
+    module: "services",
   },
   {
     label: "Commissions",
     href: "/commissions",
     icon: DollarSign,
+    module: "commissions",
   },
   {
     label: "Invoices",
     href: "/invoices",
     icon: FileText,
+    module: "invoices",
   },
   {
     label: "Users & Access",
     href: "/settings/users",
     icon: Settings,
+    roles: USER_MANAGEMENT_ROLES,
   },
 ]
 
@@ -68,6 +91,8 @@ interface AdminSidebarNavProps {
   userEmail: string
   userInitials: string
   userRole: string
+  teamRole: string | null
+  teamPermissions: string
 }
 
 function NavLink({
@@ -75,7 +100,7 @@ function NavLink({
   active,
   onClick,
 }: {
-  item: (typeof navItems)[number]
+  item: NavItem
   active: boolean
   onClick?: () => void
 }) {
@@ -104,6 +129,8 @@ function SidebarContent({
   userEmail,
   userInitials,
   userRole,
+  teamRole,
+  teamPermissions,
   onNavClick,
 }: {
   pathname: string
@@ -111,9 +138,22 @@ function SidebarContent({
   userEmail: string
   userInitials: string
   userRole: string
+  teamRole: string | null
+  teamPermissions: string
   onNavClick?: () => void
 }) {
   const { signOut } = useAuthClient()
+  const visibleNavItems = navItems.filter((item: NavItem) => {
+    if (item.roles) {
+      return hasAnyTeamRole(teamRole, item.roles)
+    }
+
+    if (!item.module) {
+      return true
+    }
+
+    return hasModuleAccess(teamRole, teamPermissions, item.module)
+  })
 
   return (
     <div className="flex flex-col h-full">
@@ -138,7 +178,7 @@ function SidebarContent({
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.href}
             item={item}
@@ -187,6 +227,8 @@ export function AdminSidebarNav({
   userEmail,
   userInitials,
   userRole,
+  teamRole,
+  teamPermissions,
 }: AdminSidebarNavProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -201,6 +243,8 @@ export function AdminSidebarNav({
           userEmail={userEmail}
           userInitials={userInitials}
           userRole={userRole}
+          teamRole={teamRole}
+          teamPermissions={teamPermissions}
         />
       </aside>
 
@@ -254,6 +298,8 @@ export function AdminSidebarNav({
           userEmail={userEmail}
           userInitials={userInitials}
           userRole={userRole}
+          teamRole={teamRole}
+          teamPermissions={teamPermissions}
           onNavClick={() => setMobileOpen(false)}
         />
       </div>

@@ -76,7 +76,21 @@ function normalizeAbsoluteUrl(value: string | null | undefined) {
   }
 }
 
+function isLocalDevelopmentUrl(value: string) {
+  try {
+    const parsed = new URL(value)
+    return (
+      parsed.hostname === "localhost" ||
+      parsed.hostname === "127.0.0.1" ||
+      parsed.hostname === "0.0.0.0"
+    )
+  } catch {
+    return false
+  }
+}
+
 function resolvePortalBaseUrl(target: keyof typeof CANONICAL_PORTAL_URLS) {
+  const isProductionLike = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
   const envCandidates =
     target === "partner"
       ? [process.env.PARTNER_APP_URL, process.env.NEXT_PUBLIC_PARTNER_APP_URL]
@@ -84,12 +98,20 @@ function resolvePortalBaseUrl(target: keyof typeof CANONICAL_PORTAL_URLS) {
 
   for (const candidate of envCandidates) {
     const normalized = normalizeBaseUrl(candidate)
+    if (!normalized) {
+      continue
+    }
+
+    if (isProductionLike && isLocalDevelopmentUrl(normalized)) {
+      continue
+    }
+
     if (normalized) {
       return normalized
     }
   }
 
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+  if (isProductionLike) {
     return CANONICAL_PORTAL_URLS[target]
   }
 

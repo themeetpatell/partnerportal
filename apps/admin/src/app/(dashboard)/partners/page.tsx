@@ -1,7 +1,10 @@
 import Link from "next/link"
 import { db, derivePartnerOperationalStatus, formatPartnerOperationalStatus, leads, partners } from "@repo/db"
-import { inArray, isNull } from "drizzle-orm"
+import { and, eq, inArray, isNull } from "drizzle-orm"
 import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { hasAnyTeamRole } from "@/lib/rbac"
+import { PartnerResetPasswordButton } from "@/components/partner-reset-password-button"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -30,9 +33,13 @@ const tabs = [
 export default async function PartnersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ operational?: string }>
+  searchParams: Promise<{ operational?: string; status?: string }>
 }) {
-  const { operational } = await searchParams
+  const { operational, status } = await searchParams
+  const member = await getCurrentActiveTeamMember()
+  const canSendResetEmail = Boolean(
+    member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])
+  )
 
   const rows = await db
     .select({
@@ -50,7 +57,7 @@ export default async function PartnersPage({
       createdAt: partners.createdAt,
     })
     .from(partners)
-    .where(isNull(partners.deletedAt))
+    .where(and(isNull(partners.deletedAt), status ? eq(partners.status, status) : undefined))
     .orderBy(partners.createdAt)
 
   const partnerLeadRows =
@@ -111,6 +118,17 @@ export default async function PartnersPage({
           New Partner
         </Link>
       </div>
+
+      {status ? (
+        <div className="flex items-center gap-3 rounded-lg border border-yellow-800/40 bg-yellow-950/20 px-4 py-3 text-sm">
+          <span className="text-yellow-300">
+            Filtering by approval status: <span className="font-medium capitalize">{status}</span>
+          </span>
+          <Link href="/partners" className="text-yellow-200 hover:text-white transition-colors">
+            Clear filter
+          </Link>
+        </div>
+      ) : null}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-lg p-1 w-fit">
@@ -218,13 +236,21 @@ export default async function PartnersPage({
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Link
-                        href={`/partners/${partner.id}`}
-                        className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
-                      >
-                        View
-                        <ArrowRight className="w-3 h-3" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-4">
+                        {canSendResetEmail ? (
+                          <PartnerResetPasswordButton
+                            partnerId={partner.id}
+                            email={partner.email}
+                          />
+                        ) : null}
+                        <Link
+                          href={`/partners/${partner.id}`}
+                          className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                        >
+                          View
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
