@@ -1,9 +1,15 @@
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { db, derivePartnerOperationalStatus, formatPartnerOperationalStatus, leads, partners } from "@repo/db"
 import { and, eq, inArray, isNull } from "drizzle-orm"
 import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import {
+  resolvePartnerScopeForActor,
+  partnerScopeWhere,
+} from "@/lib/row-scope"
 import { PartnerResetPasswordButton } from "@/components/partner-reset-password-button"
 
 function StatusBadge({ status }: { status: string }) {
@@ -37,27 +43,47 @@ export default async function PartnersPage({
 }) {
   const { operational, status } = await searchParams
 
-  const [member, rows] = await Promise.all([
+  const [member, actor] = await Promise.all([
     getCurrentActiveTeamMember(),
-    db
-      .select({
-        id: partners.id,
-        companyName: partners.companyName,
-        contactName: partners.contactName,
-        email: partners.email,
-        phone: partners.phone,
-        type: partners.type,
-        status: partners.status,
-        agreementUrl: partners.agreementUrl,
-        contractStatus: partners.contractStatus,
-        contractSignedAt: partners.contractSignedAt,
-        onboardedAt: partners.onboardedAt,
-        createdAt: partners.createdAt,
-      })
-      .from(partners)
-      .where(and(isNull(partners.deletedAt), status ? eq(partners.status, status) : undefined))
-      .orderBy(partners.createdAt),
+    currentUser(),
   ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+
+  const scopeClause = partnerScopeWhere(scope, partners.id)
+
+  const rows = await db
+    .select({
+      id: partners.id,
+      companyName: partners.companyName,
+      contactName: partners.contactName,
+      email: partners.email,
+      phone: partners.phone,
+      type: partners.type,
+      status: partners.status,
+      agreementUrl: partners.agreementUrl,
+      contractStatus: partners.contractStatus,
+      contractSignedAt: partners.contractSignedAt,
+      onboardedAt: partners.onboardedAt,
+      createdAt: partners.createdAt,
+    })
+    .from(partners)
+    .where(
+      and(
+        eq(partners.tenantId, tenantId),
+        isNull(partners.deletedAt),
+        status ? eq(partners.status, status) : undefined,
+        scopeClause ?? undefined,
+      ),
+    )
+    .orderBy(partners.createdAt)
 
   const canSendResetEmail = Boolean(
     member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])

@@ -70,7 +70,8 @@ export const TEAM_ROLE_META: Record<
   finance: {
     label: "Finance",
     color: "bg-yellow-950/60 border-yellow-800/40 text-yellow-300",
-    summary: "Invoices, commissions, and finance reporting",
+    summary:
+      "Invoices, commissions, finance reporting, and creating service requests on behalf of partners",
   },
   viewer: {
     label: "Viewer",
@@ -122,7 +123,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<
   finance: {
     partners: "r",
     leads: "r",
-    services: "r",
+    services: "rw",
     invoices: "rw",
     commissions: "rw",
     users: "",

@@ -7,6 +7,7 @@ import { createZohoLead, normalizeZohoLeadServices } from "@repo/zoho"
 import { getActiveTeamMember, getActorName } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -100,6 +101,11 @@ export async function POST(req: NextRequest) {
   }
 
   const tenantId = getRequiredTenantId()
+  const scope = await resolvePartnerScopeForActor({
+    tenantId,
+    actorUserId: userId,
+    member,
+  })
 
   const body = await req.json()
   const {
@@ -157,6 +163,13 @@ export async function POST(req: NextRequest) {
 
   if (!partner) {
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
+  }
+
+  if (!isPartnerReadable(scope, partnerId)) {
+    return NextResponse.json(
+      { error: "Forbidden — partner is outside your row scope" },
+      { status: 403 },
+    )
   }
 
   const serviceInterestNames = await resolveServiceInterestNames(

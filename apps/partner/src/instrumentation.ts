@@ -1,5 +1,5 @@
-import { validateEnv } from "./lib/env"
+import { assertRequiredEnvForBootstrap } from "./lib/env-bootstrap"
 
 export function register() {
-  validateEnv()
+  assertRequiredEnvForBootstrap()
 }

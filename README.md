@@ -9,6 +9,10 @@ This repo is set up as npm workspaces and currently ships two active Next.js app
 
 Shared code lives under `packages/*` for auth, database access, UI, notifications, Zoho integrations, commission logic, and shared types.
 
+## Documentation
+
+- [Finance: commissions, invoicing, and payout workflow](docs/finance-commissions-and-invoicing.md) — runbook for finance and admin operations (partner payouts, invoicing, current product limits).
+
 ## Stack
 
 - Next.js 15

@@ -113,6 +113,20 @@
       "when": 1778457600000,
       "tag": "0015_perf_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1778461200000,
+      "tag": "0016_commission_calc_stripe",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1778464800000,
+      "tag": "0017_commissions_related_lead",
+      "breakpoints": true
     }
   ]
 }

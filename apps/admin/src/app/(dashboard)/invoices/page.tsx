@@ -1,7 +1,11 @@
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { db, invoices, partners } from "@repo/db"
 import { and, eq, isNull, sum } from "drizzle-orm"
 import { FileText, ArrowRight, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { partnerScopeWhere, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -35,6 +39,29 @@ export default async function InvoicesPage({
 }) {
   const { status } = await searchParams
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+  const scopeClause = partnerScopeWhere(scope, invoices.partnerId)
+
+  const invoiceWhere = (statusEq?: ReturnType<typeof eq>) =>
+    and(
+      eq(invoices.tenantId, tenantId),
+      isNull(invoices.deletedAt),
+      scopeClause ?? undefined,
+      statusEq ?? undefined,
+    )
+
   const [rows, sentSum, paidSum, overdueSum] = await Promise.all([
     db
       .select({
@@ -52,11 +79,20 @@ export default async function InvoicesPage({
       })
       .from(invoices)
       .leftJoin(partners, eq(invoices.partnerId, partners.id))
-      .where(and(isNull(invoices.deletedAt), status ? eq(invoices.status, status) : undefined))
+      .where(invoiceWhere(status ? eq(invoices.status, status) : undefined))
       .orderBy(invoices.createdAt),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "sent"))),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "paid"))),
-    db.select({ total: sum(invoices.total) }).from(invoices).where(and(isNull(invoices.deletedAt), eq(invoices.status, "overdue"))),
+    db
+      .select({ total: sum(invoices.total) })
+      .from(invoices)
+      .where(invoiceWhere(eq(invoices.status, "sent"))),
+    db
+      .select({ total: sum(invoices.total) })
+      .from(invoices)
+      .where(invoiceWhere(eq(invoices.status, "paid"))),
+    db
+      .select({ total: sum(invoices.total) })
+      .from(invoices)
+      .where(invoiceWhere(eq(invoices.status, "overdue"))),
   ])
 
   function fmt(val: string | null | undefined) {

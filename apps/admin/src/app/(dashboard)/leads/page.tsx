@@ -1,7 +1,11 @@
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { db, leads, partners } from "@repo/db"
 import { and, count, eq, isNull } from "drizzle-orm"
 import { Users, ArrowRight, Plus } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { resolvePartnerScopeForActor, scopedPartnerFilters } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -39,10 +43,27 @@ export default async function LeadsPage({
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+
+  const scopeClause = scopedPartnerFilters(scope, leads.partnerId, partnerId)
+
   const whereClause = and(
+    eq(leads.tenantId, tenantId),
     isNull(leads.deletedAt),
     status ? eq(leads.status, status) : undefined,
-    partnerId ? eq(leads.partnerId, partnerId) : undefined,
+    scopeClause ?? undefined,
   )
 
   const [rows, [countResult]] = await Promise.all([

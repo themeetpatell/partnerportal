@@ -1,5 +1,8 @@
 import type { CommissionModel } from "@repo/types"
 
+export type { CrmCommissionBasis, CrmVatBasisOptions } from "./crm-basis"
+export { deriveNetCommissionBaseFromCrm } from "./crm-basis"
+
 export interface CalculateCommissionParams {
   model: CommissionModel
   serviceFee: number

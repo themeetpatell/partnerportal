@@ -1,6 +1,7 @@
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { db, partners, leads, commissions } from "@repo/db"
-import { desc, eq, sql, sum } from "drizzle-orm"
+import { and, desc, eq, isNull, sql, sum } from "drizzle-orm"
 import {
   UserCheck,
   Clock,
@@ -12,6 +13,9 @@ import {
 } from "lucide-react"
 import { DatabaseFallbackCard } from "@/components/database-fallback-card"
 import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/database-error"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { partnerScopeWhere, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -38,15 +42,45 @@ export default async function AdminOverviewPage() {
   let dashboardData
 
   try {
+    const [member, actor] = await Promise.all([
+      getCurrentActiveTeamMember(),
+      currentUser(),
+    ])
+    const tenantId = getRequiredTenantId()
+    const scope =
+      actor?.id === undefined
+        ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+        : await resolvePartnerScopeForActor({
+            tenantId,
+            actorUserId: actor.id,
+            member,
+          })
+
+    const partnerScope = partnerScopeWhere(scope, partners.id)
+    const partnerRowFilter = and(
+      eq(partners.tenantId, tenantId),
+      isNull(partners.deletedAt),
+      partnerScope ?? undefined,
+    )
+    const leadRowFilter = and(
+      eq(leads.tenantId, tenantId),
+      isNull(leads.deletedAt),
+      partnerScopeWhere(scope, leads.partnerId) ?? undefined,
+    )
+    const commissionsRowFilter = and(
+      eq(commissions.tenantId, tenantId),
+      eq(commissions.status, "pending"),
+      partnerScopeWhere(scope, commissions.partnerId) ?? undefined,
+    )
+
     dashboardData = await db.transaction(async (tx) => {
-      // Keep the overview fetch on a single pooled connection so the landing page
-      // does not fan out into multiple concurrent queries under serverless load.
       const partnerMetricsResult = await tx
         .select({
           total: sql<number>`count(*)`,
           pending: sql<number>`count(*) filter (where ${partners.status} = 'pending')`,
         })
         .from(partners)
+        .where(partnerRowFilter)
 
       const leadMetricsResult = await tx
         .select({
@@ -54,11 +88,12 @@ export default async function AdminOverviewPage() {
           submitted: sql<number>`count(*) filter (where ${leads.status} = 'submitted')`,
         })
         .from(leads)
+        .where(leadRowFilter)
 
       const pendingCommissionsResult = await tx
         .select({ total: sum(commissions.amount) })
         .from(commissions)
-        .where(eq(commissions.status, "pending"))
+        .where(commissionsRowFilter)
 
       const pendingPartnersList = await tx
         .select({
@@ -69,7 +104,7 @@ export default async function AdminOverviewPage() {
           createdAt: partners.createdAt,
         })
         .from(partners)
-        .where(eq(partners.status, "pending"))
+        .where(and(partnerRowFilter, eq(partners.status, "pending")))
         .orderBy(desc(partners.createdAt))
         .limit(5)
 
@@ -83,6 +118,7 @@ export default async function AdminOverviewPage() {
           createdAt: leads.createdAt,
         })
         .from(leads)
+        .where(leadRowFilter)
         .orderBy(desc(leads.createdAt))
         .limit(5)
 

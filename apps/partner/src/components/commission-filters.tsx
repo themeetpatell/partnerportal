@@ -14,6 +14,7 @@ const STATUS_OPTIONS = [
 const TYPE_OPTIONS = [
   { label: "All types", value: "all" },
   { label: "Lead", value: "lead" },
+  { label: "Recurring billing", value: "lead_recurring_invoice" },
   { label: "Service request", value: "service_request" },
 ]
 

@@ -11,13 +11,20 @@ interface Props {
   services: { id: string; name: string; category: string }[]
   leads: { id: string; customerName: string; customerCompany: string | null; partnerId: string }[]
   teamMembers: { authUserId: string; name: string }[]
+  initialPartnerId?: string
 }
 
-export function NewServiceRequestForm({ partners, services, leads, teamMembers }: Props) {
+export function NewServiceRequestForm({
+  partners,
+  services,
+  leads,
+  teamMembers,
+  initialPartnerId,
+}: Props) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    partnerId: "",
+    partnerId: initialPartnerId ?? "",
     serviceId: "",
     leadId: "",
     customerCompany: "",

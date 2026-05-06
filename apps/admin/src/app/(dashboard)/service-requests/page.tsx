@@ -1,7 +1,12 @@
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { db, serviceRequests, partners, services } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
-import { ClipboardList, ArrowRight } from "lucide-react"
+import { ClipboardList, ArrowRight, Plus } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { hasModuleAccess } from "@/lib/rbac"
+import { partnerScopeWhere, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -34,6 +39,25 @@ export default async function ServiceRequestsPage({
 }) {
   const { status } = await searchParams
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+  const scopeClause = partnerScopeWhere(scope, serviceRequests.partnerId)
+
+  const canCreateOnBehalf =
+    member &&
+    hasModuleAccess(member.role, member.permissions, "services", "rw")
+
   const rows = await db
     .select({
       id: serviceRequests.id,
@@ -52,16 +76,35 @@ export default async function ServiceRequestsPage({
     .from(serviceRequests)
     .leftJoin(partners, eq(serviceRequests.partnerId, partners.id))
     .leftJoin(services, eq(serviceRequests.serviceId, services.id))
-    .where(and(isNull(serviceRequests.deletedAt), status ? eq(serviceRequests.status, status) : undefined))
+    .where(
+      and(
+        eq(serviceRequests.tenantId, tenantId),
+        isNull(serviceRequests.deletedAt),
+        status ? eq(serviceRequests.status, status) : undefined,
+        scopeClause ?? undefined,
+      ),
+    )
     .orderBy(serviceRequests.createdAt)
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Service Requests</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Manage service requests submitted by partners
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Service Requests</h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Manage requests from the partner portal or create one on a partner&apos;s behalf from
+            admin.
+          </p>
+        </div>
+        {canCreateOnBehalf ? (
+          <Link
+            href="/service-requests/new"
+            className="inline-flex items-center justify-center gap-2 shrink-0 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+          >
+            <Plus className="h-4 w-4" />
+            Create for partner
+          </Link>
+        ) : null}
       </div>
 
       <div className="flex gap-1 surface-card rounded-lg p-1 w-fit flex-wrap">
@@ -93,7 +136,9 @@ export default async function ServiceRequestsPage({
             <p className="text-slate-600 text-xs mt-1">
               {status
                 ? `There are no requests with status "${status.replace(/_/g, " ")}".`
-                : "Service requests submitted by partners will appear here."}
+                : canCreateOnBehalf
+                  ? "Use Create for partner above if a partner asked your team to log a request."
+                  : "Service requests submitted by partners will appear here."}
             </p>
           </div>
         ) : (

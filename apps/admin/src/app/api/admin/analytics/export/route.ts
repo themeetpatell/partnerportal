@@ -3,7 +3,9 @@ import { auth } from "@repo/auth/server"
 import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
+import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { resolvePartnerScopeForActor, scopedPartnerFilters } from "@/lib/row-scope"
 
 function getDateRange(preset: string | undefined) {
   const now = new Date()
@@ -49,6 +51,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
+  const tenantId = getRequiredTenantId()
+  const scope = await resolvePartnerScopeForActor({
+    tenantId,
+    actorUserId: userId,
+    member,
+  })
+
   const url = new URL(req.url)
   const sp = url.searchParams
   const dateRange = getDateRange(sp.get("dateRange") ?? undefined)
@@ -58,6 +67,10 @@ export async function GET(req: NextRequest) {
   const leadSource = sp.get("leadSource")
   const serviceStatus = sp.get("serviceStatus")
   const teamMemberId = sp.get("teamMemberId")
+
+  const leadScopeClause = scopedPartnerFilters(scope, leads.partnerId, partnerId)
+  const srScopeClause = scopedPartnerFilters(scope, serviceRequests.partnerId, partnerId)
+  const invScopeClause = scopedPartnerFilters(scope, invoices.partnerId, partnerId)
 
   const dateFilter = (col: Parameters<typeof gte>[0]) => {
     const conditions = []
@@ -81,8 +94,10 @@ export async function GET(req: NextRequest) {
       .innerJoin(partners, eq(leads.partnerId, partners.id))
       .where(
         and(
+          eq(leads.tenantId, tenantId),
+          eq(partners.tenantId, tenantId),
           isNull(leads.deletedAt),
-          ...(partnerId ? [eq(leads.partnerId, partnerId)] : []),
+          leadScopeClause ?? undefined,
           ...(partnerType ? [eq(partners.type, partnerType)] : []),
           ...(leadStatus ? [eq(leads.status, leadStatus)] : []),
           ...(leadSource ? [eq(leads.source, leadSource)] : []),
@@ -104,8 +119,10 @@ export async function GET(req: NextRequest) {
       .innerJoin(partners, eq(serviceRequests.partnerId, partners.id))
       .where(
         and(
+          eq(serviceRequests.tenantId, tenantId),
+          eq(partners.tenantId, tenantId),
           isNull(serviceRequests.deletedAt),
-          ...(partnerId ? [eq(serviceRequests.partnerId, partnerId)] : []),
+          srScopeClause ?? undefined,
           ...(partnerType ? [eq(partners.type, partnerType)] : []),
           ...(serviceStatus ? [eq(serviceRequests.status, serviceStatus)] : []),
           ...(teamMemberId ? [eq(serviceRequests.assignedTo, teamMemberId)] : []),
@@ -125,8 +142,10 @@ export async function GET(req: NextRequest) {
       .innerJoin(partners, eq(invoices.partnerId, partners.id))
       .where(
         and(
+          eq(invoices.tenantId, tenantId),
+          eq(partners.tenantId, tenantId),
           isNull(invoices.deletedAt),
-          ...(partnerId ? [eq(invoices.partnerId, partnerId)] : []),
+          invScopeClause ?? undefined,
           ...(partnerType ? [eq(partners.type, partnerType)] : []),
           ...dateFilter(invoices.createdAt)
         )

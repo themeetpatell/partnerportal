@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { auth } from "@repo/auth/server"
-import { db, leads, partners, documents } from "@repo/db"
-import { eq, and, isNull } from "drizzle-orm"
+import { auth, currentUser } from "@repo/auth/server"
+import { db, leads, partners, documents, commissions } from "@repo/db"
+import { eq, and, or, desc, isNull } from "drizzle-orm"
 import {
   ArrowLeft,
   Mail,
@@ -16,9 +16,12 @@ import {
   CheckCircle,
   User,
   Tag,
+  CircleDollarSign,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -177,23 +180,49 @@ export default async function LeadDetailPage({
 }) {
   const [{ id }, query, { userId }] = await Promise.all([params, searchParams, auth()])
 
-  const [[leadRow], leadDocs, member] = await Promise.all([
+  const tenantId = getRequiredTenantId()
+
+  const [[leadRow], leadDocs, member, leadActor, leadCommissions] = await Promise.all([
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
       .leftJoin(partners, eq(partners.id, leads.partnerId))
-      .where(and(eq(leads.id, id), isNull(leads.deletedAt)))
+      .where(and(eq(leads.id, id), eq(leads.tenantId, tenantId), isNull(leads.deletedAt)))
       .limit(1),
     db
       .select()
       .from(documents)
       .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id))),
     userId ? getCurrentActiveTeamMember() : Promise.resolve(null),
+    currentUser(),
+    db
+      .select()
+      .from(commissions)
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          or(
+            and(eq(commissions.sourceType, "lead"), eq(commissions.sourceId, id)),
+            eq(commissions.relatedLeadId, id),
+          ),
+        ),
+      )
+      .orderBy(desc(commissions.calculatedAt)),
   ])
 
   if (!leadRow) notFound()
 
   const lead = leadRow.lead
+  const scope =
+    leadActor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: leadActor.id,
+          member,
+        })
+  if (!isPartnerReadable(scope, lead.partnerId)) notFound()
+
   const partner = leadRow.partner
 
   const services = (() => {
@@ -726,6 +755,81 @@ export default async function LeadDetailPage({
               </div>
             ) : (
               <p className="text-slate-500 text-sm">Partner not found</p>
+            )}
+          </div>
+
+          <div className="surface-card rounded-2xl p-6">
+            <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <CircleDollarSign className="w-4 h-4 text-slate-400" />
+              Partner commissions
+            </h2>
+            <p className="text-slate-500 text-xs mb-4 leading-relaxed">
+              Deal-close rows from Zoho sync plus each recurring{" "}
+              <code className="text-slate-400">invoice.paid</code> with metadata{" "}
+              <code className="text-slate-400">partner_portal_lead_id</code>.
+            </p>
+            {leadCommissions.length === 0 ? (
+              <p className="text-slate-500 text-sm">No commission records for this lead yet.</p>
+            ) : (
+              <ul className="space-y-4">
+                {leadCommissions.map((row) => {
+                  const sourceLabel =
+                    row.sourceType === "lead"
+                      ? "Deal close (CRM)"
+                      : row.sourceType === "lead_recurring_invoice"
+                        ? "Recurring (Stripe)"
+                        : row.sourceType === "service_request"
+                          ? "Service request"
+                          : row.sourceType.replace(/_/g, " ")
+                  return (
+                    <li
+                      key={row.id}
+                      className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-2"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="text-white text-sm font-medium">{sourceLabel}</p>
+                          <p className="text-slate-500 text-xs font-mono mt-0.5">{row.id}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-white text-sm font-semibold">
+                            {formatCurrencyAmount(row.amount) ?? row.amount}
+                          </p>
+                          <p className="text-slate-500 text-xs capitalize mt-0.5">{row.status}</p>
+                        </div>
+                      </div>
+                      {row.breakdown ? (
+                        <p className="text-slate-400 text-xs leading-relaxed">{row.breakdown}</p>
+                      ) : null}
+                      {row.stripeInvoiceId ? (
+                        <p className="text-xs">
+                          <span className="text-slate-500">Stripe invoice: </span>
+                          <a
+                            href={`https://dashboard.stripe.com/invoices/${row.stripeInvoiceId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-400 hover:text-indigo-300 font-mono break-all"
+                          >
+                            {row.stripeInvoiceId}
+                          </a>
+                        </p>
+                      ) : (
+                        <p className="text-slate-600 text-xs">No Stripe invoice linked yet.</p>
+                      )}
+                      {row.calculationSnapshot != null ? (
+                        <details className="group">
+                          <summary className="text-slate-400 text-xs cursor-pointer hover:text-slate-300 marker:text-slate-500">
+                            Calculation snapshot (JSON)
+                          </summary>
+                          <pre className="mt-2 max-h-48 overflow-auto rounded-lg border border-white/10 bg-black/40 p-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap">
+                            {JSON.stringify(row.calculationSnapshot, null, 2)}
+                          </pre>
+                        </details>
+                      ) : null}
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </div>
 

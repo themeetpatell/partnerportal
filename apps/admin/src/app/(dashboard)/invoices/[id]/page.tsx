@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { currentUser } from "@repo/auth/server"
 import { db, invoices, partners, serviceRequests } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import {
@@ -9,6 +10,9 @@ import {
   FileText,
   Receipt,
 } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -58,6 +62,20 @@ export default async function InvoiceDetailPage({
 }) {
   const { id } = await params
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+
   const [row] = await db
     .select({
       invoice: invoices,
@@ -67,10 +85,20 @@ export default async function InvoiceDetailPage({
     .from(invoices)
     .leftJoin(partners, eq(invoices.partnerId, partners.id))
     .leftJoin(serviceRequests, eq(invoices.serviceRequestId, serviceRequests.id))
-    .where(and(eq(invoices.id, id), isNull(invoices.deletedAt)))
+    .where(
+      and(
+        eq(invoices.id, id),
+        eq(invoices.tenantId, tenantId),
+        isNull(invoices.deletedAt),
+      ),
+    )
     .limit(1)
 
   if (!row) {
+    notFound()
+  }
+
+  if (!isPartnerReadable(scope, row.invoice.partnerId)) {
     notFound()
   }
 

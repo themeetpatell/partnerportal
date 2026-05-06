@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { currentUser } from "@repo/auth/server"
 import { db, leads, partners, serviceRequests, services, teamMembers } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import {
@@ -10,6 +11,9 @@ import {
   Mail,
   User,
 } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -77,6 +81,20 @@ export default async function ServiceRequestDetailPage({
 }) {
   const { id } = await params
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+
   const [row] = await db
     .select({
       request: serviceRequests,
@@ -88,10 +106,20 @@ export default async function ServiceRequestDetailPage({
     .leftJoin(partners, eq(serviceRequests.partnerId, partners.id))
     .leftJoin(services, eq(serviceRequests.serviceId, services.id))
     .leftJoin(leads, eq(serviceRequests.leadId, leads.id))
-    .where(and(eq(serviceRequests.id, id), isNull(serviceRequests.deletedAt)))
+    .where(
+      and(
+        eq(serviceRequests.id, id),
+        eq(serviceRequests.tenantId, tenantId),
+        isNull(serviceRequests.deletedAt),
+      ),
+    )
     .limit(1)
 
   if (!row) {
+    notFound()
+  }
+
+  if (!isPartnerReadable(scope, row.request.partnerId)) {
     notFound()
   }
 

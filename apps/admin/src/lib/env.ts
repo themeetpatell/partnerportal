@@ -15,17 +15,6 @@ const envSchema = z.object({
   ZOHO_ACCOUNTS_BASE_URL: z.string().url().optional(),
 })
 
-export function validateEnv() {
-  const result = envSchema.safeParse(process.env)
-  if (!result.success) {
-    const formatted = result.error.issues
-      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
-      .join("\n")
-    console.error(`\n❌ Invalid environment variables:\n${formatted}\n`)
-    throw new Error("Missing or invalid environment variables. See above for details.")
-  }
-}
-
 export function getRequiredTenantId() {
   const result = envSchema.safeParse(process.env)
   if (!result.success) {

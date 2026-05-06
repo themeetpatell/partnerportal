@@ -30,8 +30,10 @@ import {
   Building2,
   Receipt,
 } from "lucide-react"
-import { auth } from "@repo/auth/server"
+import { auth, currentUser } from "@repo/auth/server"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { partnerScopeWhere, resolvePartnerScopeForActor, scopedPartnerFilters } from "@/lib/row-scope"
 import {
   AnalyticsGlobalBar,
   PipelineFilters,
@@ -238,6 +240,19 @@ export default async function AnalyticsPage({
   const tenantId = getRequiredTenantId()
   const sp = await searchParams
 
+  const [activeMember, sessionUser] = await Promise.all([
+    userId ? getCurrentActiveTeamMember() : Promise.resolve(null),
+    currentUser(),
+  ])
+  const rowScope =
+    sessionUser?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: sessionUser.id,
+          member: activeMember,
+        })
+
   const dateRange = getDateRange(sp.dateRange)
   const partnerId = sp.partnerId
   const partnerType = sp.partnerType
@@ -247,48 +262,53 @@ export default async function AnalyticsPage({
   const serviceStatus = sp.serviceStatus
   const partnerTier = sp.partnerTier
 
+  const leadScopeClause = scopedPartnerFilters(rowScope, leads.partnerId, partnerId)
   const leadConditions = [
     eq(leads.tenantId, tenantId),
     isNull(leads.deletedAt),
     buildDateWhere(leads.createdAt, dateRange),
-    partnerId ? eq(leads.partnerId, partnerId) : undefined,
+    leadScopeClause ?? undefined,
     partnerType ? eq(partners.type, partnerType) : undefined,
     teamMemberId ? eq(leads.assignedTo, teamMemberId) : undefined,
     leadStatus ? eq(leads.status, leadStatus) : undefined,
     leadSource ? eq(leads.source, leadSource) : undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
+  const srScopeClause = scopedPartnerFilters(rowScope, serviceRequests.partnerId, partnerId)
   const srConditions = [
     eq(serviceRequests.tenantId, tenantId),
     isNull(serviceRequests.deletedAt),
     buildDateWhere(serviceRequests.createdAt, dateRange),
-    partnerId ? eq(serviceRequests.partnerId, partnerId) : undefined,
+    srScopeClause ?? undefined,
     partnerType ? eq(partners.type, partnerType) : undefined,
     teamMemberId ? eq(serviceRequests.assignedTo, teamMemberId) : undefined,
     serviceStatus ? eq(serviceRequests.status, serviceStatus) : undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
+  const invoiceScopeClause = scopedPartnerFilters(rowScope, invoices.partnerId, partnerId)
   const invoiceConditions = [
     eq(invoices.tenantId, tenantId),
     isNull(invoices.deletedAt),
     buildDateWhere(invoices.createdAt, dateRange),
-    partnerId ? eq(invoices.partnerId, partnerId) : undefined,
+    invoiceScopeClause ?? undefined,
     partnerType ? eq(partners.type, partnerType) : undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
+  const partnerScopeClause = scopedPartnerFilters(rowScope, partners.id, partnerId)
   const partnerConditions = [
     eq(partners.tenantId, tenantId),
     isNull(partners.deletedAt),
     buildDateWhere(partners.createdAt, dateRange),
-    partnerId ? eq(partners.id, partnerId) : undefined,
+    partnerScopeClause ?? undefined,
     partnerType ? eq(partners.type, partnerType) : undefined,
     partnerTier ? eq(partners.tier, partnerTier) : undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
+  const commissionScopeClause = scopedPartnerFilters(rowScope, commissions.partnerId, partnerId)
   const commissionConditions = [
     eq(commissions.tenantId, tenantId),
-    partnerId ? eq(commissions.partnerId, partnerId) : undefined,
     buildDateWhere(commissions.createdAt, dateRange),
+    commissionScopeClause ?? undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
   const [
@@ -318,7 +338,13 @@ export default async function AnalyticsPage({
     db
       .select({ id: partners.id, companyName: partners.companyName })
       .from(partners)
-      .where(and(eq(partners.tenantId, tenantId), isNull(partners.deletedAt)))
+      .where(
+        and(
+          eq(partners.tenantId, tenantId),
+          isNull(partners.deletedAt),
+          partnerScopeWhere(rowScope, partners.id) ?? undefined,
+        ),
+      )
       .orderBy(partners.companyName),
     db
       .select({
@@ -348,6 +374,7 @@ export default async function AnalyticsPage({
       .where(
         and(
           ...commissionConditions,
+          isNull(partners.deletedAt),
           partnerType ? eq(partners.type, partnerType) : undefined,
           eq(commissions.status, "pending")
         )

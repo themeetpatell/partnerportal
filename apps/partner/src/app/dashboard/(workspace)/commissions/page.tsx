@@ -129,11 +129,20 @@ export default async function CommissionsPage({
 
       payouts = payoutRows
 
-      const leadIds = [...new Set(
-        commissionRows
-          .filter((commission) => commission.sourceType === "lead")
-          .map((commission) => commission.sourceId)
-      )]
+      const leadIds = [
+        ...new Set(
+          commissionRows.flatMap((commission) => {
+            if (commission.sourceType === "lead") return [commission.sourceId]
+            if (
+              commission.sourceType === "lead_recurring_invoice" &&
+              commission.relatedLeadId
+            ) {
+              return [commission.relatedLeadId]
+            }
+            return []
+          }),
+        ),
+      ]
 
       const leadMap = new Map<string, { customerName: string; customerCompany: string | null }>()
       if (leadIds.length > 0) {
@@ -155,16 +164,20 @@ export default async function CommissionsPage({
       }
 
       rows = commissionRows.map((commission) => {
-        const leadInfo =
+        const resolvedLeadId =
           commission.sourceType === "lead"
-            ? (leadMap.get(commission.sourceId) ?? null)
-            : null
+            ? commission.sourceId
+            : commission.sourceType === "lead_recurring_invoice"
+              ? commission.relatedLeadId
+              : null
+
+        const leadInfo = resolvedLeadId ? (leadMap.get(resolvedLeadId) ?? null) : null
 
         return {
           ...commission,
           clientName: leadInfo?.customerName ?? null,
           clientCompany: leadInfo?.customerCompany ?? null,
-          leadId: commission.sourceType === "lead" ? commission.sourceId : null,
+          leadId: resolvedLeadId,
         }
       })
     }
@@ -328,7 +341,11 @@ export default async function CommissionsPage({
                         </td>
                         <td className="px-6 py-4">
                           <span className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]">
-                            {c.sourceType === "lead" ? "Lead" : "Service req."}
+                            {c.sourceType === "lead"
+                              ? "Lead"
+                              : c.sourceType === "lead_recurring_invoice"
+                                ? "Recurring"
+                                : "Service req."}
                           </span>
                         </td>
                         <td className="px-6 py-4">
@@ -383,6 +400,13 @@ export default async function CommissionsPage({
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
                       <span className={`status-pill ${status.style}`}>{status.label}</span>
+                      <span className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)] text-xs">
+                        {c.sourceType === "lead"
+                          ? "Lead"
+                          : c.sourceType === "lead_recurring_invoice"
+                            ? "Recurring"
+                            : "Service req."}
+                      </span>
                       <span className="text-xs text-muted-foreground">{formatDate(c.calculatedAt)}</span>
                     </div>
                     {status.hint ? (

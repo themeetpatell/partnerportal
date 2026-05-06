@@ -1,10 +1,12 @@
 import Link from "next/link"
+import { auth, currentUser } from "@repo/auth/server"
 import { db, commissions, partners } from "@repo/db"
 import { and, count, eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
-import { auth } from "@repo/auth/server"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { resolvePartnerScopeForActor, scopedPartnerFilters } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { className: string; label: string }> = {
@@ -55,9 +57,10 @@ export default async function CommissionsPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string; partnerId?: string }>
 }) {
-  const [, member] = await Promise.all([
+  const [, member, actor] = await Promise.all([
     auth(),
     getCurrentActiveTeamMember(),
+    currentUser(),
   ])
   const canManageCommissions = member
     ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
@@ -68,7 +71,17 @@ export default async function CommissionsPage({
   const pageNum = Math.max(1, parseInt(page ?? "1", 10) || 1)
   const pageSize = 50
   const pageOffset = (pageNum - 1) * pageSize
-  const partnerFilter = partnerId ? eq(commissions.partnerId, partnerId) : undefined
+
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+  const scopeClause = scopedPartnerFilters(scope, commissions.partnerId, partnerId)
 
   const [rows, [countResult], pendingSum, approvedSum, processingSum, paidSum] = await Promise.all([
     db
@@ -79,6 +92,7 @@ export default async function CommissionsPage({
         status: commissions.status,
         sourceType: commissions.sourceType,
         sourceId: commissions.sourceId,
+        relatedLeadId: commissions.relatedLeadId,
         breakdown: commissions.breakdown,
         calculatedAt: commissions.calculatedAt,
         approvedAt: commissions.approvedAt,
@@ -89,30 +103,66 @@ export default async function CommissionsPage({
       })
       .from(commissions)
       .leftJoin(partners, eq(commissions.partnerId, partners.id))
-      .where(and(eq(commissions.status, activeStatus), partnerFilter))
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, activeStatus),
+          scopeClause ?? undefined,
+        ),
+      )
       .orderBy(commissions.calculatedAt)
       .limit(pageSize)
       .offset(pageOffset),
     db
       .select({ total: count() })
       .from(commissions)
-      .where(and(eq(commissions.status, activeStatus), partnerFilter)),
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, activeStatus),
+          scopeClause ?? undefined,
+        ),
+      ),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(and(eq(commissions.status, "pending"), partnerFilter)),
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, "pending"),
+          scopeClause ?? undefined,
+        ),
+      ),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(and(eq(commissions.status, "approved"), partnerFilter)),
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, "approved"),
+          scopeClause ?? undefined,
+        ),
+      ),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(and(eq(commissions.status, "processing"), partnerFilter)),
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, "processing"),
+          scopeClause ?? undefined,
+        ),
+      ),
     db
       .select({ total: sum(commissions.amount) })
       .from(commissions)
-      .where(and(eq(commissions.status, "paid"), partnerFilter)),
+      .where(
+        and(
+          eq(commissions.tenantId, tenantId),
+          eq(commissions.status, "paid"),
+          scopeClause ?? undefined,
+        ),
+      ),
   ])
 
   const total = countResult?.total ?? 0
@@ -356,7 +406,10 @@ export default async function CommissionsPage({
                           href={
                             commission.sourceType === "service_request"
                               ? `/service-requests/${commission.sourceId}`
-                              : `/leads/${commission.sourceId}`
+                              : commission.sourceType === "lead_recurring_invoice"
+                                  && commission.relatedLeadId
+                                ? `/leads/${commission.relatedLeadId}`
+                                : `/leads/${commission.sourceId}`
                           }
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-white/10 text-slate-400 transition-colors hover:border-white/20 hover:text-white"
                           aria-label={

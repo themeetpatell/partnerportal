@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
+import { currentUser } from "@repo/auth/server"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
 import { PartnerActionButton, PartnerRejectForm } from "@/components/partner-action-buttons"
 import {
@@ -31,7 +32,12 @@ import {
   CreditCard,
   User,
   KeyRound,
+  ClipboardList,
 } from "lucide-react"
+import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
+import { getRequiredTenantId } from "@/lib/env"
+import { hasModuleAccess } from "@/lib/rbac"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -84,13 +90,32 @@ export default async function PartnerDetailPage({
 }) {
   const { id } = await params
 
+  const [member, actor] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    currentUser(),
+  ])
+  const tenantId = getRequiredTenantId()
+  const scope =
+    actor?.id === undefined
+      ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
+      : await resolvePartnerScopeForActor({
+          tenantId,
+          actorUserId: actor.id,
+          member,
+        })
+
   const [partner] = await db
     .select()
     .from(partners)
-    .where(eq(partners.id, id))
+    .where(and(eq(partners.id, id), eq(partners.tenantId, tenantId), isNull(partners.deletedAt)))
     .limit(1)
 
   if (!partner) notFound()
+  if (!isPartnerReadable(scope, id)) notFound()
+
+  const canCreateServiceRequestForPartner =
+    member &&
+    hasModuleAccess(member.role, member.permissions, "services", "rw")
 
   const [partnerDocs, partnerLeads, commissionsResult] = await Promise.all([
     db
@@ -894,6 +919,30 @@ export default async function PartnerDetailPage({
               className="mt-4 block text-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
             >
               View commission history
+            </Link>
+          </div>
+
+          <div className="surface-card rounded-2xl p-6">
+            <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-slate-400" />
+              Service requests
+            </h2>
+            <p className="text-slate-500 text-sm">
+              Open or create a delivery request attributed to this partner.
+            </p>
+            {canCreateServiceRequestForPartner ? (
+              <Link
+                href={`/service-requests/new?partnerId=${partner.id}`}
+                className="mt-4 block w-full text-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
+              >
+                Create service request
+              </Link>
+            ) : null}
+            <Link
+              href="/service-requests"
+              className={`${canCreateServiceRequestForPartner ? "mt-2" : "mt-4"} block text-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors`}
+            >
+              Browse all service requests
             </Link>
           </div>
 

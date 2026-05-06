@@ -6,6 +6,7 @@ import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
   if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
+
+  const scope = await resolvePartnerScopeForActor({
+    tenantId,
+    actorUserId: userId,
+    member,
+  })
 
   const body = await req.json()
   const {
@@ -40,6 +47,9 @@ export async function POST(req: NextRequest) {
     commissionModelId,
     status = "draft",
   } = body
+
+  const resolvedOwnerId =
+    scope.kind === "restricted" ? member.id : ownerId ? String(ownerId) : null
 
   if (!companyName || !contactName || !email || !type) {
     return NextResponse.json(
@@ -90,7 +100,7 @@ export async function POST(req: NextRequest) {
       country: country || null,
       city: city || null,
       channel: channel || null,
-      ownerId: ownerId || null,
+      ownerId: resolvedOwnerId,
       agreementUrl: agreementUrl || null,
       commissionModelId: commissionModelId || null,
       status,

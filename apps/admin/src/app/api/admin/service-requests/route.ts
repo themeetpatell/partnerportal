@@ -4,7 +4,8 @@ import { db, serviceRequests, logActivity } from "@repo/db"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasModuleAccess } from "@/lib/rbac"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -17,8 +18,11 @@ export async function POST(req: NextRequest) {
   const member = await getActiveTeamMember(userId)
   const tenantId = getRequiredTenantId()
 
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (!member || !hasModuleAccess(member.role, member.permissions, "services", "rw")) {
+    return NextResponse.json(
+      { error: "Forbidden — service request creation requires Services (write) access" },
+      { status: 403 },
+    )
   }
 
   const body = await req.json()
@@ -48,6 +52,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "onBehalfNote is required when creating a service request on behalf of a partner" },
       { status: 400 }
+    )
+  }
+
+  const scope = await resolvePartnerScopeForActor({
+    tenantId,
+    actorUserId: userId,
+    member,
+  })
+  if (!isPartnerReadable(scope, partnerId)) {
+    return NextResponse.json(
+      { error: "Forbidden — partner is outside your row scope" },
+      { status: 403 },
     )
   }
 

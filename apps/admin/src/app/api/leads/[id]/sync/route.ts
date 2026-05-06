@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { calculateCommission } from "@repo/commission-engine"
-import { db, commissionModels, commissions, leads, partners } from "@repo/db"
-import { and, eq } from "drizzle-orm"
+import { calculateCommission, deriveNetCommissionBaseFromCrm } from "@repo/commission-engine"
+import { db, commissions, leads, partners } from "@repo/db"
+import { and, eq, sql } from "drizzle-orm"
 import { sendLeadStatusEmail } from "@repo/notifications"
-import type { CommissionModel } from "@repo/types"
 import {
   convertZohoLeadToDeal,
   fetchZohoDeal,
@@ -30,6 +29,11 @@ import {
 import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { getCommissionVatOptionsFromEnv } from "@/lib/commission-env"
+import {
+  countPartnerDealWonLeads,
+  resolvePartnerCommissionModel,
+} from "@/lib/partner-commission-resolution"
 
 type AppLeadStatus = "submitted" | "qualified" | "proposal_sent" | "deal_won" | "deal_lost"
 
@@ -84,76 +88,6 @@ function getDealClosingDate() {
   return date.toISOString().slice(0, 10)
 }
 
-function parseCommissionRate(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  const normalized = value.replace(/%/g, "").trim()
-  if (!normalized) {
-    return null
-  }
-
-  const parsed = Number(normalized)
-  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
-    return null
-  }
-
-  return parsed
-}
-
-async function resolvePartnerCommissionModel(
-  partner: typeof partners.$inferSelect,
-): Promise<CommissionModel | null> {
-  if (partner.commissionModelId) {
-    const [storedModel] = await db
-      .select()
-      .from(commissionModels)
-      .where(
-        and(
-          eq(commissionModels.id, partner.commissionModelId),
-          eq(commissionModels.tenantId, partner.tenantId),
-        ),
-      )
-      .limit(1)
-
-    if (storedModel) {
-      try {
-        return {
-          id: storedModel.id,
-          tenantId: storedModel.tenantId,
-          name: storedModel.name,
-          type: storedModel.type as CommissionModel["type"],
-          config: JSON.parse(storedModel.config),
-          isActive: storedModel.isActive,
-          createdAt: storedModel.createdAt,
-        }
-      } catch (error) {
-        console.error("[lead sync] Invalid commission model config:", error)
-      }
-    }
-  }
-
-  const commissionRate = parseCommissionRate(partner.commissionRate)
-  const commissionType = partner.commissionType?.trim().toLowerCase()
-  if (
-    commissionRate == null ||
-    (commissionType && !["flat", "percentage"].includes(commissionType))
-  ) {
-    return null
-  }
-
-  return {
-    id: partner.commissionModelId ?? partner.id,
-    tenantId: partner.tenantId,
-    name: "Partner Commission",
-    type: "flat_pct",
-    config: { pct: commissionRate },
-    isActive: true,
-    createdAt: new Date(),
-  }
-}
-
 async function ensureLeadCommissionFromDeal(params: {
   lead: typeof leads.$inferSelect
   partner: typeof partners.$inferSelect
@@ -174,6 +108,14 @@ async function ensureLeadCommissionFromDeal(params: {
     return
   }
 
+  await db.delete(commissions).where(
+    and(
+      eq(commissions.relatedLeadId, params.lead.id),
+      eq(commissions.sourceType, "lead_recurring_invoice"),
+      sql`${commissions.calculationSnapshot} ->> 'stripeOnlyUntilCrmSynced' = 'true'`,
+    ),
+  )
+
   const zohoDeal = await fetchZohoDeal(params.dealId)
   if (!zohoDeal) {
     throw new Error("Failed to fetch Zoho deal for commission calculation.")
@@ -181,36 +123,45 @@ async function ensureLeadCommissionFromDeal(params: {
 
   const arAmount = getZohoDealArAmount(zohoDeal) ?? 0
   const dealAmount = getZohoDealAmount(zohoDeal) ?? 0
-  const commissionBaseAmount = arAmount > 0 ? arAmount : dealAmount
-  if (commissionBaseAmount <= 0) {
+  const grossFromCrm = arAmount > 0 ? arAmount : dealAmount
+  const usedArPreferringAmount = arAmount > 0
+  if (grossFromCrm <= 0) {
     throw new Error(
-      "AR Amount is missing in Zoho CRM. Please set AR Amount before closing as won.",
+      "Deal has no commissionable amount in Zoho CRM. Set Amount, Expected Revenue, or AR Amount on the deal before closing as won.",
     )
   }
+
+  const vatOpts = getCommissionVatOptionsFromEnv()
+  const basis = deriveNetCommissionBaseFromCrm(grossFromCrm, vatOpts)
 
   const commissionModel = await resolvePartnerCommissionModel(params.partner)
   if (!commissionModel) {
     return
   }
 
-  const priorConversions = await db
-    .select()
-    .from(leads)
-    .where(eq(leads.partnerId, params.partner.id))
-
-  const priorWon = priorConversions.filter(
-    (row) => row.status === "deal_won" && row.id !== params.lead.id,
-  ).length
+  const conversions = await countPartnerDealWonLeads(params.partner.id)
 
   const commissionResult = calculateCommission({
     model: commissionModel,
-    serviceFee: commissionBaseAmount,
-    partnerConversionsThisPeriod: priorWon + 1,
-    partnerLifetimeConversions: priorWon + 1,
+    serviceFee: basis.netForCommission,
+    partnerConversionsThisPeriod: conversions,
+    partnerLifetimeConversions: conversions,
   })
 
   if (commissionResult.amount <= 0) {
     return
+  }
+
+  const calculationSnapshot = {
+    version: 1,
+    source: "zoho_deal_closed_won",
+    zohoDealId: params.dealId,
+    usedArPreferringAmount,
+    grossFromCrm: basis.grossFromCrm,
+    netForCommission: basis.netForCommission,
+    vatRatePct: basis.vatRatePct,
+    crmAmountIncludesVat: basis.crmAmountIncludesVat,
+    currency: "AED",
   }
 
   await db.insert(commissions).values({
@@ -218,10 +169,12 @@ async function ensureLeadCommissionFromDeal(params: {
     partnerId: params.partner.id,
     sourceType: "lead",
     sourceId: params.lead.id,
+    relatedLeadId: params.lead.id,
     amount: String(commissionResult.amount),
     currency: "AED",
     status: "pending",
-    breakdown: commissionResult.breakdown,
+    breakdown: `${basis.summaryLine}. ${commissionResult.breakdown}`,
+    calculationSnapshot,
     calculatedAt: new Date(),
   })
 }
@@ -454,7 +407,9 @@ export async function POST(
     console.error("[lead sync] Error:", err)
 
     const reason =
-      err instanceof Error && err.message.includes("Deal amount is missing")
+      err instanceof Error &&
+      err.message.includes("no commissionable amount") &&
+      err.message.includes("Zoho")
         ? "missing_deal_amount"
         : "unexpected"
 

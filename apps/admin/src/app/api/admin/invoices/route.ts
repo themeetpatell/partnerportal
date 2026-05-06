@@ -6,6 +6,7 @@ import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole } from "@/lib/rbac"
+import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -43,6 +44,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "partnerId, periodStart, periodEnd, subtotal, dueDate are required" },
       { status: 400 }
+    )
+  }
+
+  const scope = await resolvePartnerScopeForActor({
+    tenantId,
+    actorUserId: userId,
+    member,
+  })
+  if (!isPartnerReadable(scope, partnerId)) {
+    return NextResponse.json(
+      { error: "Forbidden — partner is outside your row scope" },
+      { status: 403 },
     )
   }
 
