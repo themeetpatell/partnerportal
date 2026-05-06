@@ -1,7 +1,7 @@
 import { cache } from "react"
 import { currentUser } from "@repo/auth/server"
 import { db, partners } from "@repo/db"
-import { and, desc, eq, ilike, isNull } from "drizzle-orm"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 
 const getPartnerRecordLookup = cache(
   async function getPartnerRecordLookup(userId: string, email?: string | null) {
@@ -21,10 +21,17 @@ const getPartnerRecordLookup = cache(
       return null
     }
 
+    // Uses functional index partners_email_lower_idx (LOWER(email)) so the
+    // case-insensitive fallback is index-backed instead of a seq scan.
     const [partnerByEmail] = await db
       .select()
       .from(partners)
-      .where(and(ilike(partners.email, normalizedEmail), isNull(partners.deletedAt)))
+      .where(
+        and(
+          sql`LOWER(${partners.email}) = ${normalizedEmail}`,
+          isNull(partners.deletedAt),
+        ),
+      )
       .orderBy(desc(partners.updatedAt), desc(partners.createdAt))
       .limit(1)
 

@@ -108,7 +108,6 @@ interface SidebarNavProps {
   userInitials: string
   hasWorkspaceAccess: boolean
   partnerStatus: string
-  contractStatus: string
   isOnboarded: boolean
 }
 
@@ -232,7 +231,6 @@ function SidebarContent({
   userInitials,
   hasWorkspaceAccess,
   partnerStatus,
-  contractStatus,
   isOnboarded,
   onNavClick,
 }: {
@@ -242,7 +240,6 @@ function SidebarContent({
   userInitials: string
   hasWorkspaceAccess: boolean
   partnerStatus: string
-  contractStatus: string
   isOnboarded: boolean
   onNavClick?: () => void
 }) {
@@ -365,7 +362,6 @@ export function SidebarNav({
   userInitials,
   hasWorkspaceAccess,
   partnerStatus,
-  contractStatus,
   isOnboarded,
 }: SidebarNavProps) {
   const pathname = usePathname()
@@ -396,7 +392,6 @@ export function SidebarNav({
             userInitials={userInitials}
             hasWorkspaceAccess={hasWorkspaceAccess}
             partnerStatus={partnerStatus}
-            contractStatus={contractStatus}
             isOnboarded={isOnboarded}
           />
         </div>
@@ -478,7 +473,6 @@ export function SidebarNav({
               userInitials={userInitials}
               hasWorkspaceAccess={hasWorkspaceAccess}
               partnerStatus={partnerStatus}
-              contractStatus={contractStatus}
               isOnboarded={isOnboarded}
               onNavClick={() => setMobileOpen(false)}
             />

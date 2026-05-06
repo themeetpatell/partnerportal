@@ -50,8 +50,21 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(signInUrl)
   }
 
-  const { response, user } = await updateSession(req)
   const pathname = req.nextUrl.pathname
+
+  // Fully public paths that never branch on `user` — skip Supabase session work to cut latency
+  // (sign-in / sign-up / register / auth/* still refresh tokens so redirects and OAuth keep working).
+  if (
+    isPublicRoute(req) &&
+    (pathname === "/" ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password") ||
+      pathname.startsWith("/api/auth/"))
+  ) {
+    return NextResponse.next()
+  }
+
+  const { response, user } = await updateSession(req)
 
   if (!isPublicRoute(req) && !user) {
     const redirectUrl = new URL("/sign-in", req.url)

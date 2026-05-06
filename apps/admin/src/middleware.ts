@@ -5,13 +5,19 @@ import { createRouteMatcher, updateSession } from "@repo/auth/middleware"
 const isPublicRoute = createRouteMatcher(PUBLIC_ADMIN_ROUTES)
 
 export default async function middleware(req: NextRequest) {
+  const pathname = req.nextUrl.pathname
+
   // Admin has no sign-up page — redirect to sign-in
-  if (req.nextUrl.pathname.startsWith("/sign-up")) {
+  if (pathname.startsWith("/sign-up")) {
     return NextResponse.redirect(new URL("/sign-in", req.url))
   }
 
+  // Reset password flow never branches on `user` — skip Supabase middleware latency.
+  if (isPublicRoute(req) && pathname.startsWith("/reset-password")) {
+    return NextResponse.next()
+  }
+
   const { response, user } = await updateSession(req)
-  const pathname = req.nextUrl.pathname
 
   if (!isPublicRoute(req) && !user) {
     const redirectUrl = new URL("/sign-in", req.url)

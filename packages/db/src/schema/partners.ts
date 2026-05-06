@@ -1,16 +1,20 @@
-import { pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core"
+import { index, pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core"
 import { tenants } from "./tenants"
 
-export const commissionModels = pgTable("commission_models", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  type: text("type").notNull(), // flat_pct | tiered | milestone
-  config: text("config").notNull(), // JSON string
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+export const commissionModels = pgTable(
+  "commission_models",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    type: text("type").notNull(), // flat_pct | tiered | milestone
+    config: text("config").notNull(), // JSON string
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("commission_models_tenant_active_idx").on(table.tenantId, table.isActive)],
+)
 
 export const partners = pgTable("partners", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -101,21 +105,33 @@ export const partners = pgTable("partners", {
   deletedAt: timestamp("deleted_at"), // soft delete
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+}, (table) => [
+  index("partners_tenant_deleted_created_idx").on(table.tenantId, table.deletedAt, table.createdAt),
+  index("partners_tenant_status_idx").on(table.tenantId, table.status),
+  index("partners_email_idx").on(table.email),
+  index("partners_status_idx").on(table.status),
+])
 
-export const teamMembers = pgTable("team_members", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  authUserId: text("auth_user_id").notNull(),
-  // admin | appointment_setter | partnership | sales | finance | viewer
-  role: text("role").notNull(),
-  name: text("name").notNull(),
-  email: text("email").notNull(),
-  phone: text("phone"),
-  designation: text("designation"),
-  permissions: text("permissions").notNull().default("{}"), // JSON: { partners: 'rw', leads: 'r', ... }
-  rowScope: text("row_scope").notNull().default("all"), // own | team | all
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-})
+export const teamMembers = pgTable(
+  "team_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    authUserId: text("auth_user_id").notNull(),
+    // admin | appointment_setter | partnership | sales | finance | viewer
+    role: text("role").notNull(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    phone: text("phone"),
+    designation: text("designation"),
+    permissions: text("permissions").notNull().default("{}"), // JSON: { partners: 'rw', leads: 'r', ... }
+    rowScope: text("row_scope").notNull().default("all"), // own | team | all
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("team_members_auth_user_active_idx").on(table.authUserId, table.isActive),
+    index("team_members_tenant_active_idx").on(table.tenantId, table.isActive),
+  ],
+)

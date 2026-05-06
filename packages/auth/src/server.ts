@@ -3,7 +3,8 @@ import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
 import { getOptionalSupabaseAuthEnv, mapJwtClaimsToUser } from "./shared"
 
-export async function createAuthServerClient() {
+/** One Supabase SSR client per RSC/request — avoids duplicate cookie reads when multiple modules create a client. */
+export const createAuthServerClient = cache(async function createAuthServerClient() {
   const cookieStore = await cookies()
   const env = getOptionalSupabaseAuthEnv()
 
@@ -25,7 +26,7 @@ export async function createAuthServerClient() {
       },
     },
   })
-}
+})
 
 export const currentUser = cache(async function currentUser() {
   const supabase = await createAuthServerClient()

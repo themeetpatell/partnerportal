@@ -766,7 +766,6 @@ const PIPELINE_STATUS_CONFIG = {
 }
 
 function getDailyTip(stats: DailyBriefingStats): { headline: string; body: string } {
-  const active = stats.activeLeads.length
   const total = stats.pipeline.submitted + stats.pipeline.qualified + stats.pipeline.proposalSent + stats.pipeline.dealWon
 
   if (total === 0) {
@@ -1127,56 +1126,6 @@ export async function sendWeeklyNewsletterEmail(
 }
 
 // ─── Admin team member emails ────────────────────────────────────────────────
-
-function buildAdminEmailShell({
-  eyebrow,
-  title,
-  body,
-  ctaLabel,
-  ctaHref,
-}: {
-  eyebrow: string
-  title: string
-  body: string
-  ctaLabel?: string
-  ctaHref?: string
-}) {
-  const safeCtaHref = ctaHref ? escapeHtml(ctaHref) : undefined
-  const ctaMarkup =
-    ctaLabel && safeCtaHref
-      ? `
-        <div style="margin-top: 28px;">
-          <a
-            href="${safeCtaHref}"
-            style="display:inline-block;padding:12px 20px;border-radius:9999px;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:600;"
-          >
-            ${ctaLabel}
-          </a>
-        </div>
-      `
-      : ""
-
-  return `
-    <div style="margin:0;padding:32px 16px;background:#0b0b12;">
-      <div style="max-width:600px;margin:0 auto;border:1px solid rgba(255,255,255,0.08);border-radius:28px;background:#141419;padding:40px 32px;font-family:Inter,Arial,sans-serif;color:#e5e7eb;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
-          <div style="width:40px;height:40px;border-radius:14px;background:linear-gradient(135deg,#818cf8 0%,#4f46e5 100%);color:#ffffff;font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;">F</div>
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#ffffff;">Finanshels</div>
-            <div style="font-size:10px;letter-spacing:0.28em;text-transform:uppercase;color:#7c83a1;">Admin Portal</div>
-          </div>
-        </div>
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:#9ca3ff;">${eyebrow}</div>
-        <h1 style="margin:16px 0 0;font-size:32px;line-height:1.1;font-weight:800;color:#ffffff;">${title}</h1>
-        <div style="margin-top:18px;font-size:15px;line-height:1.8;color:#cbd5e1;">${body}</div>
-        ${ctaMarkup}
-        <div style="margin-top:36px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.06);font-size:12px;color:#6b7280;">
-          You're receiving this because you're a Finanshels team member. Questions? Contact your admin.
-        </div>
-      </div>
-    </div>
-  `
-}
 
 function buildAuthEmailShell({
   preheader,

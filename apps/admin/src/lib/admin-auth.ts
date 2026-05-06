@@ -1,7 +1,7 @@
 import { cache } from "react"
 import { currentUser } from "@repo/auth/server"
 import { db, teamMembers } from "@repo/db"
-import { and, eq, ilike } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 
 const getActiveTeamMemberLookup = cache(
   async function getActiveTeamMemberLookup(userId: string, email?: string | null) {
@@ -21,10 +21,17 @@ const getActiveTeamMemberLookup = cache(
       return null
     }
 
+    // Uses functional index team_members_email_lower_idx (LOWER(email)) so that
+    // case-insensitive fallback lookup is index-backed instead of a seq scan.
     const [memberByEmail] = await db
       .select()
       .from(teamMembers)
-      .where(and(ilike(teamMembers.email, normalizedEmail), eq(teamMembers.isActive, true)))
+      .where(
+        and(
+          sql`LOWER(${teamMembers.email}) = ${normalizedEmail}`,
+          eq(teamMembers.isActive, true),
+        ),
+      )
       .limit(1)
 
     if (!memberByEmail) {

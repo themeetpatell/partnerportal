@@ -3,17 +3,21 @@ import { tenants } from "./tenants"
 import { partners } from "./partners"
 import { leads } from "./leads"
 
-export const services = pgTable("services", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  description: text("description"),
-  category: text("category").notNull(),
-  basePrice: numeric("base_price", { precision: 10, scale: 2 }).notNull(),
-  requiredDocuments: text("required_documents").notNull().default("[]"), // JSON array
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-})
+export const services = pgTable(
+  "services",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category").notNull(),
+    basePrice: numeric("base_price", { precision: 10, scale: 2 }).notNull(),
+    requiredDocuments: text("required_documents").notNull().default("[]"), // JSON array
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("services_tenant_active_idx").on(table.tenantId, table.isActive)],
+)
 
 export const serviceRequests = pgTable(
   "service_requests",
@@ -51,5 +55,11 @@ export const serviceRequests = pgTable(
     ),
     index("service_requests_service_id_idx").on(table.serviceId),
     index("service_requests_status_idx").on(table.status),
+    index("service_requests_tenant_deleted_created_idx").on(
+      table.tenantId,
+      table.deletedAt,
+      table.createdAt,
+    ),
+    index("service_requests_lead_id_idx").on(table.leadId),
   ],
 )

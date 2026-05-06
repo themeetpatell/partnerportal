@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import sgMail from "@sendgrid/mail"
+import { rateLimit, getClientIp } from "@repo/auth"
 
-// Temporary diagnostic endpoint — remove after confirming emails work
+// Diagnostic only — disabled in production unless ALLOW_EMAIL_DIAGNOSTICS=true (abuse prevention).
 export async function POST(request: NextRequest) {
+  const diagnosticsAllowed =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_EMAIL_DIAGNOSTICS?.trim() === "true"
+
+  if (!diagnosticsAllowed) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 })
+  }
+
+  const limited = rateLimit(`test-email:${getClientIp(request.headers)}`, 5, 60_000)
+  if (limited) return limited
+
   const body = await request.json().catch(() => null)
   const to = typeof body?.to === "string" ? body.to.trim() : ""
 

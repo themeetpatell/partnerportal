@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db, partners, leads, commissions } from "@repo/db"
-import { and, eq, gte, isNotNull } from "drizzle-orm"
+import { and, eq, isNotNull } from "drizzle-orm"
 import { sendWeeklyNewsletterEmail, type WeeklyNewsletterStats } from "@repo/notifications"
 
 // Vercel cron jobs call this route with Authorization: Bearer <CRON_SECRET>

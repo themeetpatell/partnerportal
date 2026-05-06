@@ -17,7 +17,11 @@ function getPoolMax() {
     }
   }
 
-  return process.env.NODE_ENV === "production" ? 5 : 10
+  // Production must point at Supabase's pgbouncer (transaction pooler) URL.
+  // With Fluid Compute reusing function instances across concurrent requests,
+  // a single instance can serve many requests in parallel, so a too-low pool
+  // (was max:5) becomes the bottleneck under burst traffic.
+  return process.env.NODE_ENV === "production" ? 15 : 10
 }
 
 function createDb() {
@@ -26,8 +30,12 @@ function createDb() {
   const client = postgres(databaseUrl, {
     prepare: false,
     max: getPoolMax(),
-    idle_timeout: 20,
+    // 0 = never close idle connections. Combined with a singleton client per
+    // function instance, this avoids paying TCP+TLS handshake on every cold
+    // request after a brief idle period.
+    idle_timeout: 0,
     connect_timeout: 10,
+    max_lifetime: 60 * 30, // 30 min — recycle long-lived sockets
   })
   return drizzle(client, { schema })
 }

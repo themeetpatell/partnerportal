@@ -36,29 +36,32 @@ export default async function PartnersPage({
   searchParams: Promise<{ operational?: string; status?: string }>
 }) {
   const { operational, status } = await searchParams
-  const member = await getCurrentActiveTeamMember()
+
+  const [member, rows] = await Promise.all([
+    getCurrentActiveTeamMember(),
+    db
+      .select({
+        id: partners.id,
+        companyName: partners.companyName,
+        contactName: partners.contactName,
+        email: partners.email,
+        phone: partners.phone,
+        type: partners.type,
+        status: partners.status,
+        agreementUrl: partners.agreementUrl,
+        contractStatus: partners.contractStatus,
+        contractSignedAt: partners.contractSignedAt,
+        onboardedAt: partners.onboardedAt,
+        createdAt: partners.createdAt,
+      })
+      .from(partners)
+      .where(and(isNull(partners.deletedAt), status ? eq(partners.status, status) : undefined))
+      .orderBy(partners.createdAt),
+  ])
+
   const canSendResetEmail = Boolean(
     member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])
   )
-
-  const rows = await db
-    .select({
-      id: partners.id,
-      companyName: partners.companyName,
-      contactName: partners.contactName,
-      email: partners.email,
-      phone: partners.phone,
-      type: partners.type,
-      status: partners.status,
-      agreementUrl: partners.agreementUrl,
-      contractStatus: partners.contractStatus,
-      contractSignedAt: partners.contractSignedAt,
-      onboardedAt: partners.onboardedAt,
-      createdAt: partners.createdAt,
-    })
-    .from(partners)
-    .where(and(isNull(partners.deletedAt), status ? eq(partners.status, status) : undefined))
-    .orderBy(partners.createdAt)
 
   const partnerLeadRows =
     rows.length === 0

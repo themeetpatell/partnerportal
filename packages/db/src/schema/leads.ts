@@ -55,5 +55,11 @@ export const leads = pgTable(
     index("leads_status_idx").on(table.status),
     index("leads_zoho_lead_id_idx").on(table.zohoLeadId),
     index("leads_zoho_deal_id_idx").on(table.zohoDealId),
+    index("leads_tenant_deleted_created_idx").on(
+      table.tenantId,
+      table.deletedAt,
+      table.createdAt,
+    ),
+    index("leads_customer_email_idx").on(table.customerEmail),
   ],
 )

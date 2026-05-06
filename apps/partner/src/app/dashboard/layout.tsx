@@ -50,7 +50,6 @@ export default async function DashboardLayout({
           userInitials={userInitials}
           hasWorkspaceAccess={hasApprovedWorkspaceAccess(partnerRecord)}
           partnerStatus={partnerRecord.status}
-          contractStatus={partnerRecord.contractStatus}
           isOnboarded={Boolean(partnerRecord.onboardedAt)}
         />
 
