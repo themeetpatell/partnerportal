@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   Users,
   UserCheck,
-  ClipboardList,
   DollarSign,
   FileText,
   BarChart3,
@@ -61,12 +60,6 @@ const navItems: NavItem[] = [
     module: "leads",
   },
   {
-    label: "Service Requests",
-    href: "/service-requests",
-    icon: ClipboardList,
-    module: "services",
-  },
-  {
     label: "Commissions",
     href: "/commissions",
     icon: DollarSign,
@@ -106,6 +99,7 @@ function NavLink({
 }) {
   return (
     <Link
+      prefetch
       href={item.href}
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group ${

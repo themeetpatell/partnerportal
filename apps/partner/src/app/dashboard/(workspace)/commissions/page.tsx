@@ -75,6 +75,8 @@ function parseBreakdown(raw: string | null | undefined): Breakdown | null {
   }
 }
 
+const COMMISSION_HISTORY_LIMIT = 400
+
 function formatBreakdownLine(b: Breakdown): string | null {
   // Try to find a rate + base amount pattern
   const rate =
@@ -119,12 +121,14 @@ export default async function CommissionsPage({
             .select()
             .from(commissions)
             .where(eq(commissions.partnerId, partner.id))
-            .orderBy(desc(commissions.createdAt)),
+            .orderBy(desc(commissions.createdAt))
+            .limit(COMMISSION_HISTORY_LIMIT),
           db
             .select()
             .from(payoutRequests)
             .where(eq(payoutRequests.partnerId, partner.id))
-            .orderBy(desc(payoutRequests.createdAt)),
+            .orderBy(desc(payoutRequests.createdAt))
+            .limit(COMMISSION_HISTORY_LIMIT),
         ])
 
       payouts = payoutRows

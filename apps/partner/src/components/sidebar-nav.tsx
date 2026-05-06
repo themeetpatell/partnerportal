@@ -16,7 +16,6 @@ import {
   Settings,
   User,
   Users,
-  Wrench,
   X,
 } from "lucide-react"
 import { useAuthClient } from "@repo/auth/client"
@@ -25,8 +24,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 const primaryItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, createHref: undefined },
   { label: "Clients", href: "/dashboard/clients", icon: ClipboardList, createHref: "/dashboard/clients/new" },
-  { label: "Leads to Finanshels", href: "/dashboard/leads", icon: Users, createHref: "/dashboard/leads/new" },
-  { label: "Service Requests", href: "/dashboard/service-requests", icon: Wrench, createHref: "/dashboard/service-requests/new" },
+  { label: "Leads", href: "/dashboard/leads", icon: Users, createHref: "/dashboard/leads/new" },
   { label: "Commissions", href: "/dashboard/commissions", icon: DollarSign, createHref: undefined },
 ]
 
@@ -39,7 +37,7 @@ const mobilePrimaryItems = [
   { label: "Home", href: "/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/dashboard/leads", icon: Users },
   { label: "Clients", href: "/dashboard/clients", icon: ClipboardList },
-  { label: "Requests", href: "/dashboard/service-requests", icon: Wrench },
+  { label: "Revenue", href: "/dashboard/commissions", icon: DollarSign },
 ]
 
 function isItemActive(pathname: string, href: string) {
@@ -84,11 +82,15 @@ function getMobileTopbarMeta(pathname: string) {
   }
 
   if (pathname.startsWith("/dashboard/service-requests/new")) {
-    return { section: "Requests", title: "New request" }
+    return { section: "Leads", title: "Existing client referral" }
+  }
+
+  if (/^\/dashboard\/service-requests\/[0-9a-f-]{36}$/i.test(pathname)) {
+    return { section: "Leads", title: "Cross-sell request" }
   }
 
   if (pathname.startsWith("/dashboard/service-requests")) {
-    return { section: "Requests", title: "Service requests" }
+    return { section: "Leads", title: "Cross-sell referrals" }
   }
 
   if (pathname.startsWith("/dashboard/commissions")) {
@@ -123,6 +125,7 @@ function NavLink({
   return (
     <div className="flex items-center gap-1">
       <Link
+        prefetch
         href={item.href}
         onClick={onClick}
         className={`group flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
@@ -145,6 +148,7 @@ function NavLink({
       </Link>
       {item.createHref ? (
         <Link
+          prefetch
           href={item.createHref}
           onClick={onClick}
           title="Create new"
@@ -215,6 +219,7 @@ function MobileNavLink({
 
   return (
     <Link
+      prefetch
       href={item.href}
       onClick={onClick}
       className="flex min-w-0 flex-1 flex-col items-center gap-1.5"
@@ -408,6 +413,7 @@ export function SidebarNav({
         </div>
 
         <Link
+          prefetch
           href="/dashboard/profile"
           aria-label="Open profile"
           className="workspace-mobile-topbar-avatar flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] text-sm font-semibold text-foreground transition-colors hover:border-primary/35 hover:bg-primary/18"

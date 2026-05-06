@@ -1,6 +1,6 @@
 const DAY_MS = 24 * 60 * 60 * 1000
 
-const QUALIFIED_STATUSES = new Set(["qualified", "proposal_sent", "deal_won"])
+const QUALIFIED_STATUSES = new Set(["lead_qualified", "proposal_sent", "deal_won"])
 
 export type PartnerOperationalStatus =
   | "active_partner"
@@ -15,6 +15,53 @@ export type PartnerOnboardingStage =
   | "nurturing"
   | "activated"
 
+/** Cheap aggregate for profile/overview — avoids loading every lead row. */
+export type PartnerLeadActivityRollup = {
+  totalLeads: number
+  /** Most recent lead `created_at`, or null when no leads */
+  latestLeadAt: Date | string | null
+  qualifiedInLast60Days: number
+  anyInLast60Days: number
+}
+
+export function derivePartnerOperationalStatusFromRollup(
+  partner: {
+    status?: string | null
+    contractStatus?: string | null
+    contractSignedAt?: Date | string | null
+    onboardedAt?: Date | string | null
+  },
+  rollup: PartnerLeadActivityRollup,
+  now = new Date(),
+): PartnerOperationalStatus {
+  const hasWorkspaceApproval = partner.status === "approved" || Boolean(partner.onboardedAt)
+  if (!hasWorkspaceApproval) {
+    return "yet_to_onboard"
+  }
+
+  if (rollup.totalLeads === 0) {
+    return "yet_to_activate"
+  }
+
+  const sixtyDaysAgo = now.getTime() - 60 * DAY_MS
+  const ninetyDaysAgo = now.getTime() - 90 * DAY_MS
+
+  if (rollup.qualifiedInLast60Days > 0) {
+    return "active_partner"
+  }
+
+  if (rollup.anyInLast60Days > 0) {
+    return "active_partner"
+  }
+
+  const latest = rollup.latestLeadAt ? new Date(rollup.latestLeadAt).getTime() : 0
+  if (rollup.totalLeads > 0 && latest < ninetyDaysAgo) {
+    return "inactive_partner"
+  }
+
+  return "active_partner"
+}
+
 export function derivePartnerOperationalStatus(
   partner: {
     status?: string | null
@@ -25,36 +72,42 @@ export function derivePartnerOperationalStatus(
   leads: { status: string; createdAt: Date | string }[],
   now = new Date(),
 ): PartnerOperationalStatus {
-  const hasWorkspaceApproval = partner.status === "approved" || Boolean(partner.onboardedAt)
-  if (!hasWorkspaceApproval) {
-    return "yet_to_onboard"
-  }
-
   const leadDates = leads.map((lead) => new Date(lead.createdAt).getTime())
   const qualifiedLeadDates = leads
     .filter((lead) => QUALIFIED_STATUSES.has(lead.status))
     .map((lead) => new Date(lead.createdAt).getTime())
 
-  if (leadDates.length === 0) {
-    return "yet_to_activate"
-  }
-
   const sixtyDaysAgo = now.getTime() - 60 * DAY_MS
   const ninetyDaysAgo = now.getTime() - 90 * DAY_MS
 
-  if (qualifiedLeadDates.some((timestamp) => timestamp >= sixtyDaysAgo)) {
-    return "active_partner"
+  let qualifiedInLast60Days = 0
+  for (const ts of qualifiedLeadDates) {
+    if (ts >= sixtyDaysAgo) qualifiedInLast60Days += 1
+  }
+  let anyInLast60Days = 0
+  for (const ts of leadDates) {
+    if (ts >= sixtyDaysAgo) anyInLast60Days += 1
+  }
+  let latestLeadAt: Date | string | null = null
+  let latestMs = 0
+  for (const lead of leads) {
+    const t = new Date(lead.createdAt).getTime()
+    if (t >= latestMs) {
+      latestMs = t
+      latestLeadAt = lead.createdAt
+    }
   }
 
-  if (leadDates.some((timestamp) => timestamp >= sixtyDaysAgo)) {
-    return "active_partner"
-  }
-
-  if (leadDates.length > 0 && leadDates.every((timestamp) => timestamp < ninetyDaysAgo)) {
-    return "inactive_partner"
-  }
-
-  return "active_partner"
+  return derivePartnerOperationalStatusFromRollup(
+    partner,
+    {
+      totalLeads: leads.length,
+      latestLeadAt,
+      qualifiedInLast60Days,
+      anyInLast60Days,
+    },
+    now,
+  )
 }
 
 export function derivePartnerOnboardingStage(

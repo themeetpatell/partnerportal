@@ -22,10 +22,14 @@ import { getDatabaseErrorHost, isDatabaseConnectivityError } from "@/lib/databas
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const CLIENTS_PER_PAGE = 12
+/** Keeps merged client-book query fast when activity history is huge. */
+const CLIENT_SOURCE_ROW_LIMIT = 500
 
 const leadStatusStyles: Record<string, string> = {
   submitted: "border border-border bg-secondary text-foreground/90",
-  qualified: "border border-border bg-secondary text-foreground/90",
+  lead_approved: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
+  lead_follow_up: "border border-cyan-400/20 bg-cyan-500/10 text-cyan-100",
+  lead_qualified: "border border-indigo-400/20 bg-indigo-500/10 text-indigo-100",
   proposal_sent: "border border-border bg-secondary/60 text-foreground/90",
   deal_won: "border border-border bg-secondary text-foreground",
   deal_lost: "border border-border bg-secondary/60 text-[var(--portal-text-soft)]",
@@ -217,7 +221,8 @@ export default async function ClientsPage({
             })
             .from(partnerClients)
             .where(and(eq(partnerClients.partnerId, partner.id), isNull(partnerClients.deletedAt)))
-            .orderBy(desc(partnerClients.createdAt)),
+            .orderBy(desc(partnerClients.createdAt))
+            .limit(CLIENT_SOURCE_ROW_LIMIT),
           db
             .select({
               customerName: leads.customerName,
@@ -228,7 +233,8 @@ export default async function ClientsPage({
             })
             .from(leads)
             .where(and(eq(leads.partnerId, partner.id), isNull(leads.deletedAt)))
-            .orderBy(desc(leads.createdAt)),
+            .orderBy(desc(leads.createdAt))
+            .limit(CLIENT_SOURCE_ROW_LIMIT),
           db
             .select({
               customerCompany: serviceRequests.customerCompany,
@@ -241,7 +247,8 @@ export default async function ClientsPage({
             .from(serviceRequests)
             .innerJoin(services, eq(serviceRequests.serviceId, services.id))
             .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
-            .orderBy(desc(serviceRequests.createdAt)),
+            .orderBy(desc(serviceRequests.createdAt))
+            .limit(CLIENT_SOURCE_ROW_LIMIT),
         ])
 
       clients = buildClientRecords(savedClientRows, leadRows, requestRows)

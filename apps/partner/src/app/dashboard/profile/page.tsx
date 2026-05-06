@@ -3,11 +3,11 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import {
   db,
-  derivePartnerOperationalStatus,
+  derivePartnerOperationalStatusFromRollup,
   formatPartnerOperationalStatus,
   leads,
 } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import {
   ArrowUpRight,
   Briefcase,
@@ -158,13 +158,17 @@ export default async function ProfilePage({
     redirect("/onboarding")
   }
 
-  const partnerLeads = await db
+  const [partnerLeadRollup] = await db
     .select({
-      status: leads.status,
-      createdAt: leads.createdAt,
+      totalLeads: sql<number>`count(*)::int`,
+      latestLeadAt: sql<Date | null>`max(${leads.createdAt})`,
+      qualifiedInLast60Days:
+        sql<number>`count(*) filter (where ${leads.status} in ('lead_qualified','proposal_sent','deal_won') and ${leads.createdAt} >= now() - interval '60 days')::int`,
+      anyInLast60Days:
+        sql<number>`count(*) filter (where ${leads.createdAt} >= now() - interval '60 days')::int`,
     })
     .from(leads)
-    .where(eq(leads.partnerId, partnerRecord.id))
+    .where(and(eq(leads.partnerId, partnerRecord.id), isNull(leads.deletedAt)))
 
   const partnerTypeLabel =
     partnerRecord.type === "channel" ? "Channel Partner" : "Referral Partner"
@@ -178,14 +182,19 @@ export default async function ProfilePage({
         })
       : null
 
-  const operationalStatus = derivePartnerOperationalStatus(
+  const operationalStatus = derivePartnerOperationalStatusFromRollup(
     {
       status: partnerRecord.status,
       contractStatus: partnerRecord.contractStatus,
       contractSignedAt: partnerRecord.contractSignedAt,
       onboardedAt: partnerRecord.onboardedAt,
     },
-    partnerLeads
+    {
+      totalLeads: partnerLeadRollup?.totalLeads ?? 0,
+      latestLeadAt: partnerLeadRollup?.latestLeadAt ?? null,
+      qualifiedInLast60Days: partnerLeadRollup?.qualifiedInLast60Days ?? 0,
+      anyInLast60Days: partnerLeadRollup?.anyInLast60Days ?? 0,
+    },
   )
 
   const operationalTone =
