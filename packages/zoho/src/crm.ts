@@ -1,3 +1,5 @@
+import { LEAD_SERVICE_OPTIONS } from "@repo/types"
+
 export interface ZohoLead {
   id?: string
   Last_Name: string
@@ -36,46 +38,31 @@ const ZOHO_DEAL_PIPELINE =
   process.env.ZOHO_DEAL_PIPELINE || "General Sales"
 const ZOHO_DEAL_QUALIFICATION_STAGE =
   process.env.ZOHO_DEAL_QUALIFICATION_STAGE || "Qualification"
-export const ZOHO_LEAD_SERVICE_PICKLIST_VALUES = [
-  "Corporate Tax Registration",
-  "Corporate Tax Filing - Essential",
-  "Corporate Tax Filing - Growth",
-  "Corporate Tax Filing - Scale",
-  "VAT Registration",
-  "VAT Filing - 100txn",
-  "VAT Filing - 500txn",
-  "VAT Filing - 1000txn",
-  "Scale Monthly Accounting",
-  "Growth Quarterly Accounting",
-  "Essential Annual Accounting",
-  "Financial Statement Preparation",
-  "Auditing",
-  "Liquidation",
-  "Audited Financial Statements",
-  "FTA Amendments",
-  "Management Accounting",
-  "AML Compliance",
-  "Corporate Tax Deregistration",
-  "Fractional CFO - hourly",
-  "VAT Deregistration",
-  "Accounting",
-  "Financial Modelling",
-  "Salary Benchmarking",
-  "Looking for Partnership",
-  "CFO Services",
-] as const
+/** Aligned with portal lead forms; legacy Zoho tier labels map in via aliases below. */
+export const ZOHO_LEAD_SERVICE_PICKLIST_VALUES = LEAD_SERVICE_OPTIONS
 
 const zohoLeadServicePicklistMap = new Map(
-  ZOHO_LEAD_SERVICE_PICKLIST_VALUES.map((value) => [value.toLowerCase(), value])
+  LEAD_SERVICE_OPTIONS.map((value) => [value.toLowerCase(), value]),
 )
 
-const zohoLeadServiceAliases = new Map<string, (typeof ZOHO_LEAD_SERVICE_PICKLIST_VALUES)[number]>([
+const zohoLeadServiceAliases = new Map<string, (typeof LEAD_SERVICE_OPTIONS)[number]>([
   ["tax registration", "VAT Registration"],
   ["tax registration (vat)", "VAT Registration"],
   ["bookkeeping", "Accounting"],
   ["bookkeeping (monthly)", "Accounting"],
   ["audit & assurance", "Auditing"],
   ["audit services", "Auditing"],
+  ["audit", "Auditing"],
+  ["corporate tax filing - essential", "Corporate Tax Filing"],
+  ["corporate tax filing - growth", "Corporate Tax Filing"],
+  ["corporate tax filing - scale", "Corporate Tax Filing"],
+  ["vat filing - 100txn", "VAT Filing"],
+  ["vat filing - 500txn", "VAT Filing"],
+  ["vat filing - 1000txn", "VAT Filing"],
+  ["scale monthly accounting", "Monthly Accounting"],
+  ["growth quarterly accounting", "Quarterly Accounting"],
+  ["essential annual accounting", "Annual Accounting"],
+  ["cfo services", "Fractional CFO - hourly"],
 ])
 
 function extractPicklistValues(value: unknown): string[] {

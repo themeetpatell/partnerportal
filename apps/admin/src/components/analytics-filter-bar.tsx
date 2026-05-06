@@ -357,7 +357,9 @@ export function PipelineFilters({
         onChange={(v) => update("leadStatus", v)}
         options={[
           { label: "Submitted", value: "submitted" },
-          { label: "Qualified", value: "qualified" },
+          { label: "Lead Approved", value: "lead_approved" },
+          { label: "Lead Follow-up", value: "lead_follow_up" },
+          { label: "Lead Qualified", value: "lead_qualified" },
           { label: "Proposal Sent", value: "proposal_sent" },
           { label: "Deal Won", value: "deal_won" },
           { label: "Deal Lost", value: "deal_lost" },
@@ -612,7 +614,9 @@ export function AnalyticsFilterBar({
           onChange={(v) => update("leadStatus", v)}
           options={[
             { label: "Submitted", value: "submitted" },
-            { label: "Qualified", value: "qualified" },
+            { label: "Lead Approved", value: "lead_approved" },
+            { label: "Lead Follow-up", value: "lead_follow_up" },
+            { label: "Lead Qualified", value: "lead_qualified" },
             { label: "Proposal Sent", value: "proposal_sent" },
             { label: "Deal Won", value: "deal_won" },
             { label: "Deal Lost", value: "deal_lost" },

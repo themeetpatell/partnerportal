@@ -25,7 +25,7 @@ Partners authenticate in the **partner** app; they see their **commissions ledge
 | Aspect | Commissions | Invoices |
 |--------|-------------|----------|
 | **Meaning** | Amount **owed to the partner**, derived from a won deal’s basis (service fee / AR) and the partner’s commission model | Manual billing record tied to a **partner** (and optionally a **service request**): period, subtotal, discount, tax, due date |
-| **Creation** | Automatic when a **lead** syncs from Zoho CRM and commission is calculated | Manual entry in admin: **`/invoices/new`** → `POST /api/admin/invoices` |
+| **Creation** | **Manual:** finance creates from a **won** lead on the lead detail page (`POST /api/admin/commissions/from-lead`) — no Stripe | Manual entry in admin: **`/invoices/new`** → `POST /api/admin/invoices` |
 | **Partner visibility** | Partner app commissions page | Not exposed to partners in the partner app |
 
 **Takeaway:** Commissions track **partner payables** tied to conversions. Invoices track **documents you manually define** against a partner (e.g. fees or adjustments your policy assigns to invoicing—they are **not** auto-linked to commission rows).
@@ -36,11 +36,15 @@ Partners authenticate in the **partner** app; they see their **commissions ledge
 
 ### Prerequisites (before a pending commission appears)
 
-1. **Lead path + Zoho deal:** Commission rows for leads are created when syncing the lead with CRM so a won deal exists and **`ensureLeadCommissionFromDeal`** runs (`apps/admin/src/app/api/leads/[id]/sync/route.ts`).
-2. **Deal amounts in Zoho:** The sync uses **AR Amount** when present; otherwise **Deal Amount**. If both are missing or zero, sync fails with guidance to set AR Amount on the closed-won deal.
-3. **Partner commission configuration:** Either a **`commission_model`** linked via `commissionModelId` on the partner, or legacy **`commissionRate`** plus valid **`commissionType`** (`flat` / `percentage`) resolved by `resolvePartnerCommissionModel` in the same sync route.
+1. **Lead status:** The lead is **`deal_won`** in the portal.
+2. **Basis amount:** Set **payment amount** and/or **proposal amount** on the lead (finance can override with an explicit basis in the form). VAT net uses `COMMISSION_CRM_AMOUNT_INCLUDES_VAT` and `COMMISSION_VAT_RATE_PCT` via `deriveNetCommissionBaseFromCrm` in the create route.
+3. **Partner commission configuration:** A **`commission_model`** on the partner or legacy **`commission_rate`** / **`commission_type`** resolved by `resolvePartnerCommissionModel` (`apps/admin/src/lib/partner-commission-resolution.ts`).
 
-The engine **`calculateCommission`** (`packages/commission-engine/src/index.ts`) applies **flat %** or **tiered** rules from that model (milestone bonuses are documented in code as handled separately—not per-transaction in that calculator).
+The engine **`calculateCommission`** (`packages/commission-engine/src/index.ts`) applies **flat %** or **tiered** rules (milestone bonuses are not per-transaction in that calculator).
+
+**Create deal-close row:** one per lead (`source_type` `lead`, `source_id` = lead id). **Recurring periods:** additional rows with `source_type` `lead_recurring_invoice` after the deal-close row exists. Route: `apps/admin/src/app/api/admin/commissions/from-lead/route.ts`.
+
+**Stripe:** Removed. There is no `/api/webhooks/stripe`; `stripe_invoice_id` on commission rows may remain `null` or hold legacy data only.
 
 ### Status flow and admin actions
 
@@ -148,7 +152,7 @@ Partners **cannot** view these invoices in the partner dashboard in the current 
 | Topic | Location |
 |--------|-----------|
 | Commission schema & payout_requests | `packages/db/src/schema/commissions.ts` |
-| Lead sync + commission creation | `apps/admin/src/app/api/leads/[id]/sync/route.ts` |
+| Manual commission creation | `apps/admin/src/app/api/admin/commissions/from-lead/route.ts` |
 | Commission admin UI | `apps/admin/src/app/(dashboard)/commissions/page.tsx` |
 | Invoice API (POST only) | `apps/admin/src/app/api/admin/invoices/route.ts` |
 | Invoice UI | `apps/admin/src/app/(dashboard)/invoices/` |

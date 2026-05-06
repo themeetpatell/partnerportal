@@ -15,7 +15,7 @@
 ### What's already fine (do not touch)
 - Admin dashboard layout (`layout.tsx`) enforces auth + teamMember check — all admin pages are protected from unauthenticated access.
 - Commission API routes (`approve`, `reject`, `process`, `paid`) all have auth + role checks.
-- `push-to-crm` API route has auth + role checks.
+- `approve` API route has auth + role checks.
 - Lead creation is non-blocking on Zoho (fixed in prior session).
 - CRM sync status is visible in both portals (fixed in prior session).
 

@@ -252,6 +252,18 @@ const LEAD_STATUS_LABELS: Record<string, { label: string; description: string }>
     label: "Received",
     description: "Your lead has been received and is being reviewed by the Finanshels team.",
   },
+  lead_approved: {
+    label: "Lead Approved",
+    description: "Your lead has been approved and moved into the sales pipeline.",
+  },
+  lead_follow_up: {
+    label: "Lead Follow-up",
+    description: "Our sales team is actively following up with the referred client.",
+  },
+  lead_qualified: {
+    label: "Lead Qualified",
+    description: "Great news — this lead is qualified and progressing to proposal discussions.",
+  },
   qualified: {
     label: "Qualified",
     description: "Great news — this lead has been qualified. Our sales team is actively working it.",
@@ -543,7 +555,7 @@ export async function sendLeadSubmittedEmail(
         title: "Your lead has been received.",
         body: `
           <p>Hi ${safePartnerName},</p>
-          <p>We've received your lead referral for <strong>${safeCustomerName}</strong> and created it in our CRM.</p>
+          <p>We've received your lead referral for <strong>${safeCustomerName}</strong> and added it to our pipeline.</p>
           ${servicesMarkup}
           <p>Our team will qualify the lead and you'll receive updates as it progresses through the pipeline. Track its status in real time from your portal.</p>
         `,

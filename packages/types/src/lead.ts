@@ -1,13 +1,38 @@
 import { z } from "zod"
 
 export const LeadStatusSchema = z.enum([
-  "submitted",           // Lead created by partner
-  "qualified",           // Lead qualified, deal created in Zoho CRM
+  "submitted",           // Lead created by partner, pending approval
+  "lead_approved",       // Partnership manager approved the lead into sales pipeline
+  "lead_follow_up",      // Sales representative follow-up in progress
+  "lead_qualified",      // Sales representative qualified the lead
   "proposal_sent",       // Proposal sent to customer
-  "deal_won",            // Deal won in Zoho CRM
-  "deal_lost",           // Deal lost in Zoho CRM
+  "deal_won",            // Payment done, deal won
+  "deal_lost",           // Lead did not convert
 ])
 export type LeadStatus = z.infer<typeof LeadStatusSchema>
+
+/** Lead detail progress bar: same order as the partner app pipeline (excludes terminal `deal_lost`). */
+export const LEAD_DETAIL_PROGRESS_STEPS = [
+  "submitted",
+  "lead_approved",
+  "lead_follow_up",
+  "lead_qualified",
+  "proposal_sent",
+  "deal_won",
+] as const satisfies readonly LeadStatus[]
+
+export type LeadDetailProgressStep = (typeof LEAD_DETAIL_PROGRESS_STEPS)[number]
+
+/** Allowed one-step status moves (admin + API). Mirrors native portal pipeline — no legacy CRM steps. */
+export const LEAD_STATUS_TRANSITIONS: Record<LeadStatus, readonly LeadStatus[]> = {
+  submitted: ["lead_approved", "deal_lost"],
+  lead_approved: ["lead_follow_up", "lead_qualified", "deal_lost"],
+  lead_follow_up: ["lead_qualified", "deal_lost"],
+  lead_qualified: ["proposal_sent", "deal_lost"],
+  proposal_sent: ["deal_won", "deal_lost"],
+  deal_won: [],
+  deal_lost: [],
+}
 
 export const LeadSchema = z.object({
   id: z.string().uuid(),
@@ -21,22 +46,17 @@ export const LeadSchema = z.object({
   notes: z.string().optional(),
   status: LeadStatusSchema.default("submitted"),
   assignedTo: z.string().nullable().optional(),
-  zohoLeadId: z.string().nullable().optional(),
-  zohoDealId: z.string().nullable().optional(),
-  crmServicesList: z.array(z.string()).default([]),
-  crmProposal: z.string().nullable().optional(),
-  crmAmount: z.string().nullable().optional(),
-  crmClosingDate: z.string().nullable().optional(),
-  crmArAmount: z.string().nullable().optional(),
-  crmIndustry: z.string().nullable().optional(),
-  crmPaymentId: z.string().nullable().optional(),
-  crmPaymentStatus: z.string().nullable().optional(),
-  crmPaymentRecurring: z.string().nullable().optional(),
-  crmCompanyName: z.string().nullable().optional(),
-  crmServicePeriodStart: z.string().nullable().optional(),
-  crmServicePeriodEnd: z.string().nullable().optional(),
-  crmPaymentMethod: z.string().nullable().optional(),
-  crmServiceType: z.string().nullable().optional(),
+  approvedAt: z.date().nullable().optional(),
+  approvedBy: z.string().nullable().optional(),
+  stageUpdatedAt: z.date().nullable().optional(),
+  stageNotes: z.string().nullable().optional(),
+  proposalSummary: z.string().nullable().optional(),
+  proposalAmount: z.string().nullable().optional(),
+  proposalSentAt: z.date().nullable().optional(),
+  paymentStatus: z.string().nullable().optional(),
+  paymentReference: z.string().nullable().optional(),
+  paymentAmount: z.string().nullable().optional(),
+  paymentDate: z.date().nullable().optional(),
   convertedAt: z.date().nullable().optional(),
   rejectionReason: z.string().nullable().optional(),
   createdAt: z.date(),

@@ -16,7 +16,6 @@
     "@repo/notifications": "*",
     "@repo/types": "*",
     "@repo/ui": "*",
-    "@repo/zoho": "*",
     "drizzle-orm": "^0.40.1",
     "lucide-react": "^0.475.0",
     "mammoth": "^1.12.0",

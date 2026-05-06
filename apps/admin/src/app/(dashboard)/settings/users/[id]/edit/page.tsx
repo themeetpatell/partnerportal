@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import {
   ACCESS_MODULES,
+  normalizeTeamRole,
   ROLE_DEFAULT_PERMISSIONS,
   TEAM_ROLE_OPTIONS,
   type AccessLevel,
@@ -41,7 +42,8 @@ export default function EditUserPage() {
         const res = await fetch(`/api/admin/users?id=${id}`)
         if (!res.ok) throw new Error("Not found")
         const data = await res.json()
-        const role: CanonicalTeamRole = data.role ?? "viewer"
+        const role: CanonicalTeamRole =
+          normalizeTeamRole(data.role) ?? "viewer"
         const defaultPerms = ROLE_DEFAULT_PERMISSIONS[role] ?? {}
         const savedPerms: PermMap =
           typeof data.permissions === "string"

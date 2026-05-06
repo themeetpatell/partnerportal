@@ -10,7 +10,7 @@ import {
 } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActiveTeamMember } from "@/lib/admin-auth"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 
 type LifecycleAction =
   | "approve"
@@ -42,7 +42,7 @@ export async function POST(
   if (limited) return limited
 
   const member = await getActiveTeamMember(userId)
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
+  if (!member || !hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

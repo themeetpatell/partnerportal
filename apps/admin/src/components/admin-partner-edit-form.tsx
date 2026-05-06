@@ -17,6 +17,10 @@ interface PartnerData {
   designation: string | null
   partnershipManager: string | null
   appointmentsSetter: string | null
+  /** team_members.id */
+  sdrTeamMemberId: string | null
+  /** team_members.id */
+  partnershipManagerTeamMemberId: string | null
   partnersId: string | null
   strategicFunnelStage: string | null
   activationDate: string | null
@@ -208,6 +212,11 @@ interface AdminPartnerEditFormProps {
   title: React.ReactNode
   partner: PartnerData
   children: React.ReactNode
+  /** When set, primary section uses roster picklists instead of free-text PM/AS. */
+  teamPicklists?: {
+    sdr: { label: string; value: string }[]
+    pm: { label: string; value: string }[]
+  }
 }
 
 export function AdminPartnerEditForm({
@@ -215,6 +224,7 @@ export function AdminPartnerEditForm({
   title,
   partner,
   children,
+  teamPicklists,
 }: AdminPartnerEditFormProps) {
   const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
@@ -338,8 +348,31 @@ export function AdminPartnerEditForm({
             />
             <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} />
             <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} />
-            <TextField label="Partnership manager" name="partnershipManager" value={val("partnershipManager")} onChange={handleChange} />
-            <TextField label="Appointments setter" name="appointmentsSetter" value={val("appointmentsSetter")} onChange={handleChange} />
+            {teamPicklists ? (
+              <>
+                <SelectField
+                  label="Partnership manager (assigned)"
+                  name="partnershipManagerTeamMemberId"
+                  value={val("partnershipManagerTeamMemberId")}
+                  onChange={handleChange}
+                  options={teamPicklists.pm}
+                  placeholder="Select partnership manager…"
+                />
+                <SelectField
+                  label="Pre-sales / SDR (assigned)"
+                  name="sdrTeamMemberId"
+                  value={val("sdrTeamMemberId")}
+                  onChange={handleChange}
+                  options={teamPicklists.sdr}
+                  placeholder="Select pre-sales / SDR…"
+                />
+              </>
+            ) : (
+              <>
+                <TextField label="Partnership manager" name="partnershipManager" value={val("partnershipManager")} onChange={handleChange} />
+                <TextField label="Appointments setter" name="appointmentsSetter" value={val("appointmentsSetter")} onChange={handleChange} />
+              </>
+            )}
             <TextField label="Partners ID" name="partnersId" value={val("partnersId")} onChange={handleChange} />
             <SelectField
               label="Strategic funnel stage"

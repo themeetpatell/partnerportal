@@ -6,14 +6,7 @@ import { leads, partners } from "@repo/db"
 import { and, eq, isNull, or } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { sendLeadSubmittedEmail } from "@repo/notifications"
-import { createZohoLead, normalizeZohoLeadServices } from "@repo/zoho"
-
-function splitCustomerName(fullName: string) {
-  const trimmed = fullName.trim()
-  const parts = trimmed.split(/\s+/)
-  if (parts.length === 1) return { firstName: undefined, lastName: parts[0]! }
-  return { firstName: parts.slice(0, -1).join(" "), lastName: parts.at(-1)! }
-}
+import { splitCustomerNameForStorage } from "@repo/types"
 
 const createLeadSchema = z
   .object({
@@ -136,12 +129,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const { firstName: fnStore, lastName: lnStore } =
+      splitCustomerNameForStorage(customerName)
+
     const [newLead] = await db
       .insert(leads)
       .values({
         tenantId: partner.tenantId,
         partnerId: partner.id,
         customerName,
+        firstName: fnStore,
+        lastName: lnStore,
         customerEmail,
         customerPhone: customerPhone || null,
         customerCompany: customerCompany || null,
@@ -152,37 +150,6 @@ export async function POST(request: NextRequest) {
         channel: "partner_portal",
       })
       .returning()
-
-    const zohoServices = normalizeZohoLeadServices(serviceInterest)
-    const { firstName, lastName } = splitCustomerName(customerName)
-    const crmResult = await createZohoLead({
-      First_Name: firstName,
-      Last_Name: lastName,
-      Email: customerEmail,
-      Phone: customerPhone || undefined,
-      Company: customerCompany || customerName,
-      Lead_Source: "Partner Portal",
-      Lead_Status: "New (Incoming)",
-      Services_List: zohoServices.length > 0 ? zohoServices : undefined,
-      Description: [
-        `Submitted via partner portal by ${partner.contactName} (${partner.companyName}).`,
-        serviceInterest.length > 0 ? `Services interested: ${serviceInterest.join(", ")}` : null,
-        notes?.trim() ? `Notes: ${notes.trim()}` : null,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    })
-
-    let zohoLeadId = newLead!.zohoLeadId
-    if ("id" in crmResult) {
-      await db
-        .update(leads)
-        .set({ zohoLeadId: crmResult.id, updatedAt: new Date() })
-        .where(eq(leads.id, newLead!.id))
-      zohoLeadId = crmResult.id
-    } else {
-      console.warn("[POST /api/leads] Zoho CRM push failed for lead", newLead!.id, crmResult.error)
-    }
 
     // Fire-and-forget confirmation email — never block the response
     sendLeadSubmittedEmail(
@@ -200,7 +167,6 @@ export async function POST(request: NextRequest) {
           customerEmail: newLead!.customerEmail,
           serviceInterest: JSON.parse(newLead!.serviceInterest),
           status: newLead!.status,
-          zohoLeadId,
           createdAt: newLead!.createdAt,
         },
       },

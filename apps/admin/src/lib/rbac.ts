@@ -11,36 +11,46 @@ export const ACCESS_MODULES = [
 export type AccessModule = (typeof ACCESS_MODULES)[number]
 export type AccessLevel = "" | "r" | "rw"
 
+/** Values persisted on `team_members.role` (migration 0020 aligns legacy rows). */
 export type CanonicalTeamRole =
   | "super_admin"
   | "admin"
+  | "partnership_executive"
   | "partnership_manager"
-  | "sdr"
   | "finance"
+  | "sales_representative"
+  | "pre_sales_representative"
+  | "operation_manager"
   | "viewer"
 
 export const TEAM_ROLE_ORDER: CanonicalTeamRole[] = [
   "super_admin",
   "admin",
+  "partnership_executive",
   "partnership_manager",
-  "sdr",
+  "operation_manager",
+  "sales_representative",
+  "pre_sales_representative",
   "finance",
   "viewer",
 ]
 
 const LEGACY_ROLE_ALIASES: Record<string, CanonicalTeamRole> = {
-  // New canonical roles
   super_admin: "super_admin",
   admin: "admin",
+  partnership_executive: "partnership_executive",
   partnership_manager: "partnership_manager",
-  sdr: "sdr",
   finance: "finance",
+  sales_representative: "sales_representative",
+  pre_sales_representative: "pre_sales_representative",
+  operation_manager: "operation_manager",
   viewer: "viewer",
 
-  // Backward compatibility with existing records/routes
+  // Legacy slugs / imports from other systems
   partnership: "partnership_manager",
-  sales: "sdr",
-  appointment_setter: "sdr",
+  sales: "sales_representative",
+  appointment_setter: "pre_sales_representative",
+  sdr: "pre_sales_representative",
 }
 
 export const TEAM_ROLE_META: Record<
@@ -57,15 +67,30 @@ export const TEAM_ROLE_META: Record<
     color: "bg-red-950/60 border-red-800/40 text-red-400",
     summary: "Full business operations access",
   },
+  partnership_executive: {
+    label: "Partnership Executive",
+    color: "bg-violet-950/60 border-violet-800/40 text-violet-300",
+    summary: "Strategic partner portfolio, commercials alignment, and executive stakeholder coverage",
+  },
   partnership_manager: {
     label: "Partnership Manager",
     color: "bg-indigo-950/60 border-indigo-800/40 text-indigo-300",
-    summary: "Partner lifecycle, activation, approvals, and relationship management",
+    summary: "Partner lifecycle, activation, approvals, and day-to-day relationship management",
   },
-  sdr: {
-    label: "SDR Team",
+  operation_manager: {
+    label: "Operation Manager",
+    color: "bg-teal-950/60 border-teal-800/40 text-teal-300",
+    summary: "Delivery coordination, service fulfilment, SLAs, and cross-team orchestration",
+  },
+  sales_representative: {
+    label: "Sales Representative",
     color: "bg-cyan-950/60 border-cyan-800/40 text-cyan-300",
-    summary: "Lead qualification, pipeline updates, and on-behalf submissions",
+    summary: "Deal owner — proposals, commercials, negotiation, and close / won updates",
+  },
+  pre_sales_representative: {
+    label: "Pre-sales Representative",
+    color: "bg-sky-950/60 border-sky-800/40 text-sky-300",
+    summary: "Lead owner — first response, qualification, discovery, and early pipeline motion",
   },
   finance: {
     label: "Finance",
@@ -102,6 +127,15 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<
     users: "rw",
     analytics: "r",
   },
+  partnership_executive: {
+    partners: "rw",
+    leads: "rw",
+    services: "rw",
+    invoices: "rw",
+    commissions: "r",
+    users: "",
+    analytics: "rw",
+  },
   partnership_manager: {
     partners: "rw",
     leads: "rw",
@@ -111,7 +145,25 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<
     users: "",
     analytics: "r",
   },
-  sdr: {
+  operation_manager: {
+    partners: "r",
+    leads: "rw",
+    services: "rw",
+    invoices: "r",
+    commissions: "r",
+    users: "",
+    analytics: "r",
+  },
+  sales_representative: {
+    partners: "r",
+    leads: "rw",
+    services: "rw",
+    invoices: "",
+    commissions: "",
+    users: "",
+    analytics: "r",
+  },
+  pre_sales_representative: {
     partners: "r",
     leads: "rw",
     services: "rw",
@@ -151,6 +203,44 @@ export const USER_MANAGEMENT_ROLES: CanonicalTeamRole[] = [
   "admin",
 ]
 
+/** Partner approvals, lifecycle, CRM-style partner edits */
+export const PARTNER_OPERATIONS_ROLES: CanonicalTeamRole[] = [
+  "super_admin",
+  "admin",
+  "partnership_executive",
+  "partnership_manager",
+]
+
+/** Lead intake, pipeline edits, sync, notes */
+export const LEAD_PIPELINE_ROLES: CanonicalTeamRole[] = [
+  "super_admin",
+  "admin",
+  "partnership_executive",
+  "partnership_manager",
+  "pre_sales_representative",
+  "sales_representative",
+  "operation_manager",
+]
+
+export const FINANCE_ROLES: CanonicalTeamRole[] = [
+  "super_admin",
+  "admin",
+  "finance",
+]
+
+export const ANALYTICS_EXPORT_ROLES: CanonicalTeamRole[] = [
+  "super_admin",
+  "admin",
+  "partnership_executive",
+  "partnership_manager",
+  "finance",
+]
+
+export const LEAD_NOTES_ROLES: CanonicalTeamRole[] = [
+  ...LEAD_PIPELINE_ROLES,
+  "finance",
+]
+
 export function normalizeTeamRole(role: unknown): CanonicalTeamRole | null {
   if (typeof role !== "string") {
     return null
@@ -188,10 +278,7 @@ export function parseTeamPermissions(value: unknown): Partial<
   }
 
   try {
-    const parsed =
-      typeof value === "string"
-        ? JSON.parse(value)
-        : value
+    const parsed = typeof value === "string" ? JSON.parse(value) : value
 
     if (!parsed || typeof parsed !== "object") {
       return {}
@@ -254,4 +341,42 @@ export function getTeamRoleMeta(role: unknown) {
   }
 
   return TEAM_ROLE_META[normalized]
+}
+
+/** Team member picklists: pre-sales / SDR pool */
+export function isPreSalesAssignableRole(role: unknown): boolean {
+  const n = normalizeTeamRole(role)
+  if (!n) return false
+  return (
+    n === "pre_sales_representative" ||
+    n === "super_admin" ||
+    n === "admin" ||
+    n === "partnership_executive"
+  )
+}
+
+/** Deal owner pool (sales-led) */
+export function isDealOwnerAssignableRole(role: unknown): boolean {
+  const n = normalizeTeamRole(role)
+  if (!n) return false
+  return (
+    n === "sales_representative" ||
+    n === "super_admin" ||
+    n === "admin" ||
+    n === "partnership_executive" ||
+    n === "partnership_manager" ||
+    n === "operation_manager"
+  )
+}
+
+/** Partnership manager assignment on partner record */
+export function isPartnershipManagerAssignableRole(role: unknown): boolean {
+  const n = normalizeTeamRole(role)
+  if (!n) return false
+  return (
+    n === "partnership_manager" ||
+    n === "partnership_executive" ||
+    n === "super_admin" ||
+    n === "admin"
+  )
 }

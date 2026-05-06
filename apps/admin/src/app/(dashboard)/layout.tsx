@@ -5,6 +5,27 @@ import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 
+declare global {
+  var __adminSafeObjectEntriesPatched: boolean | undefined
+}
+
+function ensureSafeObjectEntries() {
+  if (globalThis.__adminSafeObjectEntriesPatched) {
+    return
+  }
+
+  const originalEntries = Object.entries
+  Object.entries = ((value: unknown) => {
+    if (value === null || value === undefined) {
+      return []
+    }
+
+    return originalEntries(value as Record<string, unknown>)
+  }) as typeof Object.entries
+
+  globalThis.__adminSafeObjectEntriesPatched = true
+}
+
 // Dashboard pages use cookies + DB — must be dynamic.
 // Placed here (not root layout) so auth pages like sign-in can still be static.
 export const dynamic = "force-dynamic"
@@ -25,6 +46,8 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
+  ensureSafeObjectEntries()
+
   const [user, teamMember] = await Promise.all([
     currentUser(),
     getCurrentActiveTeamMember(),

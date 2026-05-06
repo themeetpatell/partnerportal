@@ -10,7 +10,7 @@ import {
   sendPartnerPasswordResetEmail,
 } from "@repo/notifications"
 import { getActiveTeamMember } from "@/lib/admin-auth"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 
 export async function POST(
   _request: NextRequest,
@@ -27,7 +27,7 @@ export async function POST(
   }
 
   const member = await getActiveTeamMember(userId)
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
+  if (!member || !hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

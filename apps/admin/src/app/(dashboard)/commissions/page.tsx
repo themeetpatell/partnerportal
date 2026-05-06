@@ -5,7 +5,7 @@ import { and, count, eq, sum } from "drizzle-orm"
 import { DollarSign, Eye, CheckCircle2, Clock, Banknote } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 import { resolvePartnerScopeForActor, scopedPartnerFilters } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
@@ -62,9 +62,7 @@ export default async function CommissionsPage({
     getCurrentActiveTeamMember(),
     currentUser(),
   ])
-  const canManageCommissions = member
-    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])
-    : false
+  const canManageCommissions = member ? hasAnyTeamRole(member.role, FINANCE_ROLES) : false
 
   const { status, page, partnerId } = await searchParams
   const activeStatus = status ?? "pending"
@@ -279,7 +277,7 @@ export default async function CommissionsPage({
               No {activeStatus} commissions
             </p>
             <p className="text-slate-600 text-xs mt-1">
-              Commissions will appear here once leads are converted.
+              Finance creates commission rows from won leads on the lead detail page.
             </p>
           </div>
         ) : (

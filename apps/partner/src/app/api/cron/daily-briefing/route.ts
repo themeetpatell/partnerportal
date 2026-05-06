@@ -54,12 +54,20 @@ export async function GET(req: NextRequest) {
 
       const activeLeads: DailyBriefingActiveLead[] = partnerLeads
         .filter((l) =>
-          l.status === "submitted" || l.status === "qualified" || l.status === "proposal_sent"
+          l.status === "submitted" ||
+          l.status === "lead_approved" ||
+          l.status === "lead_follow_up" ||
+          l.status === "lead_qualified" ||
+          l.status === "proposal_sent"
         )
         .map((l) => ({
           name: l.customerName,
           company: l.customerCompany,
-          status: l.status as DailyBriefingActiveLead["status"],
+          status: (l.status === "lead_qualified"
+            ? "qualified"
+            : l.status === "lead_approved" || l.status === "lead_follow_up"
+              ? "submitted"
+              : l.status) as DailyBriefingActiveLead["status"],
           daysInPipeline: l.createdAt
             ? Math.floor((now.getTime() - new Date(l.createdAt).getTime()) / msPerDay)
             : 0,
@@ -69,7 +77,7 @@ export async function GET(req: NextRequest) {
       const stats: DailyBriefingStats = {
         pipeline: {
           submitted: partnerLeads.filter((l) => l.status === "submitted").length,
-          qualified: partnerLeads.filter((l) => l.status === "qualified").length,
+          qualified: partnerLeads.filter((l) => l.status === "lead_qualified").length,
           proposalSent: partnerLeads.filter((l) => l.status === "proposal_sent").length,
           dealWon: partnerLeads.filter((l) => l.status === "deal_won").length,
           dealLost: partnerLeads.filter((l) => l.status === "deal_lost").length,

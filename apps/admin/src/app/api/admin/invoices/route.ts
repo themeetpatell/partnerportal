@@ -5,7 +5,7 @@ import { and, count, eq, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const tenantId = getRequiredTenantId()
 
   // Finance and admin only
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])) {
+  if (!member || !hasAnyTeamRole(member.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 

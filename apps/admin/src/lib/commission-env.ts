@@ -12,10 +12,3 @@ export function getCommissionVatOptionsFromEnv(): CrmVatBasisOptions {
 
   return { crmAmountIncludesVat, vatRatePct }
 }
-
-export function approvalRequiresStripeInvoice(): boolean {
-  return (
-    process.env.COMMISSION_APPROVAL_REQUIRES_STRIPE_INVOICE === "true" ||
-    process.env.COMMISSION_APPROVAL_REQUIRES_STRIPE_INVOICE === "1"
-  )
-}

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 
 const updatePartnerSchema = z.object({
   // Identity (admin-only)
@@ -19,6 +19,8 @@ const updatePartnerSchema = z.object({
   // CRM management (admin-only)
   partnershipManager: z.string().max(255).optional().nullable(),
   appointmentsSetter: z.string().max(255).optional().nullable(),
+  sdrTeamMemberId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional(),
+  partnershipManagerTeamMemberId: z.union([z.string().uuid(), z.literal(""), z.null()]).optional(),
   strategicFunnelStage: z.string().max(255).optional().nullable(),
   activationDate: z.string().optional().nullable(),
   lastMetOn: z.string().optional().nullable(),
@@ -82,7 +84,7 @@ export async function PATCH(
 
   // Verify admin/partnership role
   const member = await getActiveTeamMember(userId)
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
+  if (!member || !hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -131,6 +133,19 @@ export async function PATCH(
     if (data[field] !== undefined) {
       setObj[field] = data[field]
     }
+  }
+
+  if (data.sdrTeamMemberId !== undefined) {
+    setObj.sdrTeamMemberId =
+      data.sdrTeamMemberId === "" || data.sdrTeamMemberId === null
+        ? null
+        : data.sdrTeamMemberId
+  }
+  if (data.partnershipManagerTeamMemberId !== undefined) {
+    setObj.partnershipManagerTeamMemberId =
+      data.partnershipManagerTeamMemberId === "" || data.partnershipManagerTeamMemberId === null
+        ? null
+        : data.partnershipManagerTeamMemberId
   }
 
   const dateFields = [

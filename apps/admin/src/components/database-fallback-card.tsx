@@ -3,19 +3,27 @@
 import { AlertTriangle, RefreshCw } from "lucide-react"
 
 type DatabaseFallbackCardProps = {
+  eyebrow?: string
   title?: string
   message?: string
   host?: string | null
+  /** Shown under the message (e.g. dev-only error text). */
+  details?: string | null
   retryLabel?: string
   onRetry?: () => void
+  /** When false, hides the DATABASE_URL / VPN troubleshooting line (e.g. for schema or app logic errors). */
+  showConnectionTips?: boolean
 }
 
 export function DatabaseFallbackCard({
+  eyebrow = "Database unavailable",
   title = "Database connection failed",
   message = "The admin UI rendered, but Postgres is either unreachable or overloaded. Check DATABASE_URL, confirm the database host resolves locally, and verify your network, VPN, or database load before retrying.",
   host,
+  details,
   retryLabel = "Retry",
   onRetry,
+  showConnectionTips = true,
 }: DatabaseFallbackCardProps) {
   return (
     <div className="surface-card rounded-[1.75rem] border border-amber-400/20 p-6 sm:p-8">
@@ -25,10 +33,16 @@ export function DatabaseFallbackCard({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-amber-200/80">
-            Database unavailable
+            {eyebrow}
           </p>
           <h2 className="mt-3 text-2xl font-semibold text-white">{title}</h2>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">{message}</p>
+
+          {details ? (
+            <pre className="mt-4 max-h-40 max-w-2xl overflow-auto whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-slate-400">
+              {details}
+            </pre>
+          ) : null}
 
           {host ? (
             <div className="mt-5 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-slate-300">
@@ -47,9 +61,11 @@ export function DatabaseFallbackCard({
                 {retryLabel}
               </button>
             ) : null}
-            <p className="text-xs text-slate-500">
-              Typical local causes: placeholder Supabase hostname, offline VPN, a typo in `DATABASE_URL`, or exhausted / slow database connections.
-            </p>
+            {showConnectionTips ? (
+              <p className="text-xs text-slate-500">
+                Typical local causes: placeholder Supabase hostname, offline VPN, a typo in `DATABASE_URL`, or exhausted / slow database connections.
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

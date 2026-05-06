@@ -97,6 +97,8 @@ export async function resolvePartnerRowScope(params: {
   for (const uid of attributionIds) {
     assigneeConditions.push(eq(leads.assignedTo, uid))
     assigneeConditions.push(eq(leads.createdBy, uid))
+    assigneeConditions.push(eq(leads.leadOwnerUserId, uid))
+    assigneeConditions.push(eq(leads.dealOwnerUserId, uid))
   }
 
   const leadPartners = await db

@@ -486,7 +486,7 @@ export default async function AnalyticsPage({
     if (!row.assignedTo) continue
     const current = teamMap.get(row.assignedTo) ?? { total: 0, qualified: 0, converted: 0 }
     current.total += 1
-    if (["qualified", "proposal_sent", "deal_won"].includes(row.status)) {
+    if (["lead_qualified", "proposal_sent", "deal_won"].includes(row.status)) {
       current.qualified += 1
     }
     if (row.status === "deal_won") {

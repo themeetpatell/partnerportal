@@ -56,6 +56,10 @@ export const partners = pgTable("partners", {
   meetingScheduledDateAS: timestamp("meeting_scheduled_date_as"),
   meetingDatePM: timestamp("meeting_date_pm"),
   partnersId: text("partners_id"), // custom Zoho ID
+  /** Pre-sales / SDR — team_members.id */
+  sdrTeamMemberId: uuid("sdr_team_member_id"),
+  /** Partnership manager assignment — team_members.id */
+  partnershipManagerTeamMemberId: uuid("partnership_manager_team_member_id"),
 
   // Zoho CRM – Secondary Information extras
   partnershipLevel: text("partnership_level"),
@@ -118,7 +122,8 @@ export const teamMembers = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     authUserId: text("auth_user_id").notNull(),
-    // admin | appointment_setter | partnership | sales | finance | viewer
+    // see apps/admin rbac — super_admin, admin, partnership_executive, partnership_manager, finance,
+    // pre_sales_representative, sales_representative, operation_manager, viewer
     role: text("role").notNull(),
     name: text("name").notNull(),
     email: text("email").notNull(),

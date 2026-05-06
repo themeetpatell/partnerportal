@@ -1,0 +1,31 @@
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "zoho_lead_id";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "zoho_deal_id";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_services_list";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_proposal";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_amount";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_closing_date";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_ar_amount";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_industry";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_payment_id";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_payment_status";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_payment_recurring";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_company_name";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_service_period_start";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_service_period_end";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_payment_method";
+ALTER TABLE "leads" DROP COLUMN IF EXISTS "crm_service_type";
+
+DROP INDEX IF EXISTS "leads_zoho_lead_id_idx";
+DROP INDEX IF EXISTS "leads_zoho_deal_id_idx";
+
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "approved_at" timestamp;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "approved_by" text;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "stage_updated_at" timestamp;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "stage_notes" text;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "proposal_summary" text;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "proposal_amount" numeric(12, 2);
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "proposal_sent_at" timestamp;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "payment_status" text;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "payment_reference" text;
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "payment_amount" numeric(12, 2);
+ALTER TABLE "leads" ADD COLUMN IF NOT EXISTS "payment_date" timestamp;

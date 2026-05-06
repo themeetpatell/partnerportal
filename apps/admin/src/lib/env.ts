@@ -9,10 +9,6 @@ const envSchema = z.object({
   // Optional integrations
   SUPABASE_SECRET_KEY: z.string().optional(),
   SENDGRID_API_KEY: z.string().optional(),
-  ZOHO_CLIENT_ID: z.string().optional(),
-  ZOHO_CLIENT_SECRET: z.string().optional(),
-  ZOHO_REFRESH_TOKEN: z.string().optional(),
-  ZOHO_ACCOUNTS_BASE_URL: z.string().url().optional(),
 })
 
 export function getRequiredTenantId() {

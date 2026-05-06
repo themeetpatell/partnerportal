@@ -5,8 +5,7 @@ import { and, eq } from "drizzle-orm"
 import { sendCommissionApprovedEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
-import { hasAnyTeamRole } from "@/lib/rbac"
-import { approvalRequiresStripeInvoice } from "@/lib/commission-env"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 
 export async function POST(
   _req: NextRequest,
@@ -22,35 +21,11 @@ export async function POST(
 
   const actorName = await getActorName()
   const member = await getActiveTeamMember(userId)
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])) {
+  if (!member || !hasAnyTeamRole(member.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 
   const { id } = await params
-
-  if (approvalRequiresStripeInvoice()) {
-    const [row] = await db
-      .select({
-        sourceType: commissions.sourceType,
-        stripeInvoiceId: commissions.stripeInvoiceId,
-      })
-      .from(commissions)
-      .where(eq(commissions.id, id))
-      .limit(1)
-
-    if (
-      (row?.sourceType === "lead" || row?.sourceType === "lead_recurring_invoice") &&
-      (row.stripeInvoiceId == null || row.stripeInvoiceId.trim() === "")
-    ) {
-      return NextResponse.json(
-        {
-          error:
-            "Commission cannot be approved until a Stripe invoice is linked (customer payment received). Ensure Invoices carry metadata partner_portal_lead_id and the webhook fired.",
-        },
-        { status: 422 },
-      )
-    }
-  }
 
   // Atomic: only update if still pending — prevents TOCTOU race
   const [updated] = await db

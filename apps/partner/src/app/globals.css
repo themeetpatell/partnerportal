@@ -45,6 +45,9 @@
   --portal-text-muted: #64748b;
   --portal-indigo: #6366f1;
   --portal-indigo-muted: rgba(99, 102, 241, 0.08);
+  --portal-primary-button-bg: #4f46e5;
+  --portal-primary-button-bg-hover: #4338ca;
+  --portal-primary-button-bg-active: #3730a3;
   --portal-secondary: #f1f5f9;
   --portal-secondary-fg: #0f172a;
   --portal-shadow-card: rgba(0, 0, 0, 0.06);
@@ -65,6 +68,9 @@
   --portal-text-muted: #71717a;
   --portal-indigo: #818cf8;
   --portal-indigo-muted: rgba(129, 140, 248, 0.15);
+  --portal-primary-button-bg: #6366f1;
+  --portal-primary-button-bg-hover: #4f46e5;
+  --portal-primary-button-bg-active: #4338ca;
   --portal-secondary: #27272a;
   --portal-secondary-fg: #fafafa;
   --portal-shadow-card: rgba(0, 0, 0, 0.4);
@@ -269,16 +275,16 @@ a {
 
   .primary-button {
     @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150;
-    background: var(--portal-indigo);
-    color: #ffffff;
+    background: var(--portal-primary-button-bg);
+    color: #ffffff !important;
   }
 
   .primary-button:hover {
-    background: #6366f1;
+    background: var(--portal-primary-button-bg-hover);
   }
 
   .primary-button:active {
-    background: #4f46e5;
+    background: var(--portal-primary-button-bg-active);
   }
 
   .secondary-button {

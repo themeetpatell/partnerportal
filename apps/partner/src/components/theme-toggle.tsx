@@ -18,16 +18,18 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="flex items-center gap-1 rounded-xl bg-secondary p-1">
-        <div className="h-8 w-8 rounded-lg" />
-        <div className="h-8 w-8 rounded-lg" />
-        <div className="h-8 w-8 rounded-lg" />
+      <div className="flex items-center gap-1 rounded-xl border border-border bg-secondary p-1 text-muted-foreground">
+        {themes.map(({ value, icon: Icon }) => (
+          <span key={value} className="flex h-8 w-8 items-center justify-center rounded-lg" aria-hidden="true">
+            <Icon className="h-4 w-4" />
+          </span>
+        ))}
       </div>
     )
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-xl bg-secondary p-1">
+    <div className="flex items-center gap-1 rounded-xl border border-border bg-secondary p-1">
       {themes.map(({ value, label, icon: Icon }) => (
         <button
           key={value}

@@ -37,11 +37,11 @@ const requestTabs = [
 
 const statusStyles: Record<string, string> = {
   submitted: "border border-border bg-secondary text-foreground/90",
-  lead_approved: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
-  lead_follow_up: "border border-cyan-400/20 bg-cyan-500/10 text-cyan-100",
-  lead_qualified: "border border-indigo-400/20 bg-indigo-500/10 text-indigo-100",
+  lead_approved: "border border-sky-500/25 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:text-sky-100",
+  lead_follow_up: "border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/20 dark:text-cyan-100",
+  lead_qualified: "border border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:border-indigo-400/20 dark:text-indigo-100",
   proposal_sent: "border border-primary/20 bg-primary/10 text-primary",
-  deal_won: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
+  deal_won: "border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/20 dark:text-emerald-100",
   deal_lost: "border border-border bg-secondary/60 text-muted-foreground",
 }
 
@@ -99,7 +99,7 @@ function qs(p: Record<string, string | undefined>) {
 function TypeBadge({ crossSell }: { crossSell: boolean }) {
   if (crossSell) {
     return (
-      <span className="status-pill border border-violet-400/25 bg-violet-500/10 text-violet-100">
+      <span className="status-pill border border-violet-500/25 bg-violet-500/10 text-violet-700 dark:border-violet-400/25 dark:text-violet-100">
         Cross-sell
       </span>
     )
@@ -108,6 +108,38 @@ function TypeBadge({ crossSell }: { crossSell: boolean }) {
     <span className="status-pill border border-border bg-secondary/70 text-[var(--portal-text-soft)]">
       New lead
     </span>
+  )
+}
+
+/** Kanban column already shows pipeline stage — do not repeat status on the card. */
+function PartnerLeadKanbanCard({ lead }: { lead: LeadRow }) {
+  const services = parseServices(lead.serviceInterest)
+  const servicesText = services.length > 0 ? services.join(", ") : "—"
+  const phone = lead.customerPhone?.trim() || "—"
+  const companyLine = lead.customerCompany?.trim() || lead.customerEmail
+
+  return (
+    <Link
+      href={`/dashboard/leads/${lead.id}`}
+      className="block rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary/70"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">{lead.customerName}</p>
+        <TypeBadge crossSell={false} />
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{companyLine}</p>
+      <dl className="mt-2.5 space-y-2 text-xs">
+        <div>
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Phone</dt>
+          <dd className="mt-0.5 text-[var(--portal-text-soft)]">{phone}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Services</dt>
+          <dd className="mt-0.5 line-clamp-3 text-[var(--portal-text-soft)]">{servicesText}</dd>
+        </div>
+      </dl>
+      <p className="mt-2.5 text-right text-[11px] text-muted-foreground">{formatDate(lead.createdAt)}</p>
+    </Link>
   )
 }
 
@@ -478,33 +510,7 @@ export default async function LeadsPage({
                           No leads
                         </p>
                       ) : (
-                        bucketRows.map((lead) => {
-                          const services = parseServices(lead.serviceInterest)
-                          return (
-                            <Link
-                              key={lead.id}
-                              href={`/dashboard/leads/${lead.id}`}
-                              className="block rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary/70"
-                            >
-                              <div className="flex items-start justify-between gap-2">
-                                <p className="text-sm font-semibold text-foreground">{lead.customerName}</p>
-                                <TypeBadge crossSell={false} />
-                              </div>
-                              <p className="mt-1 text-xs text-muted-foreground">{lead.customerCompany || lead.customerEmail}</p>
-                              <p className="mt-2 line-clamp-2 text-xs text-[var(--portal-text-soft)]">
-                                {services.length > 0 ? services.join(", ") : "No services selected"}
-                              </p>
-                              <div className="mt-3 flex items-center justify-between">
-                                <span
-                                  className={`status-pill ${statusStyles[lead.status] ?? "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
-                                >
-                                  {formatLabel(lead.status)}
-                                </span>
-                                <span className="text-[11px] text-muted-foreground">{formatDate(lead.createdAt)}</span>
-                              </div>
-                            </Link>
-                          )
-                        })
+                        bucketRows.map((lead) => <PartnerLeadKanbanCard key={lead.id} lead={lead} />)
                       )}
                     </div>
                   </div>
@@ -520,14 +526,7 @@ export default async function LeadsPage({
                   </div>
                   <div className="max-h-[62vh] space-y-3 overflow-y-auto p-3">
                     {unknownStatusRows.map((lead) => (
-                      <Link
-                        key={lead.id}
-                        href={`/dashboard/leads/${lead.id}`}
-                        className="block rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary/70"
-                      >
-                        <p className="text-sm font-semibold text-foreground">{lead.customerName}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{lead.customerCompany || lead.customerEmail}</p>
-                      </Link>
+                      <PartnerLeadKanbanCard key={lead.id} lead={lead} />
                     ))}
                   </div>
                 </div>
@@ -606,23 +605,7 @@ export default async function LeadsPage({
                     </div>
                     <div className="max-h-[62vh] space-y-3 overflow-y-auto p-3">
                       {bucketRows.map((lead) => (
-                        <Link
-                          key={lead.id}
-                          href={`/dashboard/leads/${lead.id}`}
-                          className="block rounded-xl border border-border bg-secondary/50 p-3 transition-colors hover:bg-secondary/70"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-semibold text-foreground">{lead.customerName}</p>
-                            <TypeBadge crossSell={false} />
-                          </div>
-                          <div className="mt-3">
-                            <span
-                              className={`status-pill ${statusStyles[lead.status] ?? "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
-                            >
-                              {formatLabel(lead.status)}
-                            </span>
-                          </div>
-                        </Link>
+                        <PartnerLeadKanbanCard key={lead.id} lead={lead} />
                       ))}
                     </div>
                   </div>
@@ -630,8 +613,8 @@ export default async function LeadsPage({
               })}
               <div className="w-[300px] flex-shrink-0 rounded-[1.2rem] border border-violet-400/25 bg-secondary/35">
                 <div className="flex items-center justify-between border-b border-violet-400/25 px-3 py-2.5">
-                  <p className="text-sm font-semibold text-violet-100">Cross-sell</p>
-                  <span className="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 text-xs text-violet-200">
+                  <p className="text-sm font-semibold text-violet-700 dark:text-violet-100">Cross-sell</p>
+                  <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-xs text-violet-700 dark:border-violet-400/30 dark:text-violet-200">
                     {requestRows.length}
                   </span>
                 </div>
@@ -735,7 +718,7 @@ export default async function LeadsPage({
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">{formatDate(row.createdAt)}</td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={row.href} className="text-xs font-medium text-primary hover:text-primary/80">
+                        <Link href={row.href} className="secondary-button h-9 px-3 text-xs">
                           {row.actionLabel}
                         </Link>
                       </td>
@@ -785,7 +768,7 @@ export default async function LeadsPage({
                   ) : null}
                   <div className="mt-3 flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">Submitted {formatDate(row.createdAt)}</p>
-                    <span className="text-xs font-medium text-primary">{row.actionLabel}</span>
+                    <span className="secondary-button h-9 px-3 text-xs">{row.actionLabel}</span>
                   </div>
                 </Link>
               ))}

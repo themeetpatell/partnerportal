@@ -127,6 +127,27 @@
       "when": 1778464800000,
       "tag": "0017_commissions_related_lead",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1778480400000,
+      "tag": "0018_native_pipeline_remove_zoho",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1778482800000,
+      "tag": "0019_lead_extended_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1778496000000,
+      "tag": "0020_team_roles_partner_lead_owners",
+      "breakpoints": true
     }
   ]
 }

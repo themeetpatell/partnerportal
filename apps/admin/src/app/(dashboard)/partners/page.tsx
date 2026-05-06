@@ -5,7 +5,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm"
 import { Building2, ArrowRight, UserCheck, Plus } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 import {
   resolvePartnerScopeForActor,
   partnerScopeWhere,
@@ -86,7 +86,7 @@ export default async function PartnersPage({
     .orderBy(partners.createdAt)
 
   const canSendResetEmail = Boolean(
-    member && hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])
+    member && hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES),
   )
 
   const partnerLeadRows =

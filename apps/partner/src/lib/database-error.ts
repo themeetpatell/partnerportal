@@ -47,7 +47,9 @@ function collectCodes(error: unknown) {
     }
 
     const code = record.code
-    if (typeof code === "string" && code.trim()) {
+    if (typeof code === "number" && Number.isFinite(code)) {
+      codes.add(String(code))
+    } else if (typeof code === "string" && code.trim()) {
       codes.add(code.toUpperCase())
     }
   }
@@ -96,4 +98,26 @@ export function getDatabaseErrorHost(error: unknown) {
   }
 
   return null
+}
+
+/** Postgres: undefined_column, undefined_table — usually means migrations are behind the app. */
+const PG_SCHEMA_MISMATCH_CODES = new Set(["42703", "42P01"])
+
+export function isPostgresSchemaMismatchError(error: unknown) {
+  const codes = collectCodes(error)
+  if (codes.some((code) => PG_SCHEMA_MISMATCH_CODES.has(code))) {
+    return true
+  }
+
+  const joined = collectMessages(error).join(" ").toLowerCase()
+  if (!joined.includes("does not exist")) {
+    return false
+  }
+
+  return joined.includes("column") || joined.includes("relation")
+}
+
+export function isInvalidUuidQueryError(error: unknown) {
+  const joined = collectMessages(error).join(" ").toLowerCase()
+  return joined.includes("invalid input syntax for type uuid")
 }

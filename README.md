@@ -7,7 +7,7 @@ This repo is set up as npm workspaces and currently ships two active Next.js app
 - `apps/partner`: partner registration, profile management, lead submission, service requests, commissions, agreement signing
 - `apps/admin`: internal operations portal for partner approvals, analytics, leads, service requests, invoices, commissions, and user management
 
-Shared code lives under `packages/*` for auth, database access, UI, notifications, Zoho integrations, commission logic, and shared types.
+Shared code lives under `packages/*` for auth, database access, UI, notifications, commission logic, and shared types.
 
 ## Documentation
 
@@ -23,7 +23,6 @@ Shared code lives under `packages/*` for auth, database access, UI, notification
 - Drizzle ORM
 - Supabase Postgres
 - SendGrid
-- Zoho CRM + WorkDrive
 - npm workspaces
 
 ## Quick Start
@@ -102,23 +101,6 @@ Optional integrations, only needed if you are working on those flows:
 
 - `SENDGRID_API_KEY`
 - `SENDGRID_FROM_EMAIL`
-- `ZOHO_CLIENT_ID`
-- `ZOHO_CLIENT_SECRET`
-- `ZOHO_REFRESH_TOKEN`
-- `ZOHO_ACCOUNTS_BASE_URL`
-- `ZOHO_BASE_URL`
-- `ZOHO_DEAL_PIPELINE`
-- `ZOHO_DEAL_QUALIFICATION_STAGE`
-- `ZOHO_SIGN_CLIENT_ID`
-- `ZOHO_SIGN_CLIENT_SECRET`
-- `ZOHO_SIGN_REFRESH_TOKEN`
-- `ZOHO_SIGN_BASE_URL`
-- `ZOHO_WORKDRIVE_ACCESS_TOKEN`
-- `ZOHO_WORKDRIVE_BASE_URL`
-- `ZOHO_WORKDRIVE_ROOT_FOLDER_ID`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_WEBHOOK_SECRET`
 
 ### 4. Prepare the Database
 
@@ -212,7 +194,6 @@ packages/
   notifications/
   types/
   ui/
-  zoho/
 
 docs/
   admin-user-guide.md
@@ -329,4 +310,4 @@ Deployment checklist:
 
 - never commit real `.env.local` files
 - rotate any secret that has been exposed in chat, logs, screenshots, or terminal history
-- treat database, Supabase Auth, SendGrid, Stripe, and Zoho credentials as production secrets
+- treat database, Supabase Auth, SendGrid, and Stripe credentials as production secrets

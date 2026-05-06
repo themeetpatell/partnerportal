@@ -21,7 +21,7 @@ export default function NewUserPage() {
     email: "",
     phone: "",
     designation: "",
-    role: "sdr" as (typeof TEAM_ROLE_OPTIONS)[number]["value"],
+    role: "sales_representative" as (typeof TEAM_ROLE_OPTIONS)[number]["value"],
     rowScope: "all" as (typeof SCOPES)[number]["value"],
   })
 

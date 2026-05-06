@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm"
 import { sendCommissionPaidEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 
 export async function POST(
   _req: NextRequest,
@@ -21,7 +21,7 @@ export async function POST(
 
   const actorName = await getActorName()
   const member = await getActiveTeamMember(userId)
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "finance"])) {
+  if (!member || !hasAnyTeamRole(member.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: "Forbidden — Finance/Admin only" }, { status: 403 })
   }
 

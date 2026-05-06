@@ -5,7 +5,7 @@ import { and, eq, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 import { resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 export async function POST(req: NextRequest) {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   const tenantId = getRequiredTenantId()
 
   // Only admin or partnership roles may create partners
-  if (!member || !hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager"])) {
+  if (!member || !hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

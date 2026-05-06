@@ -13,8 +13,9 @@ import {
   leads,
   commissions,
   partners,
+  teamMembers,
 } from "@repo/db"
-import { eq, and, isNull, sum } from "drizzle-orm"
+import { eq, and, isNull, sum, asc } from "drizzle-orm"
 import {
   Building2,
   Mail,
@@ -36,7 +37,12 @@ import {
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasModuleAccess } from "@/lib/rbac"
+import {
+  getTeamRoleLabel,
+  hasModuleAccess,
+  isPartnershipManagerAssignableRole,
+  isPreSalesAssignableRole,
+} from "@/lib/rbac"
 import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
@@ -46,7 +52,9 @@ function StatusBadge({ status }: { status: string }) {
     rejected: "bg-red-950/60 border-red-800/40 text-red-400",
     suspended: "bg-white/6 border-white/10 text-slate-400",
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
+    lead_approved: "bg-sky-950/60 border-sky-800/40 text-sky-400",
+    lead_follow_up: "bg-cyan-950/60 border-cyan-800/40 text-cyan-400",
+    lead_qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
     deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
     deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
@@ -113,6 +121,34 @@ export default async function PartnerDetailPage({
   if (!partner) notFound()
   if (!isPartnerReadable(scope, id)) notFound()
 
+  const teamForPartner = await db
+    .select({ id: teamMembers.id, name: teamMembers.name, role: teamMembers.role })
+    .from(teamMembers)
+    .where(and(eq(teamMembers.tenantId, tenantId), eq(teamMembers.isActive, true)))
+    .orderBy(asc(teamMembers.name))
+
+  const teamPicklists = {
+    sdr: teamForPartner
+      .filter((m) => isPreSalesAssignableRole(m.role))
+      .map((m) => ({
+        value: m.id,
+        label: `${m.name} (${getTeamRoleLabel(m.role)})`,
+      })),
+    pm: teamForPartner
+      .filter((m) => isPartnershipManagerAssignableRole(m.role))
+      .map((m) => ({
+        value: m.id,
+        label: `${m.name} (${getTeamRoleLabel(m.role)})`,
+      })),
+  }
+
+  const sdrAssignedLabel = partner.sdrTeamMemberId
+    ? teamForPartner.find((r) => r.id === partner.sdrTeamMemberId)?.name ?? null
+    : null
+  const pmAssignedLabel = partner.partnershipManagerTeamMemberId
+    ? teamForPartner.find((r) => r.id === partner.partnershipManagerTeamMemberId)?.name ?? null
+    : null
+
   const canCreateServiceRequestForPartner =
     member &&
     hasModuleAccess(member.role, member.permissions, "services", "rw")
@@ -173,6 +209,8 @@ export default async function PartnerDetailPage({
     designation: partner.designation,
     partnershipManager: partner.partnershipManager,
     appointmentsSetter: partner.appointmentsSetter,
+    sdrTeamMemberId: partner.sdrTeamMemberId ?? "",
+    partnershipManagerTeamMemberId: partner.partnershipManagerTeamMemberId ?? "",
     partnersId: partner.partnersId,
     strategicFunnelStage: partner.strategicFunnelStage,
     activationDate: fmtInput(partner.activationDate),
@@ -491,6 +529,7 @@ export default async function PartnerDetailPage({
             <AdminPartnerEditForm
               section="primary"
               partner={editablePartner}
+              teamPicklists={teamPicklists}
               title={<h2 className="text-white font-semibold flex items-center gap-2"><Building2 className="w-4 h-4 text-slate-400" />Primary Information</h2>}
             >
             <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -552,13 +591,17 @@ export default async function PartnerDetailPage({
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Partnership Manager
                 </dt>
-                <dd className="text-white text-sm">{partner.partnershipManager || "—"}</dd>
+                <dd className="text-white text-sm">
+                  {(pmAssignedLabel ?? partner.partnershipManager) || "—"}
+                </dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Appointments Setter
+                  Pre-sales / SDR
                 </dt>
-                <dd className="text-white text-sm">{partner.appointmentsSetter || "—"}</dd>
+                <dd className="text-white text-sm">
+                  {(sdrAssignedLabel ?? partner.appointmentsSetter) || "—"}
+                </dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -872,7 +915,11 @@ export default async function PartnerDetailPage({
                           {
                             submitted:
                               "bg-blue-950/60 border-blue-800/40 text-blue-400",
-                            qualified:
+                            lead_approved:
+                              "bg-sky-950/60 border-sky-800/40 text-sky-400",
+                            lead_follow_up:
+                              "bg-cyan-950/60 border-cyan-800/40 text-cyan-400",
+                            lead_qualified:
                               "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
                             proposal_sent:
                               "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",

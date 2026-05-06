@@ -5,28 +5,54 @@ import { db, leads, partners, documents, commissions } from "@repo/db"
 import { eq, and, or, desc, isNull } from "drizzle-orm"
 import {
   ArrowLeft,
-  Mail,
-  Phone,
+  Briefcase,
   Building2,
-  Calendar,
-  FileText,
-  ExternalLink,
-  RefreshCw,
-  Upload,
   CheckCircle,
-  User,
-  Tag,
   CircleDollarSign,
+  ExternalLink,
+  FileText,
+  MapPin,
+  User,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
-import { hasAnyTeamRole } from "@/lib/rbac"
+import { hasAnyTeamRole, FINANCE_ROLES, LEAD_PIPELINE_ROLES } from "@/lib/rbac"
 import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
+import {
+  LEAD_DETAIL_PROGRESS_STEPS,
+  mergeLeadServiceOptionsWithStored,
+  mergeLeadContactNamesForDisplay,
+  LEAD_TRANSACTION_BANDS,
+  LEAD_BUSINESS_AR_BANDS,
+  LEAD_DECISION_ROLES,
+  LEAD_URGENCY_TIMELINES,
+  LEAD_LOST_REASONS,
+  leadSelectOptions,
+} from "@repo/types"
+import type { LeadStatus } from "@repo/types"
+import { LeadEditCard, type LeadFieldDef } from "@/components/lead-edit-card"
+import { LeadStageActions } from "@/components/lead-stage-actions"
+
+export const dynamic = "force-dynamic"
+
+const COMMISSION_CREATE_ERROR_COPY: Record<string, string> = {
+  duplicate: "A deal-close commission already exists for this lead.",
+  not_deal_won: "Mark the lead as deal won before creating a commission.",
+  no_basis:
+    "Set payment or proposal amount on the lead, or enter an explicit basis amount in the form.",
+  no_model: "Partner has no valid commission model or rate configured.",
+  no_partner: "Partner record missing for this lead.",
+  forbidden_scope: "You cannot create commissions for partners outside your row scope.",
+  zero_commission: "Calculated commission is zero — check the partner commission model.",
+  server: "Commission could not be created. Try again.",
+}
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
     submitted: "bg-blue-950/60 border-blue-800/40 text-blue-400",
-    qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
+    lead_approved: "bg-sky-950/60 border-sky-800/40 text-sky-400",
+    lead_follow_up: "bg-cyan-950/60 border-cyan-800/40 text-cyan-400",
+    lead_qualified: "bg-indigo-950/60 border-indigo-800/40 text-indigo-400",
     proposal_sent: "bg-yellow-950/60 border-yellow-800/40 text-yellow-400",
     deal_won: "bg-green-950/60 border-green-800/40 text-green-400",
     deal_lost: "bg-red-950/60 border-red-800/40 text-red-400",
@@ -38,21 +64,6 @@ function StatusBadge({ status }: { status: string }) {
       {status.replace(/_/g, " ")}
     </span>
   )
-}
-
-function parseJsonArray(value: string | null | undefined) {
-  if (!value) {
-    return []
-  }
-
-  try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-      : []
-  } catch {
-    return []
-  }
 }
 
 function formatCurrencyAmount(value: string | null | undefined) {
@@ -72,111 +83,45 @@ function formatCurrencyAmount(value: string | null | undefined) {
   }).format(parsed)
 }
 
-function formatIsoDate(value: string | null | undefined) {
-  if (!value) {
-    return null
-  }
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) {
-    return value
-  }
-
-  return parsed.toLocaleDateString("en-AE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  })
-}
-
-function ZohoSyncForm({
+function ApproveLeadForm({
   leadId,
-  canSync,
+  canApprove,
 }: {
   leadId: string
-  canSync: boolean
+  canApprove: boolean
 }) {
   return (
-    <form action={`/api/leads/${leadId}/sync?redirectTo=/leads/${leadId}`} method="POST">
+    <form action={`/api/leads/${leadId}/approve?redirectTo=/leads/${leadId}`} method="POST">
       <button
         type="submit"
-        disabled={!canSync}
-        aria-disabled={!canSync}
-        title={!canSync ? "Only Admin, Partnership Manager, and SDR roles can sync from CRM." : undefined}
-        className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
-          canSync
-            ? "bg-indigo-600 hover:bg-indigo-500"
-            : "cursor-not-allowed bg-slate-700/70 text-slate-300"
-        }`}
-      >
-        <RefreshCw className="h-4 w-4" />
-        Sync from CRM
-      </button>
-    </form>
-  )
-}
-
-function PushToCrmForm({
-  leadId,
-  canSync,
-  zohoLeadId,
-  isPartnerSubmitted,
-}: {
-  leadId: string
-  canSync: boolean
-  zohoLeadId: string | null
-  isPartnerSubmitted: boolean
-}) {
-  if (zohoLeadId) {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-800/40 bg-emerald-950/60 px-4 py-2 text-sm font-medium text-emerald-400">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-        {isPartnerSubmitted ? "Approved" : "In CRM"}
-      </span>
-    )
-  }
-
-  const label = isPartnerSubmitted ? "Approve" : "Push to CRM"
-  const Icon = isPartnerSubmitted ? CheckCircle : Upload
-  const disabledTitle = isPartnerSubmitted
-    ? "Only Admin, Partnership Manager, and SDR roles can approve leads."
-    : "Only Admin, Partnership Manager, and SDR roles can push to CRM."
-
-  return (
-    <form action={`/api/leads/${leadId}/push-to-crm?redirectTo=/leads/${leadId}`} method="POST">
-      <button
-        type="submit"
-        disabled={!canSync}
-        aria-disabled={!canSync}
-        title={!canSync ? disabledTitle : undefined}
+        disabled={!canApprove}
+        aria-disabled={!canApprove}
+        title={!canApprove ? "Your role does not have permission to approve leads." : undefined}
         className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-          canSync
-            ? isPartnerSubmitted
-              ? "border border-emerald-800/40 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60"
-              : "border border-amber-800/40 bg-amber-950/60 text-amber-300 hover:bg-amber-900/60"
+          canApprove
+            ? "border border-emerald-800/40 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60"
             : "cursor-not-allowed bg-slate-700/70 text-slate-400"
         }`}
       >
-        <Icon className="h-4 w-4" />
-        {label}
+        <CheckCircle className="h-4 w-4" />
+        Approve lead
       </button>
     </form>
   )
 }
-
-const statusTimeline = [
-  "submitted",
-  "qualified",
-  "proposal_sent",
-  "deal_won",
-]
 
 export default async function LeadDetailPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ sync?: string; reason?: string; status?: string; pushCrm?: string }>
+  searchParams: Promise<{
+    status?: string
+    next?: string
+    reason?: string
+    commission?: string
+    commissionReason?: string
+  }>
 }) {
   const [{ id }, query, { userId }] = await Promise.all([params, searchParams, auth()])
 
@@ -232,87 +177,199 @@ export default async function LeadDetailPage({
       return [lead.serviceInterest]
     }
   })()
-  const crmServicesList = parseJsonArray(lead.crmServicesList)
-  const crmAmount = formatCurrencyAmount(lead.crmAmount)
-  const crmArAmount = formatCurrencyAmount(lead.crmArAmount)
-  const crmClosingDate = formatIsoDate(lead.crmClosingDate)
-  const crmServicePeriodStart = formatIsoDate(lead.crmServicePeriodStart)
-  const crmServicePeriodEnd = formatIsoDate(lead.crmServicePeriodEnd)
-  const hasCrmSnapshot =
-    crmServicesList.length > 0 ||
-    Boolean(lead.crmProposal) ||
-    Boolean(crmAmount) ||
-    Boolean(crmClosingDate) ||
-    Boolean(crmArAmount) ||
-    Boolean(lead.crmIndustry) ||
-    Boolean(lead.crmPaymentId) ||
-    Boolean(lead.crmPaymentStatus) ||
-    Boolean(lead.crmPaymentRecurring) ||
-    Boolean(lead.crmCompanyName) ||
-    Boolean(crmServicePeriodStart) ||
-    Boolean(crmServicePeriodEnd) ||
-    Boolean(lead.crmPaymentMethod) ||
-    Boolean(lead.crmServiceType)
-
-  const currentStep = statusTimeline.indexOf(lead.status)
+  const pipelineStatus = lead.status as LeadStatus
+  const currentStep = LEAD_DETAIL_PROGRESS_STEPS.indexOf(
+    pipelineStatus as (typeof LEAD_DETAIL_PROGRESS_STEPS)[number],
+  )
+  const isLost = pipelineStatus === "deal_lost"
+  const isWon = pipelineStatus === "deal_won"
 
   const canManageLeads = member
-    ? hasAnyTeamRole(member.role, ["super_admin", "admin", "partnership_manager", "sdr"])
+    ? hasAnyTeamRole(member.role, LEAD_PIPELINE_ROLES)
     : false
 
-  // CRM sync actions require lead management permissions
-  const canSyncFromCrm = canManageLeads
-  const isPartnerSubmitted = lead.source === "partner_portal"
-  const pushCrmBanner =
-    query.pushCrm === "ok"
-      ? { tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100", text: isPartnerSubmitted ? "Lead approved and pushed to Zoho CRM." : "Lead successfully pushed to Zoho CRM." }
-      : query.pushCrm === "already_synced"
-        ? { tone: "border-sky-400/16 bg-sky-500/8 text-sky-100", text: "This lead is already in Zoho CRM." }
-        : query.pushCrm === "error"
-          ? {
-              tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
-              text: query.reason?.startsWith("crm_rejected:")
-                ? `Zoho CRM rejected the push: ${query.reason.slice("crm_rejected:".length)}`
-                : query.reason === "crm_rejected"
-                  ? "Zoho CRM rejected the push. Check CRM credentials and try again."
-                  : query.reason === "forbidden"
-                    ? "Your role does not have permission to push leads to CRM."
-                    : "Failed to push lead to CRM.",
-            }
-          : null
+  const canManageCommissions = member
+    ? hasAnyTeamRole(member.role, FINANCE_ROLES)
+    : false
 
-  const syncBanner =
-    query.sync === "ok"
+  const hasDealCloseCommission = leadCommissions.some(
+    (c) => c.sourceType === "lead" && c.sourceId === id,
+  )
+
+  const serviceOptions = mergeLeadServiceOptionsWithStored(services)
+
+  const contactNames = mergeLeadContactNamesForDisplay(lead)
+
+  const contactCompanyFields: readonly LeadFieldDef[] = [
+    { kind: "readonlyText", name: "customerNameSummary", label: "Full name" },
+    { kind: "text", name: "firstName", label: "First name" },
+    { kind: "text", name: "lastName", label: "Last name" },
+    { kind: "email", name: "customerEmail", label: "Email", required: true },
+    { kind: "tel", name: "customerPhone", label: "Phone" },
+    { kind: "text", name: "customerCompany", label: "Company", colSpan: 2 },
+    { kind: "multiselect", name: "serviceInterestMulti", label: "Services", options: serviceOptions, colSpan: 2 },
+    { kind: "textarea", name: "serviceInterestCustom", label: "Additional services (comma or newline separated)", rows: 2, colSpan: 2 },
+    { kind: "textarea", name: "notes", label: "Notes", rows: 3, colSpan: 2 },
+    { kind: "readonlyDate", name: "createdAt", label: "Submitted" },
+  ]
+  const contactCompanyInitial = {
+    customerNameSummary: lead.customerName,
+    firstName: contactNames.firstName,
+    lastName: contactNames.lastName,
+    customerEmail: lead.customerEmail,
+    customerPhone: lead.customerPhone,
+    customerCompany: lead.customerCompany,
+    serviceInterestMulti: services,
+    serviceInterestCustom: null,
+    notes: lead.notes,
+    createdAt: lead.createdAt instanceof Date ? lead.createdAt.toISOString() : lead.createdAt,
+  }
+
+  const sourceOwnershipFields: readonly LeadFieldDef[] = [
+    { kind: "text", name: "source", label: "Source" },
+    { kind: "text", name: "channel", label: "Channel" },
+    { kind: "text", name: "country", label: "Country" },
+    { kind: "text", name: "city", label: "City" },
+    { kind: "text", name: "leadOwner", label: "Lead owner" },
+    { kind: "text", name: "dealOwner", label: "Deal owner" },
+    { kind: "text", name: "partnershipManager", label: "Partnership manager" },
+    { kind: "text", name: "appointmentSetter", label: "Appointment setter" },
+  ]
+  const sourceOwnershipInitial = {
+    source: lead.source,
+    channel: lead.channel,
+    country: lead.country,
+    city: lead.city,
+    leadOwner: lead.leadOwner,
+    dealOwner: lead.dealOwner,
+    partnershipManager: lead.partnershipManager,
+    appointmentSetter: lead.appointmentSetter,
+  }
+
+  const qualificationFields: readonly LeadFieldDef[] = [
+    { kind: "text", name: "industry", label: "Industry" },
+    {
+      kind: "select",
+      name: "businessInUae",
+      label: "Business in UAE?",
+      options: [
+        { label: "Yes", value: "yes" },
+        { label: "No", value: "no" },
+      ],
+    },
+    {
+      kind: "select",
+      name: "transactionBand",
+      label: "Transactions / month",
+      options: leadSelectOptions([...LEAD_TRANSACTION_BANDS]),
+    },
+    {
+      kind: "select",
+      name: "businessArBand",
+      label: "Business AR (AED)",
+      options: leadSelectOptions([...LEAD_BUSINESS_AR_BANDS]),
+    },
+    {
+      kind: "select",
+      name: "decisionRole",
+      label: "Decision role",
+      options: leadSelectOptions([...LEAD_DECISION_ROLES]),
+    },
+    {
+      kind: "select",
+      name: "urgencyTimeline",
+      label: "Urgency timeline",
+      options: leadSelectOptions([...LEAD_URGENCY_TIMELINES]),
+    },
+    { kind: "number", name: "budgetAmount", label: "Budget (AED)", colSpan: 2 },
+  ]
+  const qualificationInitial = {
+    industry: lead.industry,
+    businessInUae: lead.businessInUae,
+    transactionBand: lead.transactionBand,
+    businessArBand: lead.businessArBand,
+    decisionRole: lead.decisionRole,
+    urgencyTimeline: lead.urgencyTimeline,
+    budgetAmount: lead.budgetAmount,
+  }
+
+  const pipelineFields: readonly LeadFieldDef[] = [
+    { kind: "textarea", name: "proposalSummary", label: "Proposal summary", rows: 2, colSpan: 2 },
+    { kind: "number", name: "proposalAmount", label: "Proposal amount (AED)" },
+    { kind: "text", name: "paymentStatus", label: "Payment status" },
+    { kind: "text", name: "paymentReference", label: "Payment reference" },
+    { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
+    { kind: "textarea", name: "stageNotes", label: "Stage notes", rows: 2, colSpan: 2 },
+    {
+      kind: "select",
+      name: "lostReason",
+      label: "Lost reason",
+      options: leadSelectOptions([...LEAD_LOST_REASONS]),
+      colSpan: 2,
+    },
+    { kind: "readonlyDate", name: "approvedAt", label: "Approved at" },
+    { kind: "readonlyDate", name: "stageUpdatedAt", label: "Stage updated at" },
+    { kind: "readonlyDate", name: "proposalSentAt", label: "Proposal sent at" },
+    { kind: "readonlyDate", name: "paymentDate", label: "Payment date" },
+    { kind: "readonlyDate", name: "convertedAt", label: "Converted at" },
+  ]
+  const toIso = (d: Date | string | null | undefined) =>
+    d instanceof Date ? d.toISOString() : d ?? null
+  const pipelineInitial = {
+    proposalSummary: lead.proposalSummary,
+    proposalAmount: lead.proposalAmount,
+    paymentStatus: lead.paymentStatus,
+    paymentReference: lead.paymentReference,
+    paymentAmount: lead.paymentAmount,
+    stageNotes: lead.stageNotes,
+    lostReason: lead.lostReason ?? lead.rejectionReason,
+    approvedAt: toIso(lead.approvedAt),
+    stageUpdatedAt: toIso(lead.stageUpdatedAt),
+    proposalSentAt: toIso(lead.proposalSentAt),
+    paymentDate: toIso(lead.paymentDate),
+    convertedAt: toIso(lead.convertedAt),
+  }
+
+  const approvalBanner =
+    query.status === "ok" && query.next === "lead_approved"
       ? {
           tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100",
-          text: query.status
-            ? `Lead synced from Zoho CRM. Current status: ${query.status.replace(/_/g, " ")}.`
-            : "Lead synced from Zoho CRM.",
+          text: "Lead approved. Pipeline stage updated.",
         }
-      : query.sync === "required"
-        ? {
-            tone: "border-amber-400/16 bg-amber-500/8 text-amber-100",
-            text: "Lead status is controlled by Zoho CRM. Use sync instead of changing it manually.",
-          }
-        : query.sync === "error"
-          ? {
-              tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
-              text:
-                query.reason === "missing_zoho_lead"
-                  ? "This lead is missing its Zoho Lead ID."
-                  : query.reason === "deal_create_failed"
-                    ? "Zoho marked the lead as qualified, but the associated deal could not be created."
-                    : query.reason === "deal_fetch_failed"
-                      ? "The associated Zoho deal could not be fetched."
-                      : query.reason === "lead_fetch_failed"
-                        ? "The Zoho lead could not be fetched."
-                        : query.reason === "missing_deal_amount"
-                          ? "Zoho deal amount is missing, so commission could not be calculated."
-                          : query.reason === "forbidden"
-                            ? "Your team role does not have permission to sync leads from Zoho CRM."
-                          : "Lead sync from Zoho CRM failed.",
-            }
-          : null
+      : null
+
+  const actionErrorBanner =
+    query.status === "error"
+      ? {
+          tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
+          text:
+            query.next === "forbidden"
+              ? "Your role does not have permission to perform that action."
+              : query.next === "not_found"
+                ? "Lead not found."
+                : query.next === "invalid_transition"
+                  ? "That action is not valid for the current lead status."
+                  : "Something went wrong.",
+        }
+      : null
+
+  const commissionOkBanner =
+    query.commission === "ok"
+      ? {
+          tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100",
+          text: "Commission created. It is pending review on the Commissions page.",
+        }
+      : null
+
+  const commissionErrBanner =
+    query.commission === "error" && query.commissionReason
+      ? {
+          tone: "border-rose-400/16 bg-rose-500/8 text-rose-100",
+          text:
+            COMMISSION_CREATE_ERROR_COPY[query.commissionReason] ??
+            "Could not create commission.",
+        }
+      : null
 
   return (
     <div className="space-y-6">
@@ -337,67 +394,72 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <PushToCrmForm leadId={lead.id} canSync={canSyncFromCrm} zohoLeadId={lead.zohoLeadId} isPartnerSubmitted={lead.source === "partner_portal"} />
-        <ZohoSyncForm leadId={lead.id} canSync={canSyncFromCrm && Boolean(lead.zohoLeadId)} />
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300">
-          Status syncs from Zoho CRM.
-        </div>
-        {!canSyncFromCrm ? (
+        {lead.status === "submitted" && lead.source === "partner_portal" ? (
+          <ApproveLeadForm leadId={lead.id} canApprove={canManageLeads} />
+        ) : null}
+        <LeadStageActions
+          leadId={lead.id}
+          currentStatus={pipelineStatus}
+          canManage={canManageLeads}
+        />
+        {!canManageLeads ? (
           <div className="rounded-lg border border-amber-400/16 bg-amber-500/8 px-4 py-2 text-sm text-amber-100">
-            CRM sync is limited to Admin, Partnership Manager, and SDR roles.
+            Pipeline actions require a pipeline role (Admin, Partnership Executive/Manager,
+            Pre-sales, Sales, or Operations).
           </div>
         ) : null}
       </div>
 
-      {pushCrmBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${pushCrmBanner.tone}`}>
-          {pushCrmBanner.text}
+      {approvalBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${approvalBanner.tone}`}>
+          {approvalBanner.text}
         </div>
       ) : null}
-      {syncBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${syncBanner.tone}`}>
-          {syncBanner.text}
+      {actionErrorBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${actionErrorBanner.tone}`}>
+          {actionErrorBanner.text}
+        </div>
+      ) : null}
+      {commissionOkBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${commissionOkBanner.tone}`}>
+          {commissionOkBanner.text}
+        </div>
+      ) : null}
+      {commissionErrBanner ? (
+        <div className={`rounded-xl border px-4 py-3 text-sm ${commissionErrBanner.tone}`}>
+          {commissionErrBanner.text}
         </div>
       ) : null}
 
-      {/* Timeline */}
+      {/* Timeline — same stages as partner portal + DB (`packages/types` lead pipeline). */}
       <div className="surface-card rounded-2xl p-6">
         <h2 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider text-slate-500">
-          Lead Progress
+          Lead progress
         </h2>
         <div className="flex items-center gap-0">
-          {statusTimeline.map((step, index) => {
-            const isCompleted =
-              lead.status === "deal_won"
-                ? true
-                : lead.status === "deal_lost"
-                  ? index < currentStep
-                  : index < currentStep
-            const isCurrent =
-              lead.status !== "deal_lost" && index === currentStep
-            const isTerminal = lead.status === "deal_lost" || lead.status === "deal_won"
+          {LEAD_DETAIL_PROGRESS_STEPS.map((step, index) => {
+            const done = isWon ? true : !isLost && index < currentStep
+            const current = !isLost && index === currentStep
 
             return (
               <div key={step} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center">
                   <div
                     className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
-                      isTerminal && index >= currentStep
-                        ? "border-zinc-700 bg-white/6 text-slate-600"
-                        : isCurrent
+                      done && !current
+                        ? "border-green-500 bg-green-950 text-green-400"
+                        : current
                           ? "border-indigo-400 bg-indigo-950 text-indigo-300"
-                          : isCompleted
-                            ? "border-green-500 bg-green-950 text-green-400"
-                            : "border-zinc-700 bg-white/6 text-slate-600"
+                          : "border-zinc-700 bg-white/6 text-slate-600"
                     }`}
                   >
-                    {isCompleted && !isCurrent ? "✓" : index + 1}
+                    {done && !current ? "✓" : index + 1}
                   </div>
                   <p
-                    className={`text-xs mt-1.5 text-center capitalize whitespace-nowrap ${
-                      isCurrent
+                    className={`text-xs mt-1.5 text-center whitespace-nowrap max-w-[5.5rem] sm:max-w-none ${
+                      current
                         ? "text-indigo-400 font-medium"
-                        : isCompleted
+                        : done
                           ? "text-slate-400"
                           : "text-slate-600"
                     }`}
@@ -405,273 +467,84 @@ export default async function LeadDetailPage({
                     {step.replace(/_/g, " ")}
                   </p>
                 </div>
-                {index < statusTimeline.length - 1 && (
+                {index < LEAD_DETAIL_PROGRESS_STEPS.length - 1 ? (
                   <div
                     className={`flex-1 h-0.5 mx-1 mb-5 ${
-                      index < currentStep && lead.status !== "deal_lost"
-                        ? "bg-green-800"
-                        : "bg-white/6"
+                      isWon || (!isLost && index < currentStep) ? "bg-green-800" : "bg-white/6"
                     }`}
                   />
-                )}
+                ) : null}
               </div>
             )
           })}
-          {lead.status === "deal_lost" && (
+          {isLost ? (
             <div className="flex flex-col items-center ml-2">
               <div className="w-8 h-8 rounded-full border-2 border-red-700 bg-red-950 flex items-center justify-center">
                 <span className="text-red-400 text-xs font-bold">✕</span>
               </div>
               <p className="text-xs mt-1.5 text-red-500 font-medium">
-                Deal Lost
+                Deal lost
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Customer Info */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="surface-card rounded-2xl p-6">
-            <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
-              <User className="w-4 h-4 text-slate-400" />
-              Customer Information
-            </h2>
-            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Full Name
-                </dt>
-                <dd className="text-white text-sm">{lead.customerName}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Email
-                </dt>
-                <dd className="text-white text-sm flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-500" />
-                  {lead.customerEmail}
-                </dd>
-              </div>
-              {lead.customerPhone && (
-                <div>
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Phone
-                  </dt>
-                  <dd className="text-white text-sm flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-slate-500" />
-                    {lead.customerPhone}
-                  </dd>
-                </div>
-              )}
-              {lead.customerCompany && (
-                <div>
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Company
-                  </dt>
-                  <dd className="text-white text-sm flex items-center gap-1.5">
-                    <Building2 className="w-3.5 h-3.5 text-slate-500" />
-                    {lead.customerCompany}
-                  </dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Submitted
-                </dt>
-                <dd className="text-white text-sm flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  {new Date(lead.createdAt).toLocaleDateString("en-AE", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </dd>
-              </div>
-              {lead.convertedAt && (
-                <div>
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Converted
-                  </dt>
-                  <dd className="text-white text-sm">
-                    {new Date(lead.convertedAt).toLocaleDateString("en-AE", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </dd>
-                </div>
-              )}
-              <div className="sm:col-span-2">
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Service List (Initial Inquiry For)
-                </dt>
-                <dd className="flex flex-wrap gap-1.5 mt-1">
-                  {services.map((s) => (
-                    <span
-                      key={s}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/6 border border-white/8 rounded text-xs text-zinc-300"
-                    >
-                      <Tag className="w-3 h-3 text-slate-500" />
-                      {s}
-                    </span>
-                  ))}
-                </dd>
-              </div>
-              {hasCrmSnapshot ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-2">
-                    CRM Deal Snapshot
-                  </dt>
-                  <dd className="rounded-xl border border-white/8 bg-white/[0.03] p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {crmServicesList.length > 0 ? (
-                        <div className="sm:col-span-2">
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            List of Services (Proposal Scope)
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {crmServicesList.map((service) => (
-                              <span
-                                key={service}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-white/6 border border-white/8 rounded text-xs text-zinc-300"
-                              >
-                                <Tag className="w-3 h-3 text-slate-500" />
-                                {service}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ) : null}
-                      {lead.crmProposal ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Proposal
-                          </p>
-                          <p className="text-white text-sm break-words">{lead.crmProposal}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmPaymentId ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Payment ID
-                          </p>
-                          <p className="text-white text-sm break-words">{lead.crmPaymentId}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmPaymentStatus ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Payment Status
-                          </p>
-                          <p className="text-white text-sm">{lead.crmPaymentStatus}</p>
-                        </div>
-                      ) : null}
-                      {crmAmount ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Amount
-                          </p>
-                          <p className="text-white text-sm">{crmAmount}</p>
-                        </div>
-                      ) : null}
-                      {crmClosingDate ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Closing Date
-                          </p>
-                          <p className="text-white text-sm">{crmClosingDate}</p>
-                        </div>
-                      ) : null}
-                      {crmArAmount ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            AR Amount
-                          </p>
-                          <p className="text-white text-sm">{crmArAmount}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmPaymentRecurring ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Payment Recurring
-                          </p>
-                          <p className="text-white text-sm">{lead.crmPaymentRecurring}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmCompanyName ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Company Name
-                          </p>
-                          <p className="text-white text-sm">{lead.crmCompanyName}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmIndustry ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Industry
-                          </p>
-                          <p className="text-white text-sm">{lead.crmIndustry}</p>
-                        </div>
-                      ) : null}
-                      {crmServicePeriodStart ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Service Start
-                          </p>
-                          <p className="text-white text-sm">{crmServicePeriodStart}</p>
-                        </div>
-                      ) : null}
-                      {crmServicePeriodEnd ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Service End
-                          </p>
-                          <p className="text-white text-sm">{crmServicePeriodEnd}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmPaymentMethod ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Payment Method
-                          </p>
-                          <p className="text-white text-sm">{lead.crmPaymentMethod}</p>
-                        </div>
-                      ) : null}
-                      {lead.crmServiceType ? (
-                        <div>
-                          <p className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                            Service Type
-                          </p>
-                          <p className="text-white text-sm">{lead.crmServiceType}</p>
-                        </div>
-                      ) : null}
-                    </div>
-                  </dd>
-                </div>
-              ) : null}
-              {lead.notes && (
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Notes
-                  </dt>
-                  <dd className="text-zinc-300 text-sm bg-white/6 border border-white/8 rounded-lg p-3">
-                    {lead.notes}
-                  </dd>
-                </div>
-              )}
-              {lead.rejectionReason && (
-                <div className="sm:col-span-2">
-                  <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                    Rejection Reason
-                  </dt>
-                  <dd className="text-red-400 text-sm">{lead.rejectionReason}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+          <section className="surface-card rounded-2xl p-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Contact & Company"
+              icon={<User className="h-4 w-4" />}
+              canEdit={canManageLeads}
+              fields={contactCompanyFields}
+              initialValues={contactCompanyInitial}
+            />
+          </section>
+
+          <section className="surface-card rounded-2xl p-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Source & Ownership"
+              icon={<MapPin className="h-4 w-4" />}
+              canEdit={canManageLeads}
+              fields={sourceOwnershipFields}
+              initialValues={sourceOwnershipInitial}
+            />
+          </section>
+
+          <section className="surface-card rounded-2xl p-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Qualification"
+              icon={<Briefcase className="h-4 w-4" />}
+              canEdit={canManageLeads}
+              fields={qualificationFields}
+              initialValues={qualificationInitial}
+            />
+          </section>
+
+          <section className="surface-card rounded-2xl p-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Pipeline & Proposal"
+              icon={<CircleDollarSign className="h-4 w-4" />}
+              canEdit={canManageLeads}
+              fields={pipelineFields}
+              initialValues={pipelineInitial}
+            />
+          </section>
+
+          {lead.rejectionReason ? (
+            <section className="surface-card rounded-2xl p-6">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-rose-400">
+                Rejection reason
+              </h3>
+              <p className="text-sm leading-6 text-rose-200">{lead.rejectionReason}</p>
+            </section>
+          ) : null}
 
           {/* Documents */}
           <div className="surface-card rounded-2xl p-6">
@@ -764,10 +637,98 @@ export default async function LeadDetailPage({
               Partner commissions
             </h2>
             <p className="text-slate-500 text-xs mb-4 leading-relaxed">
-              Deal-close rows from Zoho sync plus each recurring{" "}
-              <code className="text-slate-400">invoice.paid</code> with metadata{" "}
-              <code className="text-slate-400">partner_portal_lead_id</code>.
+              Finance creates commission rows from this lead when the deal is won (deal-close and
+              optional recurring periods). Basis defaults to payment amount, then proposal amount;
+              adjust with the optional field below. Approve and pay out from the Commissions page.
             </p>
+            {lead.status === "deal_won" && canManageCommissions ? (
+              <div className="mb-6 space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                {!hasDealCloseCommission ? (
+                  <form
+                    action="/api/admin/commissions/from-lead"
+                    method="POST"
+                    className="flex flex-wrap items-end gap-3"
+                  >
+                    <input type="hidden" name="leadId" value={lead.id} />
+                    <input
+                      type="hidden"
+                      name="redirectTo"
+                      value={`/leads/${lead.id}`}
+                    />
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-slate-500" htmlFor="deal-basis-amount">
+                        Basis (AED, optional)
+                      </label>
+                      <input
+                        id="deal-basis-amount"
+                        name="basisAmount"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Uses payment / proposal"
+                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-44"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 transition-colors"
+                    >
+                      Create deal commission
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <p className="text-slate-500 text-xs">
+                      Deal-close commission exists. Add rows below for extra billing periods
+                      (e.g. renewals).
+                    </p>
+                    <form
+                      action="/api/admin/commissions/from-lead"
+                      method="POST"
+                      className="flex flex-wrap items-end gap-3 pt-2 border-t border-white/10"
+                    >
+                      <input type="hidden" name="leadId" value={lead.id} />
+                      <input type="hidden" name="redirectTo" value={`/leads/${lead.id}`} />
+                      <input type="hidden" name="recurring" value="1" />
+                      <div className="flex flex-col gap-1">
+                        <label
+                          className="text-xs text-slate-500"
+                          htmlFor="recurring-basis-amount"
+                        >
+                          Recurring basis (AED, optional)
+                        </label>
+                        <input
+                          id="recurring-basis-amount"
+                          name="basisAmount"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="Uses payment / proposal"
+                          className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-44"
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 text-sm font-medium px-4 py-2 transition-colors"
+                      >
+                        Add recurring commission
+                      </button>
+                    </form>
+                  </>
+                )}
+              </div>
+            ) : null}
+            {lead.status === "deal_won" && !canManageCommissions ? (
+              <p className="text-slate-600 text-xs mb-4">
+                Commission creation requires Finance, Admin, or Super Admin.
+              </p>
+            ) : null}
+            {lead.paymentReference ? (
+              <p className="text-slate-500 text-xs mb-4">
+                Lead payment reference:{" "}
+                <span className="text-slate-300 font-mono">{lead.paymentReference}</span>
+              </p>
+            ) : null}
             {leadCommissions.length === 0 ? (
               <p className="text-slate-500 text-sm">No commission records for this lead yet.</p>
             ) : (
@@ -775,9 +736,9 @@ export default async function LeadDetailPage({
                 {leadCommissions.map((row) => {
                   const sourceLabel =
                     row.sourceType === "lead"
-                      ? "Deal close (CRM)"
+                      ? "Deal close"
                       : row.sourceType === "lead_recurring_invoice"
-                        ? "Recurring (Stripe)"
+                        ? "Recurring billing period"
                         : row.sourceType === "service_request"
                           ? "Service request"
                           : row.sourceType.replace(/_/g, " ")
@@ -801,21 +762,6 @@ export default async function LeadDetailPage({
                       {row.breakdown ? (
                         <p className="text-slate-400 text-xs leading-relaxed">{row.breakdown}</p>
                       ) : null}
-                      {row.stripeInvoiceId ? (
-                        <p className="text-xs">
-                          <span className="text-slate-500">Stripe invoice: </span>
-                          <a
-                            href={`https://dashboard.stripe.com/invoices/${row.stripeInvoiceId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 font-mono break-all"
-                          >
-                            {row.stripeInvoiceId}
-                          </a>
-                        </p>
-                      ) : (
-                        <p className="text-slate-600 text-xs">No Stripe invoice linked yet.</p>
-                      )}
                       {row.calculationSnapshot != null ? (
                         <details className="group">
                           <summary className="text-slate-400 text-xs cursor-pointer hover:text-slate-300 marker:text-slate-500">

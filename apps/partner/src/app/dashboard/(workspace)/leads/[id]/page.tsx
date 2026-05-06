@@ -1,27 +1,46 @@
+import type { ReactNode } from "react"
 import { db, leads, documents } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { z } from "zod"
 import {
   ArrowLeft,
+  Briefcase,
   Building2,
   Calendar,
+  CircleDollarSign,
   ExternalLink,
   FileText,
-  Tag,
+  MapPin,
   User,
 } from "lucide-react"
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
+import {
+  LEAD_DETAIL_PROGRESS_STEPS,
+  mergeLeadServiceOptionsWithStored,
+  mergeLeadContactNamesForDisplay,
+  LEAD_TRANSACTION_BANDS,
+  LEAD_BUSINESS_AR_BANDS,
+  LEAD_DECISION_ROLES,
+  LEAD_URGENCY_TIMELINES,
+  LEAD_LOST_REASONS,
+  leadSelectOptions,
+} from "@repo/types"
+import type { LeadStatus } from "@repo/types"
+import { LeadEditCard, type LeadFieldDef } from "@/components/lead-edit-card"
+
+export const dynamic = "force-dynamic"
 
 const statusStyles: Record<string, string> = {
   submitted: "border border-border bg-secondary text-foreground/90",
-  qualified: "border border-sky-400/20 bg-sky-500/10 text-sky-100",
+  lead_approved: "border border-sky-500/25 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:text-sky-100",
+  lead_follow_up: "border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/20 dark:text-cyan-100",
+  lead_qualified: "border border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:border-indigo-400/20 dark:text-indigo-100",
   proposal_sent: "border border-primary/20 bg-primary/10 text-primary",
-  deal_won: "border border-emerald-400/20 bg-emerald-500/10 text-emerald-100",
+  deal_won: "border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/20 dark:text-emerald-100",
   deal_lost: "border border-border bg-secondary/60 text-muted-foreground",
 }
-
-const statusTimeline = ["submitted", "qualified", "proposal_sent", "deal_won"]
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return []
@@ -35,35 +54,19 @@ function parseJsonArray(value: string | null | undefined): string[] {
   }
 }
 
-function formatCurrency(value: string | null | undefined) {
-  if (!value) return null
-  const n = Number(value)
-  if (!Number.isFinite(n)) return value
-  return new Intl.NumberFormat("en-AE", {
-    style: "currency",
-    currency: "AED",
-    maximumFractionDigits: 2,
-  }).format(n)
-}
-
-function formatIsoDate(value: string | null | undefined) {
-  if (!value) return null
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return value
-  return d.toLocaleDateString("en-AE", { day: "numeric", month: "long", year: "numeric" })
-}
-
-function formatDateTime(date: Date | null) {
-  if (!date) return "—"
-  return new Date(date).toLocaleDateString("en-AE", {
+function formatDateTime(date: Date | string | null | undefined) {
+  if (date == null) return "—"
+  const d = date instanceof Date ? date : new Date(date)
+  if (Number.isNaN(d.getTime())) return "—"
+  return d.toLocaleDateString("en-AE", {
     day: "numeric",
     month: "long",
     year: "numeric",
   })
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
-  if (!value) return null
+function SidebarField({ label, value }: { label: string; value: ReactNode }) {
+  if (value == null || value === "") return null
   return (
     <div>
       <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -76,10 +79,17 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default async function LeadDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ save?: string }>
 }) {
   const { id } = await params
+  if (!z.string().uuid().safeParse(id).success) {
+    notFound()
+  }
+
+  const query = await searchParams
   const partner = await getCurrentPartnerRecord()
 
   if (!partner) notFound()
@@ -99,31 +109,157 @@ export default async function LeadDetailPage({
   if (!lead) notFound()
 
   const services = parseJsonArray(lead.serviceInterest)
-  const crmServicesList = parseJsonArray(lead.crmServicesList)
-  const crmAmount = formatCurrency(lead.crmAmount?.toString())
-  const crmArAmount = formatCurrency(lead.crmArAmount?.toString())
-  const crmClosingDate = formatIsoDate(lead.crmClosingDate)
-  const crmServicePeriodStart = formatIsoDate(lead.crmServicePeriodStart)
-  const crmServicePeriodEnd = formatIsoDate(lead.crmServicePeriodEnd)
 
-  const hasCrmSnapshot =
-    crmServicesList.length > 0 ||
-    lead.crmProposal ||
-    crmAmount ||
-    crmClosingDate ||
-    crmArAmount ||
-    lead.crmIndustry ||
-    lead.crmPaymentId ||
-    lead.crmPaymentStatus ||
-    lead.crmPaymentRecurring ||
-    lead.crmCompanyName ||
-    crmServicePeriodStart ||
-    crmServicePeriodEnd ||
-    lead.crmPaymentMethod ||
-    lead.crmServiceType
+  const pipelineStatus = lead.status as LeadStatus
+  const currentStep = LEAD_DETAIL_PROGRESS_STEPS.indexOf(
+    pipelineStatus as (typeof LEAD_DETAIL_PROGRESS_STEPS)[number],
+  )
+  const isLost = pipelineStatus === "deal_lost"
+  const isWon = pipelineStatus === "deal_won"
+  const saveBanner =
+    query.save === "ok"
+      ? "Lead details updated."
+      : null
 
-  const currentStep = statusTimeline.indexOf(lead.status)
-  const isLost = lead.status === "deal_lost"
+  const serviceOptions = mergeLeadServiceOptionsWithStored(services)
+
+  const contactNames = mergeLeadContactNamesForDisplay(lead)
+
+  const contactCompanyFields: readonly LeadFieldDef[] = [
+    { kind: "readonlyText", name: "customerNameSummary", label: "Full name" },
+    { kind: "text", name: "firstName", label: "First name" },
+    { kind: "text", name: "lastName", label: "Last name" },
+    { kind: "email", name: "customerEmail", label: "Email", required: true },
+    { kind: "tel", name: "customerPhone", label: "Phone" },
+    { kind: "text", name: "customerCompany", label: "Company", colSpan: 2 },
+    { kind: "multiselect", name: "serviceInterestMulti", label: "Services of interest", options: serviceOptions, colSpan: 2 },
+    { kind: "textarea", name: "serviceInterestCustom", label: "Additional services (comma or newline separated)", rows: 2, colSpan: 2 },
+    { kind: "textarea", name: "notes", label: "Notes", rows: 3, colSpan: 2 },
+    { kind: "readonlyDate", name: "createdAt", label: "Submitted" },
+  ]
+  const contactCompanyInitial = {
+    customerNameSummary: lead.customerName,
+    firstName: contactNames.firstName,
+    lastName: contactNames.lastName,
+    customerEmail: lead.customerEmail,
+    customerPhone: lead.customerPhone,
+    customerCompany: lead.customerCompany,
+    serviceInterestMulti: services,
+    serviceInterestCustom: null,
+    notes: lead.notes,
+    createdAt:
+      lead.createdAt instanceof Date ? lead.createdAt.toISOString() : lead.createdAt,
+  }
+
+  const sourceRegionFields: readonly LeadFieldDef[] = [
+    { kind: "text", name: "source", label: "Source" },
+    { kind: "text", name: "channel", label: "Channel" },
+    { kind: "text", name: "country", label: "Country" },
+    { kind: "text", name: "city", label: "City" },
+  ]
+  const sourceRegionInitial = {
+    source: lead.source,
+    channel: lead.channel,
+    country: lead.country,
+    city: lead.city,
+  }
+
+  const ownershipFields: readonly LeadFieldDef[] = [
+    { kind: "text", name: "leadOwner", label: "Lead owner" },
+    { kind: "text", name: "dealOwner", label: "Deal owner" },
+    { kind: "text", name: "partnershipManager", label: "Partnership manager" },
+    { kind: "text", name: "appointmentSetter", label: "Appointment setter" },
+  ]
+  const ownershipInitial = {
+    leadOwner: lead.leadOwner,
+    dealOwner: lead.dealOwner,
+    partnershipManager: lead.partnershipManager,
+    appointmentSetter: lead.appointmentSetter,
+  }
+
+  const qualificationFields: readonly LeadFieldDef[] = [
+    { kind: "text", name: "industry", label: "Industry" },
+    {
+      kind: "select",
+      name: "businessInUae",
+      label: "Business in UAE?",
+      options: [
+        { label: "Yes", value: "yes" },
+        { label: "No", value: "no" },
+      ],
+    },
+    {
+      kind: "select",
+      name: "transactionBand",
+      label: "Transactions / month",
+      options: leadSelectOptions([...LEAD_TRANSACTION_BANDS]),
+    },
+    {
+      kind: "select",
+      name: "businessArBand",
+      label: "Business AR (AED)",
+      options: leadSelectOptions([...LEAD_BUSINESS_AR_BANDS]),
+    },
+    {
+      kind: "select",
+      name: "decisionRole",
+      label: "Decision role",
+      options: leadSelectOptions([...LEAD_DECISION_ROLES]),
+    },
+    {
+      kind: "select",
+      name: "urgencyTimeline",
+      label: "Urgency timeline",
+      options: leadSelectOptions([...LEAD_URGENCY_TIMELINES]),
+    },
+    { kind: "number", name: "budgetAmount", label: "Budget (AED)", colSpan: 2 },
+  ]
+  const qualificationInitial = {
+    industry: lead.industry,
+    businessInUae: lead.businessInUae,
+    transactionBand: lead.transactionBand,
+    businessArBand: lead.businessArBand,
+    decisionRole: lead.decisionRole,
+    urgencyTimeline: lead.urgencyTimeline,
+    budgetAmount: lead.budgetAmount,
+  }
+
+  const pipelineFields: readonly LeadFieldDef[] = [
+    { kind: "textarea", name: "proposalSummary", label: "Proposal summary", rows: 2, colSpan: 2 },
+    { kind: "number", name: "proposalAmount", label: "Proposal amount (AED)" },
+    { kind: "text", name: "paymentStatus", label: "Payment status" },
+    { kind: "text", name: "paymentReference", label: "Payment reference" },
+    { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
+    { kind: "textarea", name: "stageNotes", label: "Stage notes", rows: 2, colSpan: 2 },
+    {
+      kind: "select",
+      name: "lostReason",
+      label: "Lost reason",
+      options: leadSelectOptions([...LEAD_LOST_REASONS]),
+      colSpan: 2,
+    },
+    { kind: "readonlyDate", name: "approvedAt", label: "Approved at" },
+    { kind: "readonlyDate", name: "stageUpdatedAt", label: "Stage updated at" },
+    { kind: "readonlyDate", name: "proposalSentAt", label: "Proposal sent at" },
+    { kind: "readonlyDate", name: "paymentDate", label: "Payment date" },
+    { kind: "readonlyDate", name: "convertedAt", label: "Converted at" },
+  ]
+  const toIso = (d: Date | string | null | undefined) =>
+    d instanceof Date ? d.toISOString() : d ?? null
+  const pipelineInitial = {
+    proposalSummary: lead.proposalSummary,
+    proposalAmount: lead.proposalAmount,
+    paymentStatus: lead.paymentStatus,
+    paymentReference: lead.paymentReference,
+    paymentAmount: lead.paymentAmount,
+    stageNotes: lead.stageNotes,
+    lostReason: lead.lostReason ?? lead.rejectionReason,
+    approvedAt: toIso(lead.approvedAt),
+    stageUpdatedAt: toIso(lead.stageUpdatedAt),
+    proposalSentAt: toIso(lead.proposalSentAt),
+    paymentDate: toIso(lead.paymentDate),
+    convertedAt: toIso(lead.convertedAt),
+  }
 
   return (
     <div className="space-y-6">
@@ -152,10 +288,9 @@ export default async function LeadDetailPage({
           </span>
         </div>
 
-        {/* Progress timeline */}
+        {/* Progress timeline — same steps as admin + `LEAD_DETAIL_PROGRESS_STEPS` in @repo/types */}
         <div className="mt-6 flex items-center">
-          {statusTimeline.map((step, i) => {
-            const isWon = lead.status === "deal_won"
+          {LEAD_DETAIL_PROGRESS_STEPS.map((step, i) => {
             const done = isWon ? true : !isLost && i < currentStep
             const current = !isLost && i === currentStep
             return (
@@ -176,8 +311,12 @@ export default async function LeadDetailPage({
                     {step.replace(/_/g, " ")}
                   </span>
                 </div>
-                {i < statusTimeline.length - 1 ? (
-                  <div className={`h-px flex-1 ${done ? "bg-emerald-600/50" : "bg-secondary"}`} />
+                {i < LEAD_DETAIL_PROGRESS_STEPS.length - 1 ? (
+                  <div
+                    className={`h-px flex-1 ${
+                      isWon || (!isLost && i < currentStep) ? "bg-emerald-600/50" : "bg-secondary"
+                    }`}
+                  />
                 ) : null}
               </div>
             )
@@ -197,6 +336,11 @@ export default async function LeadDetailPage({
             Rejection reason: {lead.rejectionReason}
           </div>
         ) : null}
+        {saveBanner ? (
+          <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {saveBanner}
+          </div>
+        ) : null}
       </section>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -204,114 +348,60 @@ export default async function LeadDetailPage({
         <div className="space-y-6 lg:col-span-2">
           {/* Customer info */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
-              <User className="h-4 w-4 text-muted-foreground" />
-              Customer information
-            </h2>
-            <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Full name" value={lead.customerName} />
-              <Field
-                label="Email"
-                value={
-                  <a href={`mailto:${lead.customerEmail}`} className="text-primary hover:text-primary">
-                    {lead.customerEmail}
-                  </a>
-                }
-              />
-              {lead.customerPhone ? (
-                <Field
-                  label="Phone"
-                  value={
-                    <a href={`tel:${lead.customerPhone}`} className="text-primary hover:text-primary">
-                      {lead.customerPhone}
-                    </a>
-                  }
-                />
-              ) : null}
-              <Field label="Company" value={lead.customerCompany} />
-              <Field label="Submitted" value={formatDateTime(lead.createdAt)} />
-              {lead.convertedAt ? (
-                <Field label="Deal won" value={formatDateTime(lead.convertedAt)} />
-              ) : null}
-
-              {/* Services of interest */}
-              {services.length > 0 ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Services of interest
-                  </dt>
-                  <dd className="mt-2 flex flex-wrap gap-1.5">
-                    {services.map((s) => (
-                      <span
-                        key={s}
-                        className="flex items-center gap-1 rounded-lg border border-border bg-secondary/70 px-2.5 py-1 text-xs text-[var(--portal-text-soft)]"
-                      >
-                        <Tag className="h-3 w-3 text-muted-foreground" />
-                        {s}
-                      </span>
-                    ))}
-                  </dd>
-                </div>
-              ) : null}
-
-              {/* Notes */}
-              {lead.notes ? (
-                <div className="sm:col-span-2">
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Notes
-                  </dt>
-                  <dd className="mt-2 rounded-xl border border-border bg-secondary/50 p-3 text-sm text-[var(--portal-text-soft)]">
-                    {lead.notes}
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
+            <LeadEditCard
+              leadId={lead.id}
+              title="Contact & Company"
+              icon={<User className="h-4 w-4" />}
+              canEdit
+              fields={contactCompanyFields}
+              initialValues={contactCompanyInitial}
+            />
           </section>
 
-          {/* CRM Deal Snapshot */}
-          {hasCrmSnapshot ? (
-            <section className="surface-card rounded-[2rem] px-6 py-6">
-              <h2 className="font-heading text-lg font-semibold text-foreground">CRM deal snapshot</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Data synced from Zoho CRM after your lead progressed.
-              </p>
+          <section className="surface-card rounded-[2rem] px-6 py-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Source & Region"
+              icon={<MapPin className="h-4 w-4" />}
+              canEdit
+              fields={sourceRegionFields}
+              initialValues={sourceRegionInitial}
+            />
+          </section>
 
-              {crmServicesList.length > 0 ? (
-                <div className="mt-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                    Proposal services
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {crmServicesList.map((s) => (
-                      <span
-                        key={s}
-                        className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary"
-                      >
-                        <Tag className="h-3 w-3" />
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+          <section className="surface-card rounded-[2rem] px-6 py-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Team & ownership"
+              icon={<Building2 className="h-4 w-4" />}
+              canEdit={false}
+              fields={ownershipFields}
+              initialValues={ownershipInitial}
+            />
+          </section>
 
-              <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Field label="Proposal" value={lead.crmProposal} />
-                <Field label="Amount" value={crmAmount} />
-                <Field label="AR amount" value={crmArAmount} />
-                <Field label="Closing date" value={crmClosingDate} />
-                <Field label="Service period start" value={crmServicePeriodStart} />
-                <Field label="Service period end" value={crmServicePeriodEnd} />
-                <Field label="Payment status" value={lead.crmPaymentStatus} />
-                <Field label="Payment method" value={lead.crmPaymentMethod} />
-                <Field label="Payment recurring" value={lead.crmPaymentRecurring} />
-                <Field label="Payment ID" value={lead.crmPaymentId} />
-                <Field label="Industry" value={lead.crmIndustry} />
-                <Field label="Company name (CRM)" value={lead.crmCompanyName} />
-                <Field label="Service type" value={lead.crmServiceType} />
-              </dl>
-            </section>
-          ) : null}
+          <section className="surface-card rounded-[2rem] px-6 py-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Qualification"
+              icon={<Briefcase className="h-4 w-4" />}
+              canEdit={false}
+              fields={qualificationFields}
+              initialValues={qualificationInitial}
+            />
+          </section>
+
+          <section className="surface-card rounded-[2rem] px-6 py-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Pipeline & proposal"
+              icon={<CircleDollarSign className="h-4 w-4" />}
+              canEdit={false}
+              description="Same fields as the admin portal. Your team updates these as the deal progresses."
+              fields={pipelineFields}
+              initialValues={pipelineInitial}
+            />
+          </section>
 
           {/* Documents */}
           <section className="surface-card rounded-[2rem] px-6 py-6">
@@ -363,10 +453,12 @@ export default async function LeadDetailPage({
                   <dd className="mt-1 text-sm text-foreground">{formatDateTime(lead.convertedAt)}</dd>
                 </div>
               ) : null}
-              {crmClosingDate ? (
+              {lead.proposalSentAt ? (
                 <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">CRM closing date</dt>
-                  <dd className="mt-1 text-sm text-foreground">{crmClosingDate}</dd>
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Proposal sent</dt>
+                  <dd className="mt-1 text-sm text-foreground">
+                    {formatDateTime(lead.proposalSentAt)}
+                  </dd>
                 </div>
               ) : null}
             </dl>
@@ -379,9 +471,9 @@ export default async function LeadDetailPage({
               Lead source
             </h2>
             <dl className="mt-4 space-y-3">
-              <Field label="Channel" value={lead.channel?.replace(/_/g, " ")} />
-              <Field label="Country" value={lead.country} />
-              <Field label="City" value={lead.city} />
+              <SidebarField label="Channel" value={lead.channel?.replace(/_/g, " ")} />
+              <SidebarField label="Country" value={lead.country} />
+              <SidebarField label="City" value={lead.city} />
             </dl>
           </section>
 

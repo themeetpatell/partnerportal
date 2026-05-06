@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
     "@repo/types",
     "@repo/commission-engine",
     "@repo/notifications",
-    "@repo/zoho",
   ],
 }
 

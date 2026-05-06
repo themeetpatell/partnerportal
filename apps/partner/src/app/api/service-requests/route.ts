@@ -4,7 +4,6 @@ import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
 import { db, leads, partners, serviceRequests, services } from "@repo/db"
 import { rateLimit } from "@repo/auth"
-import { createZohoDeal, normalizeZohoLeadServices } from "@repo/zoho"
 
 const createServiceRequestSchema = z.object({
   leadId: z.string().uuid("Select an existing client"),
@@ -148,24 +147,6 @@ export async function POST(request: NextRequest) {
     const customerContact = lead.customerName.trim()
     const customerEmail = lead.customerEmail.trim()
 
-    // Closing date: 30 days from today
-    const closingDate = new Date()
-    closingDate.setDate(closingDate.getDate() + 30)
-    const closingDateStr = closingDate.toISOString().slice(0, 10)
-
-    // Create deal in Zoho Cross-selling Pipeline
-    const zohoServices = normalizeZohoLeadServices(serviceInterest)
-    const zohoDealId = await createZohoDeal({
-      Deal_Name: `${customerCompany} - Cross-sell`,
-      Stage: "Opportunity Screening",
-      Pipeline: "Cross Selling Pipeline",
-      Account_Name: customerCompany,
-      Description: `Contact: ${customerContact} (${customerEmail})\nServices: ${serviceInterest.join(", ")}\nSubmitted via Partner Portal by ${partner.contactName} (${partner.companyName})${description ? `\n\n${description}` : ""}`,
-      Closing_Date: closingDateStr,
-      Lead_Source: "Partner Portal",
-      ...(zohoServices.length > 0 ? { List_of_Services: zohoServices } : {}),
-    })
-
     const [newRequest] = await db
       .insert(serviceRequests)
       .values({
@@ -178,12 +159,7 @@ export async function POST(request: NextRequest) {
         customerContact,
         customerEmail,
         status: "pending",
-        notes: [
-          description || null,
-          zohoDealId ? `zoho_deal_id:${zohoDealId}` : null,
-        ]
-          .filter(Boolean)
-          .join("\n") || null,
+        notes: description || null,
       })
       .returning()
 

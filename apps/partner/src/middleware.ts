@@ -52,12 +52,11 @@ export default async function middleware(req: NextRequest) {
 
   const pathname = req.nextUrl.pathname
 
-  // Fully public paths that never branch on `user` — skip Supabase session work to cut latency
-  // (sign-in / sign-up / register / auth/* still refresh tokens so redirects and OAuth keep working).
+  // Fully public paths that never branch on `user` — skip Supabase session work to cut latency.
+  // Keep "/" out of this optimization because landing-page CTAs are personalized by auth state.
   if (
     isPublicRoute(req) &&
-    (pathname === "/" ||
-      pathname.startsWith("/forgot-password") ||
+    (pathname.startsWith("/forgot-password") ||
       pathname.startsWith("/reset-password") ||
       pathname.startsWith("/api/auth/"))
   ) {

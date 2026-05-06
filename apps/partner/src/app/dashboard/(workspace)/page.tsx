@@ -17,9 +17,11 @@ import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 const leadStatusStyles: Record<string, string> = {
   submitted: "border border-border bg-secondary text-foreground/90",
-  qualified: "border border-border bg-secondary text-foreground/90",
-  proposal_sent: "border border-border bg-secondary/60 text-foreground/90",
-  deal_won: "border border-border bg-secondary text-foreground",
+  lead_approved: "border border-sky-500/25 bg-sky-500/10 text-sky-700 dark:border-sky-400/20 dark:text-sky-100",
+  lead_follow_up: "border border-cyan-500/25 bg-cyan-500/10 text-cyan-700 dark:border-cyan-400/20 dark:text-cyan-100",
+  lead_qualified: "border border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:border-indigo-400/20 dark:text-indigo-100",
+  proposal_sent: "border border-primary/20 bg-primary/10 text-primary",
+  deal_won: "border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/20 dark:text-emerald-100",
   deal_lost: "border border-border bg-secondary/60 text-[var(--portal-text-soft)]",
 }
 
