@@ -6,9 +6,10 @@ import {
   leads,
   commissions,
   invoices,
-  serviceRequests,
   teamMembers,
   savedFilters,
+  activityTimelines,
+  crmActivities,
 } from "@repo/db"
 import {
   eq,
@@ -23,12 +24,15 @@ import {
   Users,
   UserCheck,
   TrendingUp,
+  TrendingDown,
   DollarSign,
   FileText,
-  ClipboardList,
   PieChart,
   Building2,
   Receipt,
+  Link2,
+  Activity,
+  CalendarClock,
 } from "lucide-react"
 import { auth, currentUser } from "@repo/auth/server"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
@@ -37,7 +41,6 @@ import { partnerScopeWhere, resolvePartnerScopeForActor, scopedPartnerFilters } 
 import {
   AnalyticsGlobalBar,
   PipelineFilters,
-  DeliveryFilters,
   PartnerReportFilters,
   FinanceFilters,
 } from "@/components/analytics-filter-bar"
@@ -259,7 +262,6 @@ export default async function AnalyticsPage({
   const teamMemberId = sp.teamMemberId
   const leadStatus = sp.leadStatus
   const leadSource = sp.leadSource
-  const serviceStatus = sp.serviceStatus
   const partnerTier = sp.partnerTier
 
   const leadScopeClause = scopedPartnerFilters(rowScope, leads.partnerId, partnerId)
@@ -272,17 +274,6 @@ export default async function AnalyticsPage({
     teamMemberId ? eq(leads.assignedTo, teamMemberId) : undefined,
     leadStatus ? eq(leads.status, leadStatus) : undefined,
     leadSource ? eq(leads.source, leadSource) : undefined,
-  ].filter(Boolean) as Parameters<typeof and>
-
-  const srScopeClause = scopedPartnerFilters(rowScope, serviceRequests.partnerId, partnerId)
-  const srConditions = [
-    eq(serviceRequests.tenantId, tenantId),
-    isNull(serviceRequests.deletedAt),
-    buildDateWhere(serviceRequests.createdAt, dateRange),
-    srScopeClause ?? undefined,
-    partnerType ? eq(partners.type, partnerType) : undefined,
-    teamMemberId ? eq(serviceRequests.assignedTo, teamMemberId) : undefined,
-    serviceStatus ? eq(serviceRequests.status, serviceStatus) : undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
   const invoiceScopeClause = scopedPartnerFilters(rowScope, invoices.partnerId, partnerId)
@@ -311,6 +302,18 @@ export default async function AnalyticsPage({
     commissionScopeClause ?? undefined,
   ].filter(Boolean) as Parameters<typeof and>
 
+  const activityConditions = [
+    eq(activityTimelines.tenantId, tenantId),
+    buildDateWhere(activityTimelines.createdAt, dateRange),
+  ].filter(Boolean) as Parameters<typeof and>
+
+  const crmScopeClause = scopedPartnerFilters(rowScope, crmActivities.partnerId, partnerId)
+  const crmConditions = [
+    eq(crmActivities.tenantId, tenantId),
+    buildDateWhere(crmActivities.scheduledAt, dateRange),
+    crmScopeClause ?? undefined,
+  ].filter(Boolean) as Parameters<typeof and>
+
   const [
     totalPartnersResult,
     partnerScopeRows,
@@ -319,8 +322,10 @@ export default async function AnalyticsPage({
     userSavedFilters,
     pendingCommResult,
     leadRows,
-    serviceRows,
     invoiceRows,
+    commissionDetailRows,
+    activityRows,
+    crmActivityRows,
   ] = await Promise.all([
     db.select({ count: count() }).from(partners).where(and(...partnerConditions)),
     db
@@ -328,6 +333,7 @@ export default async function AnalyticsPage({
         id: partners.id,
         companyName: partners.companyName,
         type: partners.type,
+        status: partners.status,
         agreementUrl: partners.agreementUrl,
         contractStatus: partners.contractStatus,
         contractSignedAt: partners.contractSignedAt,
@@ -384,6 +390,7 @@ export default async function AnalyticsPage({
         id: leads.id,
         status: leads.status,
         source: leads.source,
+        intakeType: leads.intakeType,
         createdAt: leads.createdAt,
         assignedTo: leads.assignedTo,
         partnerId: partners.id,
@@ -395,15 +402,6 @@ export default async function AnalyticsPage({
       .where(and(...leadConditions)),
     db
       .select({
-        id: serviceRequests.id,
-        status: serviceRequests.status,
-        partnerType: partners.type,
-      })
-      .from(serviceRequests)
-      .innerJoin(partners, eq(serviceRequests.partnerId, partners.id))
-      .where(and(...srConditions)),
-    db
-      .select({
         id: invoices.id,
         status: invoices.status,
         total: invoices.total,
@@ -412,22 +410,42 @@ export default async function AnalyticsPage({
       .from(invoices)
       .innerJoin(partners, eq(invoices.partnerId, partners.id))
       .where(and(...invoiceConditions)),
+    db
+      .select({
+        status: commissions.status,
+        amount: commissions.amount,
+      })
+      .from(commissions)
+      .innerJoin(partners, eq(commissions.partnerId, partners.id))
+      .where(
+        and(
+          ...commissionConditions,
+          isNull(partners.deletedAt),
+          partnerType ? eq(partners.type, partnerType) : undefined,
+        ),
+      ),
+    db
+      .select({ entityType: activityTimelines.entityType })
+      .from(activityTimelines)
+      .where(and(...activityConditions)),
+    db
+      .select({
+        id: crmActivities.id,
+        status: crmActivities.status,
+        activityType: crmActivities.activityType,
+      })
+      .from(crmActivities)
+      .where(and(...crmConditions)),
   ])
 
   const totalPartners = Number(totalPartnersResult[0]?.count ?? 0)
   const totalLeads = leadRows.length
   const convertedLeads = leadRows.filter((row) => row.status === "deal_won").length
+  const lostLeads = leadRows.filter((row) => row.status === "deal_lost").length
+  const existingClientLeads = leadRows.filter((row) => row.intakeType === "existing_lead").length
   const conversionRate =
     totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(1) : "0.0"
-
-  const totalServiceRequests = serviceRows.length
-  const completedServiceRequests = serviceRows.filter(
-    (row) => row.status === "completed"
-  ).length
-  const serviceCompletionRate =
-    totalServiceRequests > 0
-      ? ((completedServiceRequests / totalServiceRequests) * 100).toFixed(1)
-      : "0.0"
+  const lossRate = totalLeads > 0 ? ((lostLeads / totalLeads) * 100).toFixed(1) : "0.0"
 
   const totalInvoices = invoiceRows.length
   const paidInvoices = invoiceRows.filter((row) => row.status === "paid").length
@@ -435,6 +453,45 @@ export default async function AnalyticsPage({
     .filter((row) => row.status === "paid")
     .reduce((sum, row) => sum + Number(row.total ?? 0), 0)
   const pendingCommissions = Number(pendingCommResult[0]?.total ?? 0)
+
+  const activityEntityMap = new Map<string, number>()
+  for (const row of activityRows) {
+    const key = row.entityType || "unknown"
+    activityEntityMap.set(key, (activityEntityMap.get(key) ?? 0) + 1)
+  }
+  const activityEntityData = Array.from(activityEntityMap.entries())
+    .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
+    .sort((a, b) => b.value - a.value)
+
+  const commissionStatusMap = new Map<string, number>()
+  let commissionVolume = 0
+  for (const row of commissionDetailRows) {
+    commissionStatusMap.set(row.status, (commissionStatusMap.get(row.status) ?? 0) + 1)
+    commissionVolume += Number(row.amount ?? 0)
+  }
+  const commissionStatusData = Array.from(commissionStatusMap.entries())
+    .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
+    .sort((a, b) => b.value - a.value)
+
+  const crmScheduledCount = crmActivityRows.filter((r) => r.status === "scheduled").length
+  const crmCompletedCount = crmActivityRows.filter((r) => r.status === "completed").length
+  const crmTypeMap = new Map<string, number>()
+  for (const row of crmActivityRows) {
+    crmTypeMap.set(row.activityType, (crmTypeMap.get(row.activityType) ?? 0) + 1)
+  }
+  const crmActivityTypeData = Array.from(crmTypeMap.entries())
+    .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
+    .sort((a, b) => b.value - a.value)
+
+  const invoiceDraftCount = invoiceRows.filter((r) => r.status === "draft").length
+  const invoiceSentCount = invoiceRows.filter((r) => r.status === "sent").length
+  const invoiceStatusMap = new Map<string, number>()
+  for (const row of invoiceRows) {
+    invoiceStatusMap.set(row.status, (invoiceStatusMap.get(row.status) ?? 0) + 1)
+  }
+  const invoiceStatusData = Array.from(invoiceStatusMap.entries())
+    .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
+    .sort((a, b) => b.value - a.value)
 
   const now = new Date()
   const monthSeeds = Array.from({ length: 6 }, (_, index) => {
@@ -470,14 +527,6 @@ export default async function AnalyticsPage({
     leadStatusMap.set(row.status, (leadStatusMap.get(row.status) ?? 0) + 1)
   }
   const leadStatusData = Array.from(leadStatusMap.entries())
-    .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
-    .sort((a, b) => b.value - a.value)
-
-  const serviceStatusMap = new Map<string, number>()
-  for (const row of serviceRows) {
-    serviceStatusMap.set(row.status, (serviceStatusMap.get(row.status) ?? 0) + 1)
-  }
-  const serviceStatusData = Array.from(serviceStatusMap.entries())
     .map(([label, value]) => ({ label: label.replaceAll("_", " "), value }))
     .sort((a, b) => b.value - a.value)
 
@@ -555,6 +604,7 @@ export default async function AnalyticsPage({
     partnerScopeRows.reduce((map, partnerRow) => {
       const status = derivePartnerOperationalStatus(
         {
+          status: partnerRow.status,
           contractStatus: partnerRow.contractStatus,
           contractSignedAt: partnerRow.contractSignedAt,
           onboardedAt: partnerRow.onboardedAt,
@@ -575,7 +625,6 @@ export default async function AnalyticsPage({
     teamMemberId: sp.teamMemberId,
     leadStatus: sp.leadStatus,
     leadSource: sp.leadSource,
-    serviceStatus: sp.serviceStatus,
     partnerTier: sp.partnerTier,
   }
 
@@ -594,13 +643,34 @@ export default async function AnalyticsPage({
         }[sp.dateRange] ?? sp.dateRange
       : "All Time"
 
+  const navLink =
+    "rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-medium text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100"
+
   return (
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-white">Analytics — {filterLabel}</h1>
         <p className="text-zinc-400 text-sm mt-1">
-          Pipeline, delivery, partner, and finance reports in one admin view
+          Pipeline, partner lifecycle, workspace activity, and finance — without legacy service-request
+          delivery metrics.
         </p>
+        <nav className="mt-4 flex flex-wrap gap-2" aria-label="Analytics sections">
+          <a href="#pipeline" className={navLink}>
+            Pipeline
+          </a>
+          <a href="#health" className={navLink}>
+            Pipeline health
+          </a>
+          <a href="#operations" className={navLink}>
+            Workspace & ops
+          </a>
+          <a href="#partners" className={navLink}>
+            Partners
+          </a>
+          <a href="#finance" className={navLink}>
+            Finance
+          </a>
+        </nav>
       </div>
 
       <AnalyticsGlobalBar
@@ -608,7 +678,7 @@ export default async function AnalyticsPage({
         savedFilters={userSavedFilters}
       />
 
-      <section className="space-y-6">
+      <section id="pipeline" className="space-y-6 scroll-mt-24">
         <SectionHeader
           title="Pipeline Report"
           subtitle="Lead acquisition, conversion movement, and pipeline mix"
@@ -689,12 +759,53 @@ export default async function AnalyticsPage({
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section id="health" className="space-y-6 scroll-mt-24">
         <SectionHeader
-          title="Delivery Report"
-          subtitle="Service operations, completion rate, and team throughput"
+          title="Pipeline health"
+          subtitle="Win / loss balance and follow-on opportunities from existing clients"
         />
-        <DeliveryFilters
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard
+            label="Leads lost"
+            value={String(lostLeads)}
+            sub={`${lossRate}% of scoped leads in period`}
+            icon={TrendingDown}
+            color="bg-red-950/40 border-red-800/30 text-red-400"
+            href="/leads?status=deal_lost"
+          />
+          <StatCard
+            label="Existing-client leads"
+            value={String(existingClientLeads)}
+            sub="Upsell / expansion intake in period"
+            icon={Link2}
+            color="bg-violet-950/40 border-violet-800/30 text-violet-400"
+            href="/leads"
+          />
+          <StatCard
+            label="In proposal"
+            value={String(leadRows.filter((row) => row.status === "proposal_sent").length)}
+            sub="Active commercial stage"
+            icon={FileText}
+            color="bg-amber-950/40 border-amber-800/30 text-amber-400"
+            href="/leads?status=proposal_sent"
+          />
+          <StatCard
+            label="Qualified pipeline"
+            value={String(leadRows.filter((row) => row.status === "lead_qualified").length)}
+            sub="Discovery complete — ready for proposal"
+            icon={UserCheck}
+            color="bg-sky-950/40 border-sky-800/30 text-sky-400"
+            href="/leads?status=lead_qualified"
+          />
+        </div>
+      </section>
+
+      <section id="operations" className="space-y-6 scroll-mt-24">
+        <SectionHeader
+          title="Workspace & operations"
+          subtitle="Admin + partner motion: audit events, scheduled CRM touchpoints, commissions, invoices, and lead ownership"
+        />
+        <PipelineFilters
           partners={partnersList}
           teamMembers={membersList.map((m) => ({
             id: m.id,
@@ -703,19 +814,35 @@ export default async function AnalyticsPage({
           }))}
           currentFilters={currentFilters}
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
-            label="Service Requests"
-            value={String(totalServiceRequests)}
-            sub={`${serviceCompletionRate}% completion rate`}
-            icon={ClipboardList}
-            color="bg-purple-950/40 border-purple-800/30 text-purple-400"
-            href="/leads?kind=cross_sell"
+            label="Workspace events"
+            value={String(activityRows.length)}
+            sub="Activity timeline entries in period"
+            icon={Activity}
+            color="bg-zinc-800/80 border-zinc-700 text-zinc-300"
+            href="/partners"
           />
           <StatCard
-            label="Pending Commissions"
+            label="CRM touchpoints"
+            value={String(crmActivityRows.length)}
+            sub={`${crmScheduledCount} scheduled · ${crmCompletedCount} done`}
+            icon={CalendarClock}
+            color="bg-indigo-950/40 border-indigo-800/30 text-indigo-300"
+            href="/partners"
+          />
+          <StatCard
+            label="Commission volume"
+            value={`AED ${formatMoney(commissionVolume)}`}
+            sub="Created commissions in period (all statuses)"
+            icon={DollarSign}
+            color="bg-emerald-950/40 border-emerald-800/30 text-emerald-300"
+            href="/commissions"
+          />
+          <StatCard
+            label="Pending commissions"
             value={`AED ${formatMoney(pendingCommissions)}`}
-            sub="Awaiting approval"
+            sub="Still awaiting approval"
             icon={DollarSign}
             color="bg-yellow-950/40 border-yellow-800/30 text-yellow-400"
             href="/commissions"
@@ -724,14 +851,66 @@ export default async function AnalyticsPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <BreakdownCard
-            title="Service Status Mix"
-            subtitle="Operational load across delivery stages"
-            icon={ClipboardList}
-            rows={serviceStatusData}
-            emptyLabel="No service request data for the selected filters"
+            title="Events by record type"
+            subtitle="Where automated activity is being logged (partner, lead, commission, …)"
+            icon={Activity}
+            rows={activityEntityData}
+            emptyLabel="No workspace events for the selected filters"
           />
+          <BreakdownCard
+            title="Commission status mix"
+            subtitle="Lifecycle of commission rows created in the period"
+            icon={PieChart}
+            rows={commissionStatusData}
+            emptyLabel="No commission rows in the selected filters"
+          />
+        </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <BreakdownCard
+            title="CRM activity types"
+            subtitle="Calls, meetings, emails, and tasks scheduled in the period"
+            icon={CalendarClock}
+            rows={crmActivityTypeData}
+            emptyLabel="No CRM activities in the selected filters"
+          />
+          <BreakdownCard
+            title="Invoice status mix"
+            subtitle="Draft, sent, paid, and overdue invoices issued in the period"
+            icon={Receipt}
+            rows={invoiceStatusData}
+            emptyLabel="No invoices in the selected filters"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            label="Draft invoices"
+            value={String(invoiceDraftCount)}
+            sub="Not yet sent to partner"
+            icon={FileText}
+            color="bg-slate-800/80 border-slate-700 text-slate-300"
+            href="/invoices?status=draft"
+          />
+          <StatCard
+            label="Sent invoices"
+            value={String(invoiceSentCount)}
+            sub="Awaiting collection"
+            icon={Receipt}
+            color="bg-cyan-950/40 border-cyan-800/30 text-cyan-300"
+            href="/invoices?status=sent"
+          />
+          <StatCard
+            label="Paid invoices"
+            value={String(paidInvoices)}
+            sub="Cash collected in period"
+            icon={Receipt}
+            color="bg-green-950/40 border-green-800/30 text-green-300"
+            href="/invoices?status=paid"
+          />
+        </div>
+
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl">
             <div className="px-6 py-4 border-b border-zinc-800 flex items-center gap-2">
               <Users className="w-4 h-4 text-zinc-500" />
               <div>
@@ -799,11 +978,10 @@ export default async function AnalyticsPage({
                 </table>
               </div>
             )}
-          </div>
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section id="partners" className="space-y-6 scroll-mt-24">
         <SectionHeader
           title="Partner Report"
           subtitle="Partner contribution, lifecycle, and type composition"
@@ -898,7 +1076,7 @@ export default async function AnalyticsPage({
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section id="finance" className="space-y-6 scroll-mt-24">
         <SectionHeader
           title="Finance Report"
           subtitle="Invoice volume, revenue collection, and pending commissions"

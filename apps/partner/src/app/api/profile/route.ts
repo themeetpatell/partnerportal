@@ -20,6 +20,7 @@ const updateProfileSchema = z.object({
   designation: z.string().max(255).optional().nullable(),
   dateOfBirth: z.string().max(20).optional().nullable(),
   secondaryEmail: z.string().email("Invalid email").max(255).optional().nullable().or(z.literal("")),
+  emailOptOut: z.boolean().optional().nullable(),
   vatRegistered: z.boolean().optional().nullable(),
   vatNumber: z.string().max(100).optional().nullable(),
   tradeLicense: z.string().max(255).optional().nullable(),
@@ -29,7 +30,10 @@ const updateProfileSchema = z.object({
   bankCountry: z.string().max(100).optional().nullable(),
   accountNoIban: z.string().max(255).optional().nullable(),
   swiftBicCode: z.string().max(50).optional().nullable(),
-  paymentFrequency: z.enum(["monthly", "quarterly", "on-request"]).optional().nullable(),
+  paymentFrequency: z
+    .enum(["monthly", "quarterly", "bi-weekly", "on-request"])
+    .optional()
+    .nullable(),
 })
 
 export async function PATCH(request: NextRequest) {
@@ -85,6 +89,7 @@ export async function PATCH(request: NextRequest) {
         ...(data.designation !== undefined && { designation: data.designation }),
         ...(data.dateOfBirth !== undefined && { dateOfBirth: data.dateOfBirth }),
         ...(data.secondaryEmail !== undefined && { secondaryEmail: data.secondaryEmail || null }),
+        ...(data.emailOptOut !== undefined && { emailOptOut: data.emailOptOut }),
         ...(data.vatRegistered !== undefined && { vatRegistered: data.vatRegistered }),
         ...(data.vatNumber !== undefined && { vatNumber: data.vatNumber }),
         ...(data.tradeLicense !== undefined && { tradeLicense: data.tradeLicense }),

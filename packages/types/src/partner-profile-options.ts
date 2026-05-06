@@ -56,3 +56,20 @@ export const NATIONALITY_OPTIONS = [
   "Mexico",
   "Other",
 ] as const
+
+export const COUNTRY_OPTIONS = [
+  "United Arab Emirates",
+  "Saudi Arabia",
+  "Qatar",
+  "Bahrain",
+  "Kuwait",
+  "Oman",
+  "India",
+  "Pakistan",
+  "United Kingdom",
+  "United States",
+  "Canada",
+  "Australia",
+  "Singapore",
+  "Other",
+] as const

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, invoices, logActivity } from "@repo/db"
-import { and, count, eq, isNull } from "drizzle-orm"
+import { db, invoices, leads, logActivity } from "@repo/db"
+import { and, count, eq, inArray, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
   const {
     partnerId,
     serviceRequestId,
+    relatedLeadIds,
     periodStart,
     periodEnd,
     subtotal,
@@ -39,6 +40,32 @@ export async function POST(req: NextRequest) {
     dueDate,
     status = "draft",
   } = body
+
+  let relatedLeadIdsJson: string | null = null
+  if (Array.isArray(relatedLeadIds) && relatedLeadIds.length > 0) {
+    const ids = relatedLeadIds.filter((x: unknown) => typeof x === "string") as string[]
+    if (ids.length !== relatedLeadIds.length) {
+      return NextResponse.json({ error: "relatedLeadIds must be an array of strings" }, { status: 400 })
+    }
+    const leadRows = await db
+      .select({ id: leads.id })
+      .from(leads)
+      .where(
+        and(
+          eq(leads.tenantId, tenantId),
+          eq(leads.partnerId, partnerId),
+          isNull(leads.deletedAt),
+          inArray(leads.id, ids),
+        ),
+      )
+    if (leadRows.length !== ids.length) {
+      return NextResponse.json(
+        { error: "One or more selected leads are invalid for this partner." },
+        { status: 400 },
+      )
+    }
+    relatedLeadIdsJson = JSON.stringify(ids)
+  }
 
   if (!partnerId || !periodStart || !periodEnd || subtotal == null || !dueDate) {
     return NextResponse.json(
@@ -75,6 +102,7 @@ export async function POST(req: NextRequest) {
       tenantId,
       partnerId,
       serviceRequestId: serviceRequestId || null,
+      relatedLeadIds: relatedLeadIdsJson,
       invoiceNumber,
       periodStart: new Date(periodStart),
       periodEnd: new Date(periodEnd),

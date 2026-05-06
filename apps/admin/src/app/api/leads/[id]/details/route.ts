@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { rateLimit } from "@repo/auth"
-import { db, leads, teamMembers } from "@repo/db"
+import { db, documents, leads, partners, teamMembers } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import { isPaymentRecurringSlug } from "@repo/types"
 import { getActiveTeamMember } from "@/lib/admin-auth"
@@ -38,6 +38,52 @@ function parseServiceInterestFromForm(formData: FormData, fallbackRaw: string) {
   }
 
   return fallbackRaw
+}
+
+const MAX_UPLOAD_SIZE = 8 * 1024 * 1024
+const ALLOWED_UPLOAD_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"])
+
+async function storeLeadTradeLicenseFile(params: {
+  file: File
+  tenantId: string
+  leadId: string
+  uploadedBy: string
+}) {
+  if (!ALLOWED_UPLOAD_TYPES.has(params.file.type)) {
+    return NextResponse.json({ error: "Trade license must be PDF, PNG, or JPG." }, { status: 422 })
+  }
+
+  if (params.file.size > MAX_UPLOAD_SIZE) {
+    return NextResponse.json({ error: "Trade license upload must be under 8 MB." }, { status: 422 })
+  }
+
+  const buffer = Buffer.from(await params.file.arrayBuffer())
+  const [document] = await db
+    .insert(documents)
+    .values({
+      tenantId: params.tenantId,
+      ownerType: "lead",
+      ownerId: params.leadId,
+      documentType: "trade_license",
+      fileName: params.file.name || "trade-license",
+      zohoWorkdriveId: `in-app:${params.leadId}:trade_license:${Date.now()}`,
+      zohoWorkdriveUrl: "pending",
+      storageProvider: "database",
+      mimeType: params.file.type,
+      fileDataBase64: buffer.toString("base64"),
+      uploadedBy: params.uploadedBy,
+      uploadedAt: new Date(),
+    })
+    .returning({ id: documents.id })
+
+  if (document) {
+    await db
+      .update(documents)
+      .set({ zohoWorkdriveUrl: `/api/documents/${document.id}/download` })
+      .where(eq(documents.id, document.id))
+  }
+
+  return null
 }
 
 export async function POST(
@@ -156,7 +202,88 @@ export async function POST(
     }
   }
 
+  let partnershipManagerDisplay = lead.partnershipManager
+  let appointmentSetterDisplay = lead.appointmentSetter
+  if (hasField("partnershipManagerTeamMemberId") || hasField("sdrTeamMemberId")) {
+    const [partnerProfile] = await db
+      .select({
+        partnershipManagerTeamMemberId: partners.partnershipManagerTeamMemberId,
+        sdrTeamMemberId: partners.sdrTeamMemberId,
+      })
+      .from(partners)
+      .where(and(eq(partners.id, lead.partnerId), eq(partners.tenantId, lead.tenantId)))
+      .limit(1)
+
+    if (!partnerProfile) {
+      return NextResponse.json({ error: "Partner profile not found for this lead." }, { status: 404 })
+    }
+
+    const requestedPmTeamMemberId = readStringField(
+      "partnershipManagerTeamMemberId",
+      partnerProfile.partnershipManagerTeamMemberId,
+    )
+    const requestedSdrTeamMemberId = readStringField(
+      "sdrTeamMemberId",
+      partnerProfile.sdrTeamMemberId,
+    )
+
+    if (
+      requestedPmTeamMemberId !== partnerProfile.partnershipManagerTeamMemberId ||
+      requestedSdrTeamMemberId !== partnerProfile.sdrTeamMemberId
+    ) {
+      return NextResponse.json(
+        { error: "Partnership manager and partnership executive must come from the partner profile." },
+        { status: 422 },
+      )
+    }
+
+    const [pmRow, sdrRow] = await Promise.all([
+      requestedPmTeamMemberId
+        ? db
+            .select({ name: teamMembers.name })
+            .from(teamMembers)
+            .where(
+              and(
+                eq(teamMembers.id, requestedPmTeamMemberId),
+                eq(teamMembers.tenantId, lead.tenantId),
+                eq(teamMembers.isActive, true),
+              ),
+            )
+            .limit(1)
+            .then((rows) => rows[0] ?? null)
+        : Promise.resolve(null),
+      requestedSdrTeamMemberId
+        ? db
+            .select({ name: teamMembers.name })
+            .from(teamMembers)
+            .where(
+              and(
+                eq(teamMembers.id, requestedSdrTeamMemberId),
+                eq(teamMembers.tenantId, lead.tenantId),
+                eq(teamMembers.isActive, true),
+              ),
+            )
+            .limit(1)
+            .then((rows) => rows[0] ?? null)
+        : Promise.resolve(null),
+    ])
+
+    partnershipManagerDisplay = pmRow?.name ?? null
+    appointmentSetterDisplay = sdrRow?.name ?? null
+  }
+
   const now = new Date()
+  const tradeLicenseFile = formData.get("tradeLicenseFile")
+  if (tradeLicenseFile instanceof File && tradeLicenseFile.size > 0) {
+    const uploadError = await storeLeadTradeLicenseFile({
+      file: tradeLicenseFile,
+      tenantId: lead.tenantId,
+      leadId: lead.id,
+      uploadedBy: userId,
+    })
+    if (uploadError) return uploadError
+  }
+
   const [updatedLead] = await db
     .update(leads)
     .set({
@@ -167,7 +294,6 @@ export async function POST(
       customerPhone: readStringField("customerPhone", lead.customerPhone),
       customerCompany: readStringField("customerCompany", lead.customerCompany),
       source: readStringField("source", lead.source),
-      channel: readStringField("channel", lead.channel),
       country,
       city: readStringField("city", lead.city),
       serviceInterest:
@@ -178,8 +304,8 @@ export async function POST(
       dealOwnerUserId: dealOwnerUserIdVal,
       leadOwner: leadOwnerDisplay,
       dealOwner: dealOwnerDisplay,
-      partnershipManager: readStringField("partnershipManager", lead.partnershipManager),
-      appointmentSetter: readStringField("appointmentSetter", lead.appointmentSetter),
+      partnershipManager: partnershipManagerDisplay,
+      appointmentSetter: appointmentSetterDisplay,
       industry: readStringField("industry", lead.industry),
       businessInUae: readStringField("businessInUae", lead.businessInUae),
       transactionBand: readStringField("transactionBand", lead.transactionBand),

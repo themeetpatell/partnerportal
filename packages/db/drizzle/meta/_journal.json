@@ -162,6 +162,20 @@
       "when": 1778510000000,
       "tag": "0022_lead_intake_unify_service_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1778516000000,
+      "tag": "0023_crm_activities_invoice_leads",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778522000000,
+      "tag": "0024_team_member_profile_fields",
+      "breakpoints": true
     }
   ]
 }

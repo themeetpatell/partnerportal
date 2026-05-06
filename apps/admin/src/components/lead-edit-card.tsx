@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
-import { Loader2, Pencil, Save, Tag, X } from "lucide-react"
+import { Check, ChevronDown, FileUp, Loader2, Pencil, Save, Tag, X } from "lucide-react"
 
 type SelectOption = { label: string; value: string }
 
@@ -13,6 +13,13 @@ export type LeadFieldDef =
       label: string
       placeholder?: string
       required?: boolean
+      colSpan?: 1 | 2
+    }
+  | {
+      kind: "file"
+      name: string
+      label: string
+      accept?: string
       colSpan?: 1 | 2
     }
   | {
@@ -51,7 +58,7 @@ export type LeadFieldDef =
       colSpan?: 1 | 2
     }
 
-type FieldValue = string | string[] | null
+type FieldValue = string | string[] | File | null
 
 type Props = {
   leadId: string
@@ -76,14 +83,14 @@ const currencyFmt = new Intl.NumberFormat("en-AE", {
 })
 
 function formatReadonlyDate(raw: FieldValue): string {
-  if (!raw || Array.isArray(raw)) return "—"
+  if (!raw || Array.isArray(raw) || raw instanceof File) return "—"
   const parsed = new Date(raw)
   if (Number.isNaN(parsed.getTime())) return raw
   return parsed.toLocaleDateString("en-AE", dateFmt)
 }
 
 function formatNumberDisplay(name: string, raw: FieldValue): string {
-  if (!raw || Array.isArray(raw)) return "—"
+  if (!raw || Array.isArray(raw) || raw instanceof File) return "—"
   const parsed = Number(raw)
   if (!Number.isFinite(parsed)) return raw
   if (/Amount$/.test(name) || name === "budgetAmount") {
@@ -100,7 +107,7 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
   }
 
   if (field.kind === "readonlyText") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     return <p className="text-sm text-white">{value}</p>
   }
 
@@ -123,7 +130,7 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
   }
 
   if (field.kind === "textarea") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     return (
       <p className="whitespace-pre-wrap break-words text-sm text-zinc-200">
         {value}
@@ -136,12 +143,16 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
   }
 
   if (field.kind === "select") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     const match = field.options.find((o) => o.value === value)
     return <p className="text-sm capitalize text-white">{match?.label ?? value.replace(/_/g, " ")}</p>
   }
 
-  if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+  if (field.kind === "file") {
+    return <p className="text-sm text-slate-500">Upload a file while editing.</p>
+  }
+
+  if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
   return <p className="break-words text-sm text-white">{value}</p>
 }
 
@@ -155,6 +166,79 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 const inputClass =
   "w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder:text-slate-600 transition-colors focus:border-indigo-400/60 focus:outline-none"
+
+function MultiSelectDropdown({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly string[]
+  value: FieldValue
+  onChange: (next: FieldValue) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = Array.isArray(value) ? value : []
+  const selectedSet = new Set(selected)
+
+  const toggle = (option: string) => {
+    const next = selectedSet.has(option)
+      ? selected.filter((item) => item !== option)
+      : [...selected, option]
+    onChange(next)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className={`${inputClass} flex min-h-10 items-center justify-between gap-3 text-left`}
+      >
+        <span className="min-w-0 flex-1 truncate text-sm text-white">
+          {selected.length > 0 ? `${selected.length} selected` : "Select services"}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {selected.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => toggle(item)}
+              className="inline-flex items-center gap-1 rounded border border-indigo-400/20 bg-indigo-500/10 px-2 py-0.5 text-xs text-indigo-200"
+            >
+              {item}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {open ? (
+        <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-white/10 bg-zinc-950 p-2 shadow-2xl">
+          {options.map((option) => {
+            const checked = selectedSet.has(option)
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggle(option)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-zinc-200 transition-colors hover:bg-white/[0.06]"
+              >
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${checked ? "border-indigo-500 bg-indigo-600 text-white" : "border-zinc-700 bg-zinc-900"}`}>
+                  {checked ? <Check className="h-3 w-3" /> : null}
+                </span>
+                <span>{option}</span>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 function EditField({
   field,
@@ -170,24 +254,23 @@ function EditField({
   }
 
   if (field.kind === "multiselect") {
-    const current = Array.isArray(value) ? value : []
+    return <MultiSelectDropdown options={field.options} value={value} onChange={onChange} />
+  }
+
+  if (field.kind === "file") {
+    const fileName = value instanceof File ? value.name : ""
     return (
-      <select
-        multiple
-        value={current}
-        onChange={(e) => {
-          const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
-          onChange(selected)
-        }}
-        size={Math.min(8, Math.max(4, field.options.length))}
-        className={inputClass}
-      >
-        {field.options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.04] px-4 py-5 text-center transition-colors hover:border-indigo-400/40 hover:bg-white/[0.06]">
+        <FileUp className="h-5 w-5 text-indigo-300" />
+        <span className="mt-2 text-sm font-medium text-white">{fileName || "Upload trade license"}</span>
+        <span className="mt-1 text-xs text-slate-500">PDF, PNG, or JPG up to 8 MB</span>
+        <input
+          type="file"
+          accept={field.accept}
+          className="sr-only"
+          onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        />
+      </label>
     )
   }
 
@@ -304,6 +387,10 @@ export function LeadEditCard({
           // ensure server sees the key so it processes the change
           formData.append(field.name, "")
         }
+        continue
+      }
+      if (field.kind === "file") {
+        if (value instanceof File) formData.append(field.name, value)
         continue
       }
       const stringValue = typeof value === "string" ? value : ""

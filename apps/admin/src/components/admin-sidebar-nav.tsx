@@ -56,7 +56,7 @@ const navItems: NavItem[] = [
   { label: "Commissions", href: "/commissions", icon: CircleDollarSign, module: "commissions" },
   { label: "Invoices", href: "/invoices", icon: Receipt, module: "invoices" },
   { label: "Analytics", href: "/analytics", icon: BarChart3, module: "analytics" },
-  { label: "Settings", href: "/settings", icon: Settings, module: "users" },
+  { label: "Settings", href: "/settings", icon: Settings },
 ]
 
 function itemVisible(
@@ -96,6 +96,8 @@ interface AdminSidebarNavProps {
   userName: string
   userEmail: string
   userInitials: string
+  /** Public URL from workspace profile (e.g. Supabase Storage). */
+  userAvatarUrl?: string | null
   userRole: string
   teamRole: string | null
   teamPermissions: string
@@ -135,6 +137,7 @@ function SidebarContent({
   userName,
   userEmail,
   userInitials,
+  userAvatarUrl,
   userRole,
   teamRole,
   teamPermissions,
@@ -144,6 +147,7 @@ function SidebarContent({
   userName: string
   userEmail: string
   userInitials: string
+  userAvatarUrl?: string | null
   userRole: string
   teamRole: string | null
   teamPermissions: string
@@ -189,13 +193,19 @@ function SidebarContent({
         ))}
       </nav>
 
-      <div className="border-t border-zinc-800 p-3">
-        <div className="px-2 py-2 rounded-lg hover:bg-zinc-800 transition-colors group">
+      <div className="border-t border-zinc-800 p-3 space-y-3">
+        <Link
+          href="/profile"
+          className="block rounded-lg px-2 py-2 transition-colors hover:bg-zinc-800 group"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center flex-shrink-0">
-              <span className="text-indigo-300 text-xs font-semibold">
-                {userInitials}
-              </span>
+            <div className="w-8 h-8 rounded-full bg-indigo-900/60 border border-indigo-700/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {userAvatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- remote Supabase URL; avoids image remotePatterns
+                <img src={userAvatarUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-indigo-300 text-xs font-semibold">{userInitials}</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -207,15 +217,26 @@ function SidebarContent({
                 </span>
               </div>
               <p className="text-zinc-500 text-xs truncate">{userEmail}</p>
+              <p className="text-[11px] text-indigo-400/90 mt-1 font-medium">View profile →</p>
             </div>
-            <button
-              onClick={() => signOut({ redirectUrl: "/sign-in" })}
-              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-zinc-700 flex-shrink-0"
-              title="Sign out"
-            >
-              <LogOut className="w-3.5 h-3.5 text-zinc-400" />
-            </button>
           </div>
+        </Link>
+        <div className="flex items-center justify-between gap-2 px-1">
+          <Link
+            href="/settings"
+            className="text-xs text-zinc-500 hover:text-zinc-200 transition-colors"
+          >
+            Settings
+          </Link>
+          <button
+            type="button"
+            onClick={() => signOut({ redirectUrl: "/sign-in" })}
+            className="inline-flex items-center gap-1 rounded-md p-1.5 text-xs text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Sign out
+          </button>
         </div>
       </div>
     </div>

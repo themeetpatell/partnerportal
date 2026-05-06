@@ -1,14 +1,15 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { currentUser } from "@repo/auth/server"
-import { db, invoices, partners, serviceRequests } from "@repo/db"
-import { and, eq, isNull } from "drizzle-orm"
+import { db, invoices, leads, partners, serviceRequests } from "@repo/db"
+import { and, eq, inArray, isNull } from "drizzle-orm"
 import {
   ArrowLeft,
   Building2,
   Calendar,
   FileText,
   Receipt,
+  Users,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -100,6 +101,33 @@ export default async function InvoiceDetailPage({
 
   if (!isPartnerReadable(scope, row.invoice.partnerId)) {
     notFound()
+  }
+
+  let relatedLeadRows: { id: string; customerName: string; customerCompany: string | null; status: string }[] = []
+  const raw = row.invoice.relatedLeadIds
+  if (raw && typeof raw === "string") {
+    try {
+      const ids = JSON.parse(raw) as unknown
+      if (Array.isArray(ids) && ids.every((x) => typeof x === "string") && ids.length > 0) {
+        relatedLeadRows = await db
+          .select({
+            id: leads.id,
+            customerName: leads.customerName,
+            customerCompany: leads.customerCompany,
+            status: leads.status,
+          })
+          .from(leads)
+          .where(
+            and(
+              eq(leads.tenantId, tenantId),
+              isNull(leads.deletedAt),
+              inArray(leads.id, ids as string[]),
+            ),
+          )
+      }
+    } catch {
+      /* ignore malformed JSON */
+    }
   }
 
   return (
@@ -204,8 +232,34 @@ export default async function InvoiceDetailPage({
                   className="flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3 text-sm text-slate-200 transition-colors hover:bg-white/[0.04]"
                 >
                   <Receipt className="h-4 w-4 text-slate-400" />
-                  Linked service request
+                  Linked service request (legacy)
                 </Link>
+              ) : null}
+              {relatedLeadRows.length > 0 ? (
+                <div className="rounded-xl border border-white/10 px-4 py-3">
+                  <p className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    <Users className="h-3.5 w-3.5" />
+                    Commission leads ({relatedLeadRows.length})
+                  </p>
+                  <ul className="space-y-2">
+                    {relatedLeadRows.map((lr) => (
+                      <li key={lr.id}>
+                        <Link
+                          href={`/leads/${lr.id}`}
+                          className="block text-sm text-slate-200 transition-colors hover:text-white"
+                        >
+                          <span className="font-medium">
+                            {[lr.customerCompany, lr.customerName].filter(Boolean).join(" · ") ||
+                              lr.customerName}
+                          </span>
+                          <span className="ml-2 text-xs capitalize text-slate-500">
+                            {lr.status.replaceAll("_", " ")}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : null}
             </div>
           </div>

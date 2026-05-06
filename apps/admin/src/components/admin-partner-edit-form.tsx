@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { Pencil, X, Save, Loader2 } from "lucide-react"
-import { NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
+import { COUNTRY_OPTIONS, NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
+import { AdminPartnerDocumentUpload } from "@/components/admin-partner-document-upload"
 
 /* ── Types ────────────────────────────────────────────── */
 
@@ -27,7 +28,6 @@ interface PartnerData {
   activationDate: string | null
   lastMetOn: string | null
   meetingScheduledDateAS: string | null
-  meetingDatePM: string | null
   // Admin-managed secondary
   partnershipLevel: string | null
   tier: string | null
@@ -57,6 +57,13 @@ interface PartnerData {
   accountNoIban: string | null
   swiftBicCode: string | null
   paymentFrequency: string | null
+}
+
+function toDateInputValue(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== "string") return ""
+  const t = raw.trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10)
+  return ""
 }
 
 /* ── Field components ─────────────────────────────────── */
@@ -288,6 +295,11 @@ export function AdminPartnerEditForm({
     return String(raw)
   }
 
+  const dateOfBirthInput = (): string => {
+    if ("dateOfBirth" in formData) return String(formData.dateOfBirth ?? "")
+    return toDateInputValue(partner.dateOfBirth)
+  }
+
   const boolVal = (key: keyof PartnerData): boolean => {
     if (key in formData) return Boolean(formData[key])
     return Boolean(partner[key])
@@ -335,8 +347,20 @@ export function AdminPartnerEditForm({
       <div className="grid gap-4 sm:grid-cols-2">
         {section === "primary" && (
           <>
-            <TextField label="Company name" name="companyName" value={val("companyName")} onChange={handleChange} />
-            <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} />
+            <TextField
+              label="Company name"
+              name="companyName"
+              value={val("companyName")}
+              onChange={handleChange}
+              placeholder="Registered company name"
+            />
+            <TextField
+              label="Contact name"
+              name="contactName"
+              value={val("contactName")}
+              onChange={handleChange}
+              placeholder="Primary contact full name"
+            />
             <SelectField
               label="Partner type"
               name="type"
@@ -347,8 +371,20 @@ export function AdminPartnerEditForm({
                 { label: "Channel", value: "channel" },
               ]}
             />
-            <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} />
-            <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} />
+            <TextField
+              label="Phone"
+              name="phone"
+              value={val("phone")}
+              onChange={handleChange}
+              placeholder="+971…"
+            />
+            <TextField
+              label="Designation"
+              name="designation"
+              value={val("designation")}
+              onChange={handleChange}
+              placeholder="e.g. Managing Partner"
+            />
             {teamPicklists ? (
               <>
                 <SelectField
@@ -360,21 +396,39 @@ export function AdminPartnerEditForm({
                   placeholder="Select partnership manager…"
                 />
                 <SelectField
-                  label="Pre-sales / SDR (assigned)"
+                  label="Partnership executive (assigned)"
                   name="sdrTeamMemberId"
                   value={val("sdrTeamMemberId")}
                   onChange={handleChange}
                   options={teamPicklists.sdr}
-                  placeholder="Select pre-sales / SDR…"
+                  placeholder="Select partnership executive…"
                 />
               </>
             ) : (
               <>
-                <TextField label="Partnership manager" name="partnershipManager" value={val("partnershipManager")} onChange={handleChange} />
-                <TextField label="Appointments setter" name="appointmentsSetter" value={val("appointmentsSetter")} onChange={handleChange} />
+                <TextField
+                  label="Partnership manager"
+                  name="partnershipManager"
+                  value={val("partnershipManager")}
+                  onChange={handleChange}
+                  placeholder="Name or CRM owner"
+                />
+                <TextField
+                  label="Partnership executive"
+                  name="appointmentsSetter"
+                  value={val("appointmentsSetter")}
+                  onChange={handleChange}
+                  placeholder="Partnership executive name"
+                />
               </>
             )}
-            <TextField label="Partners ID" name="partnersId" value={val("partnersId")} onChange={handleChange} />
+            <TextField
+              label="Partners ID"
+              name="partnersId"
+              value={val("partnersId")}
+              onChange={handleChange}
+              placeholder="Internal partner reference"
+            />
             <SelectField
               label="Strategic funnel stage"
               name="strategicFunnelStage"
@@ -388,10 +442,27 @@ export function AdminPartnerEditForm({
                 { label: "Dormant", value: "dormant" },
               ]}
             />
-            <TextField label="Activation date" name="activationDate" value={val("activationDate")} onChange={handleChange} type="date" />
-            <TextField label="Last met on" name="lastMetOn" value={val("lastMetOn")} onChange={handleChange} type="date" />
-            <TextField label="Meeting scheduled (AS)" name="meetingScheduledDateAS" value={val("meetingScheduledDateAS")} onChange={handleChange} type="date" />
-            <TextField label="Meeting date (PM)" name="meetingDatePM" value={val("meetingDatePM")} onChange={handleChange} type="date" />
+            <TextField
+              label="Activation date"
+              name="activationDate"
+              value={val("activationDate")}
+              onChange={handleChange}
+              type="date"
+            />
+            <TextField
+              label="Last met on"
+              name="lastMetOn"
+              value={val("lastMetOn")}
+              onChange={handleChange}
+              type="date"
+            />
+            <TextField
+              label="Meeting scheduled"
+              name="meetingScheduledDateAS"
+              value={val("meetingScheduledDateAS")}
+              onChange={handleChange}
+              type="date"
+            />
           </>
         )}
 
@@ -421,11 +492,29 @@ export function AdminPartnerEditForm({
                 { label: "Platinum", value: "platinum" },
               ]}
             />
-            <TextField label="Agreement start date" name="agreementStartDate" value={val("agreementStartDate")} onChange={handleChange} type="date" />
-            <TextField label="Agreement end date" name="agreementEndDate" value={val("agreementEndDate")} onChange={handleChange} type="date" />
+            <TextField
+              label="Agreement start date"
+              name="agreementStartDate"
+              value={val("agreementStartDate")}
+              onChange={handleChange}
+              type="date"
+            />
+            <TextField
+              label="Agreement end date"
+              name="agreementEndDate"
+              value={val("agreementEndDate")}
+              onChange={handleChange}
+              type="date"
+            />
             <CheckboxField label="Sales training done" name="salesTrainingDone" checked={boolVal("salesTrainingDone")} onChange={handleChange} />
             <CheckboxField label="Email opt out" name="emailOptOut" checked={boolVal("emailOptOut")} onChange={handleChange} />
-            <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
+            <TextField
+              label="LinkedIn ID"
+              name="linkedinId"
+              value={val("linkedinId")}
+              onChange={handleChange}
+              placeholder="Profile URL or handle"
+            />
             <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
             <SelectField
               label="Nationality"
@@ -455,9 +544,28 @@ export function AdminPartnerEditForm({
               options={[...PARTNER_INDUSTRY_OPTIONS].map((n) => ({ label: n, value: n }))}
               placeholder="Select industry"
             />
-            <TextField label="Address" name="partnerAddress" value={val("partnerAddress")} onChange={handleChange} />
-            <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} />
-            <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" />
+            <TextField
+              label="Address"
+              name="partnerAddress"
+              value={val("partnerAddress")}
+              onChange={handleChange}
+              placeholder="Street, city, country"
+            />
+            <TextField
+              label="Date of birth"
+              name="dateOfBirth"
+              value={dateOfBirthInput()}
+              onChange={handleChange}
+              type="date"
+            />
+            <TextField
+              label="Secondary email"
+              name="secondaryEmail"
+              value={val("secondaryEmail")}
+              onChange={handleChange}
+              type="email"
+              placeholder="name@company.com"
+            />
             <TextareaField label="Overview / Bio" name="overview" value={val("overview")} onChange={handleChange} placeholder="Partner description…" />
           </>
         )}
@@ -475,16 +583,71 @@ export function AdminPartnerEditForm({
                 { label: "Tiered", value: "tiered" },
               ]}
             />
-            <TextField label="Commission rate (%)" name="commissionRate" value={val("commissionRate")} onChange={handleChange} />
+            <TextField
+              label="Commission rate (%)"
+              name="commissionRate"
+              value={val("commissionRate")}
+              onChange={handleChange}
+              placeholder="e.g. 15"
+            />
             <CheckboxField label="VAT registered" name="vatRegistered" checked={boolVal("vatRegistered")} onChange={handleChange} />
-            <TextField label="VAT number" name="vatNumber" value={val("vatNumber")} onChange={handleChange} />
-            <TextField label="Trade license" name="tradeLicense" value={val("tradeLicense")} onChange={handleChange} />
-            <TextField label="Emirate ID / Passport" name="emirateIdPassport" value={val("emirateIdPassport")} onChange={handleChange} />
-            <TextField label="Beneficiary name" name="beneficiaryName" value={val("beneficiaryName")} onChange={handleChange} />
-            <TextField label="Bank name" name="bankName" value={val("bankName")} onChange={handleChange} />
-            <TextField label="Bank country" name="bankCountry" value={val("bankCountry")} onChange={handleChange} />
-            <TextField label="Account No / IBAN" name="accountNoIban" value={val("accountNoIban")} onChange={handleChange} />
-            <TextField label="SWIFT / BIC code" name="swiftBicCode" value={val("swiftBicCode")} onChange={handleChange} />
+            <TextField
+              label="VAT number"
+              name="vatNumber"
+              value={val("vatNumber")}
+              onChange={handleChange}
+              placeholder="Tax registration number"
+            />
+            <TextField
+              label="Trade license (number / ref)"
+              name="tradeLicense"
+              value={val("tradeLicense")}
+              onChange={handleChange}
+              placeholder="Trade license number"
+            />
+            <TextField
+              label="Emirate ID / Passport (number / ref)"
+              name="emirateIdPassport"
+              value={val("emirateIdPassport")}
+              onChange={handleChange}
+              placeholder="ID or passport number"
+            />
+            <TextField
+              label="Beneficiary name"
+              name="beneficiaryName"
+              value={val("beneficiaryName")}
+              onChange={handleChange}
+              placeholder="Name on bank account"
+            />
+            <TextField
+              label="Bank name"
+              name="bankName"
+              value={val("bankName")}
+              onChange={handleChange}
+              placeholder="e.g. Emirates NBD"
+            />
+            <SelectField
+              label="Bank country"
+              name="bankCountry"
+              value={val("bankCountry")}
+              onChange={handleChange}
+              options={[...COUNTRY_OPTIONS].map((n) => ({ label: n, value: n }))}
+              placeholder="Select bank country"
+            />
+            <TextField
+              label="Account No / IBAN"
+              name="accountNoIban"
+              value={val("accountNoIban")}
+              onChange={handleChange}
+              placeholder="AE00 0000 0000 0000 0000 000"
+            />
+            <TextField
+              label="SWIFT / BIC code"
+              name="swiftBicCode"
+              value={val("swiftBicCode")}
+              onChange={handleChange}
+              placeholder="BANKAEAD"
+            />
             <SelectField
               label="Payment frequency"
               name="paymentFrequency"
@@ -492,10 +655,33 @@ export function AdminPartnerEditForm({
               onChange={handleChange}
               options={[
                 { label: "Monthly", value: "monthly" },
+                { label: "Bi-weekly", value: "bi-weekly" },
                 { label: "Quarterly", value: "quarterly" },
                 { label: "On request", value: "on-request" },
               ]}
             />
+            <div className="sm:col-span-2 border-t border-zinc-800 pt-4 mt-1 space-y-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                Upload documents
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <AdminPartnerDocumentUpload
+                  partnerId={partner.id}
+                  label="Trade license file"
+                  documentType="trade_license"
+                />
+                <AdminPartnerDocumentUpload
+                  partnerId={partner.id}
+                  label="Emirates ID file"
+                  documentType="emirates_id"
+                />
+                <AdminPartnerDocumentUpload
+                  partnerId={partner.id}
+                  label="Passport file"
+                  documentType="passport"
+                />
+              </div>
+            </div>
           </>
         )}
       </div>

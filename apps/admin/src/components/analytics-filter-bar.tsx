@@ -389,72 +389,6 @@ export function PipelineFilters({
   )
 }
 
-/* Delivery filters: Partner, Partner Type, Team, Service Status */
-interface DeliveryFilterProps {
-  partners: { id: string; companyName: string }[]
-  teamMembers: { id: string; name: string; authUserId: string }[]
-  currentFilters: Record<string, string | undefined>
-}
-
-export function DeliveryFilters({
-  partners,
-  teamMembers,
-  currentFilters,
-}: DeliveryFilterProps) {
-  const { update, clearKeys } = useFilterUpdater()
-  const keys = ["partnerId", "partnerType", "teamMemberId", "serviceStatus"]
-  const active = keys.filter((k) => currentFilters[k])
-
-  return (
-    <SectionFilterRow>
-      <Select
-        label="All Partners"
-        value={currentFilters.partnerId ?? ""}
-        onChange={(v) => update("partnerId", v)}
-        options={partners.map((p) => ({ label: p.companyName, value: p.id }))}
-      />
-      <Select
-        label="Partner Type"
-        value={currentFilters.partnerType ?? ""}
-        onChange={(v) => update("partnerType", v)}
-        options={[
-          { label: "Referral", value: "referral" },
-          { label: "Channel", value: "channel" },
-        ]}
-      />
-      <Select
-        label="All Team"
-        value={currentFilters.teamMemberId ?? ""}
-        onChange={(v) => update("teamMemberId", v)}
-        options={teamMembers.map((m) => ({
-          label: m.name,
-          value: m.authUserId,
-        }))}
-      />
-      <Select
-        label="Service Status"
-        value={currentFilters.serviceStatus ?? ""}
-        onChange={(v) => update("serviceStatus", v)}
-        options={[
-          { label: "Pending", value: "pending" },
-          { label: "In Progress", value: "in_progress" },
-          { label: "Completed", value: "completed" },
-          { label: "Cancelled", value: "cancelled" },
-        ]}
-      />
-      {active.length > 0 && (
-        <button
-          onClick={() => clearKeys(keys)}
-          className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-200 px-1.5 py-0.5 rounded hover:bg-zinc-800 transition-colors"
-        >
-          <X className="w-3 h-3" />
-          Clear
-        </button>
-      )}
-    </SectionFilterRow>
-  )
-}
-
 /* Partner report filters: Partner Type, Tier */
 interface PartnerReportFilterProps {
   currentFilters: Record<string, string | undefined>
@@ -563,7 +497,6 @@ interface AnalyticsFilterBarProps {
     partnerType?: string
     teamMemberId?: string
     leadStatus?: string
-    serviceStatus?: string
   }
   savedFilters?: { id: string; name: string; filters: string }[]
 }
@@ -622,17 +555,6 @@ export function AnalyticsFilterBar({
             { label: "Deal Lost", value: "deal_lost" },
           ]}
         />
-        <Select
-          label="Service Status"
-          value={currentFilters.serviceStatus ?? ""}
-          onChange={(v) => update("serviceStatus", v)}
-          options={[
-            { label: "Pending", value: "pending" },
-            { label: "In Progress", value: "in_progress" },
-            { label: "Completed", value: "completed" },
-            { label: "Cancelled", value: "cancelled" },
-          ]}
-        />
       </div>
 
       <div className="flex flex-wrap gap-1.5">
@@ -658,12 +580,6 @@ export function AnalyticsFilterBar({
           <FilterChip
             label={`Lead: ${currentFilters.leadStatus.replaceAll("_", " ")}`}
             onRemove={() => update("leadStatus", "")}
-          />
-        )}
-        {currentFilters.serviceStatus && (
-          <FilterChip
-            label={`Service: ${currentFilters.serviceStatus.replaceAll("_", " ")}`}
-            onRemove={() => update("serviceStatus", "")}
           />
         )}
       </div>

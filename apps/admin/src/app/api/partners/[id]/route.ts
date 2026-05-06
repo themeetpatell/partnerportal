@@ -25,7 +25,6 @@ const updatePartnerSchema = z.object({
   activationDate: z.string().optional().nullable(),
   lastMetOn: z.string().optional().nullable(),
   meetingScheduledDateAS: z.string().optional().nullable(),
-  meetingDatePM: z.string().optional().nullable(),
   partnersId: z.string().max(100).optional().nullable(),
 
   // Secondary admin fields
@@ -62,7 +61,10 @@ const updatePartnerSchema = z.object({
   bankCountry: z.string().max(100).optional().nullable(),
   accountNoIban: z.string().max(255).optional().nullable(),
   swiftBicCode: z.string().max(50).optional().nullable(),
-  paymentFrequency: z.enum(["monthly", "quarterly", "on-request"]).optional().nullable(),
+  paymentFrequency: z
+    .enum(["monthly", "quarterly", "bi-weekly", "on-request"])
+    .optional()
+    .nullable(),
 })
 
 function parseOptionalDate(value: string | null | undefined): Date | null | undefined {
@@ -149,8 +151,11 @@ export async function PATCH(
   }
 
   const dateFields = [
-    "activationDate", "lastMetOn", "meetingScheduledDateAS", "meetingDatePM",
-    "agreementStartDate", "agreementEndDate",
+    "activationDate",
+    "lastMetOn",
+    "meetingScheduledDateAS",
+    "agreementStartDate",
+    "agreementEndDate",
   ] as const
   for (const field of dateFields) {
     const parsed = parseOptionalDate(data[field])

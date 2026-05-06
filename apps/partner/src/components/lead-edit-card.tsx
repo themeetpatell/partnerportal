@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
-import { Loader2, Pencil, Save, Tag, X } from "lucide-react"
+import { Check, ChevronDown, FileUp, Loader2, Pencil, Save, Tag, X } from "lucide-react"
 
 type SelectOption = { label: string; value: string }
 
@@ -13,6 +13,13 @@ export type LeadFieldDef =
       label: string
       placeholder?: string
       required?: boolean
+      colSpan?: 1 | 2
+    }
+  | {
+      kind: "file"
+      name: string
+      label: string
+      accept?: string
       colSpan?: 1 | 2
     }
   | {
@@ -51,7 +58,7 @@ export type LeadFieldDef =
       colSpan?: 1 | 2
     }
 
-type FieldValue = string | string[] | null
+type FieldValue = string | string[] | File | null
 
 type Props = {
   leadId: string
@@ -76,14 +83,14 @@ const currencyFmt = new Intl.NumberFormat("en-AE", {
 })
 
 function formatReadonlyDate(raw: FieldValue): string {
-  if (!raw || Array.isArray(raw)) return "—"
+  if (!raw || Array.isArray(raw) || raw instanceof File) return "—"
   const parsed = new Date(raw)
   if (Number.isNaN(parsed.getTime())) return raw
   return parsed.toLocaleDateString("en-AE", dateFmt)
 }
 
 function formatNumberDisplay(name: string, raw: FieldValue): string {
-  if (!raw || Array.isArray(raw)) return "—"
+  if (!raw || Array.isArray(raw) || raw instanceof File) return "—"
   const parsed = Number(raw)
   if (!Number.isFinite(parsed)) return raw
   if (/Amount$/.test(name) || name === "budgetAmount") {
@@ -100,7 +107,7 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
   }
 
   if (field.kind === "readonlyText") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     return <p className="text-sm text-foreground">{value}</p>
   }
 
@@ -122,8 +129,12 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
     )
   }
 
+  if (field.kind === "file") {
+    return <p className="text-sm text-muted-foreground/70">Upload a file while editing.</p>
+  }
+
   if (field.kind === "textarea") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     return (
       <p className="whitespace-pre-wrap break-words text-sm text-[var(--portal-text-soft)]">
         {value}
@@ -136,7 +147,7 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
   }
 
   if (field.kind === "select") {
-    if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+    if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
     const match = field.options.find((o) => o.value === value)
     return (
       <p className="text-sm capitalize text-foreground">
@@ -145,8 +156,81 @@ function ViewValue({ field, value }: { field: LeadFieldDef; value: FieldValue })
     )
   }
 
-  if (!value || Array.isArray(value)) return <p className="text-sm">{dash}</p>
+  if (!value || Array.isArray(value) || value instanceof File) return <p className="text-sm">{dash}</p>
   return <p className="break-words text-sm text-foreground">{value}</p>
+}
+
+function MultiSelectDropdown({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly string[]
+  value: FieldValue
+  onChange: (next: FieldValue) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const selected = Array.isArray(value) ? value : []
+  const selectedSet = new Set(selected)
+
+  const toggle = (option: string) => {
+    const next = selectedSet.has(option)
+      ? selected.filter((item) => item !== option)
+      : [...selected, option]
+    onChange(next)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="field-input flex min-h-10 items-center justify-between gap-3 py-2 text-left"
+      >
+        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+          {selected.length > 0 ? `${selected.length} selected` : "Select services"}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {selected.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {selected.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => toggle(item)}
+              className="inline-flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs text-primary"
+            >
+              {item}
+              <X className="h-3 w-3" />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      {open ? (
+        <div className="absolute z-20 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-border bg-card p-2 shadow-2xl">
+          {options.map((option) => {
+            const checked = selectedSet.has(option)
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => toggle(option)}
+                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-secondary"
+              >
+                <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border bg-secondary"}`}>
+                  {checked ? <Check className="h-3 w-3" /> : null}
+                </span>
+                <span>{option}</span>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -174,24 +258,25 @@ function EditField({
   }
 
   if (field.kind === "multiselect") {
-    const current = Array.isArray(value) ? value : []
+    return <MultiSelectDropdown options={field.options} value={value} onChange={onChange} />
+  }
+
+  if (field.kind === "file") {
+    const fileName = value instanceof File ? value.name : ""
     return (
-      <select
-        multiple
-        value={current}
-        onChange={(e) => {
-          const selected = Array.from(e.target.selectedOptions).map((o) => o.value)
-          onChange(selected)
-        }}
-        size={Math.min(8, Math.max(4, field.options.length))}
-        className="field-input h-auto min-h-24 py-2"
-      >
-        {field.options.map((opt) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </select>
+      <label className="flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-5 text-center transition-colors hover:border-primary/40 hover:bg-secondary/70">
+        <FileUp className="h-5 w-5 text-primary" />
+        <span className="mt-2 text-sm font-medium text-foreground">
+          {fileName || "Upload trade license"}
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">PDF, PNG, or JPG up to 8 MB</span>
+        <input
+          type="file"
+          accept={field.accept}
+          className="sr-only"
+          onChange={(event) => onChange(event.target.files?.[0] ?? null)}
+        />
+      </label>
     )
   }
 
@@ -307,6 +392,10 @@ export function LeadEditCard({
         if (list.length === 0) {
           formData.append(field.name, "")
         }
+        continue
+      }
+      if (field.kind === "file") {
+        if (value instanceof File) formData.append(field.name, value)
         continue
       }
       const stringValue = typeof value === "string" ? value : ""

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation"
+import Image from "next/image"
 import Link from "next/link"
 import { currentUser } from "@repo/auth/server"
 import { AdminPartnerEditForm } from "@/components/admin-partner-edit-form"
+import { PartnerCrmActivities } from "@/components/partner-crm-activities"
 import { PartnerActionButton, PartnerRejectForm } from "@/components/partner-action-buttons"
 import {
   db,
@@ -33,17 +35,42 @@ import {
   CreditCard,
   User,
   KeyRound,
-  ClipboardList,
+  History,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import {
   getTeamRoleLabel,
-  hasModuleAccess,
+  hasAnyTeamRole,
+  PARTNER_OPERATIONS_ROLES,
   isPartnershipManagerAssignableRole,
   isPreSalesAssignableRole,
 } from "@/lib/rbac"
 import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
+
+function formatPaymentFrequencyLabel(value: string | null | undefined) {
+  if (!value?.trim()) return "—"
+  const map: Record<string, string> = {
+    monthly: "Monthly",
+    quarterly: "Quarterly",
+    "bi-weekly": "Bi-weekly",
+    "on-request": "On request",
+  }
+  return map[value] ?? value.replace(/-/g, " ")
+}
+
+function formatDateOfBirthDisplay(value: string | null | undefined) {
+  if (!value?.trim()) return "—"
+  const t = value.trim()
+  if (/^\d{4}-\d{2}-\d{2}/.test(t)) {
+    return new Date(t.slice(0, 10)).toLocaleDateString("en-AE", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+  }
+  return t
+}
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -149,10 +176,6 @@ export default async function PartnerDetailPage({
     ? teamForPartner.find((r) => r.id === partner.partnershipManagerTeamMemberId)?.name ?? null
     : null
 
-  const canCreateServiceRequestForPartner =
-    member &&
-    hasModuleAccess(member.role, member.permissions, "services", "rw")
-
   const [partnerDocs, partnerLeads, commissionsResult] = await Promise.all([
     db
       .select()
@@ -169,6 +192,10 @@ export default async function PartnerDetailPage({
       .from(commissions)
       .where(eq(commissions.partnerId, id)),
   ])
+
+  const canManageCrmActivities = Boolean(
+    member && hasAnyTeamRole(member.role, PARTNER_OPERATIONS_ROLES),
+  )
 
   const totalCommissions = Number(commissionsResult[0]?.total ?? 0).toLocaleString(
     "en-AE",
@@ -216,7 +243,6 @@ export default async function PartnerDetailPage({
     activationDate: fmtInput(partner.activationDate),
     lastMetOn: fmtInput(partner.lastMetOn),
     meetingScheduledDateAS: fmtInput(partner.meetingScheduledDateAS),
-    meetingDatePM: fmtInput(partner.meetingDatePM),
     partnershipLevel: partner.partnershipLevel,
     tier: partner.tier,
     agreementStartDate: fmtInput(partner.agreementStartDate),
@@ -301,12 +327,15 @@ export default async function PartnerDetailPage({
         </Link>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 text-white">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-white/5 text-white">
               {partner.profileImageUrl ? (
-                <img
+                <Image
                   src={partner.profileImageUrl}
                   alt={partner.companyName || partner.contactName}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="object-cover"
+                  sizes="56px"
+                  unoptimized
                 />
               ) : (
                 <User className="h-6 w-6 text-slate-400" />
@@ -443,11 +472,14 @@ export default async function PartnerDetailPage({
                   <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 mb-4">
                     Authorized signatory signature
                   </p>
-                  <div className="flex min-h-[120px] items-center rounded-xl border border-indigo-400/15 bg-indigo-500/6 px-4 py-4">
-                    <img
+                  <div className="relative flex min-h-[120px] min-w-[200px] max-w-sm items-center rounded-xl border border-indigo-400/15 bg-indigo-500/6 px-4 py-4">
+                    <Image
                       src={partner.contractSignatureDataUrl}
                       alt="Partner authorized signatory signature"
-                      className="h-auto w-full max-w-sm rounded object-contain"
+                      width={384}
+                      height={160}
+                      className="h-auto w-full rounded object-contain"
+                      unoptimized
                     />
                   </div>
                 </div>
@@ -595,7 +627,7 @@ export default async function PartnerDetailPage({
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Pre-sales / SDR
+                  Partnership executive
                 </dt>
                 <dd className="text-white text-sm">
                   {(sdrAssignedLabel ?? partner.appointmentsSetter) || "—"}
@@ -642,15 +674,9 @@ export default async function PartnerDetailPage({
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Meeting Scheduled (AS)
+                  Meeting scheduled
                 </dt>
                 <dd className="text-white text-sm">{formatDate(partner.meetingScheduledDateAS) || "—"}</dd>
-              </div>
-              <div>
-                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Meeting Date (PM)
-                </dt>
-                <dd className="text-white text-sm">{formatDate(partner.meetingDatePM) || "—"}</dd>
               </div>
               {partner.rejectionReason && (
                 <div className="sm:col-span-2">
@@ -746,7 +772,7 @@ export default async function PartnerDetailPage({
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Date of Birth
                 </dt>
-                <dd className="text-white text-sm">{partner.dateOfBirth || "—"}</dd>
+                <dd className="text-white text-sm">{formatDateOfBirthDisplay(partner.dateOfBirth)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -862,7 +888,7 @@ export default async function PartnerDetailPage({
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Payment Frequency
                 </dt>
-                <dd className="text-white text-sm capitalize">{partner.paymentFrequency || "—"}</dd>
+                <dd className="text-white text-sm">{formatPaymentFrequencyLabel(partner.paymentFrequency)}</dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
@@ -969,26 +995,14 @@ export default async function PartnerDetailPage({
 
           <div className="surface-card rounded-2xl p-6">
             <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-slate-400" />
-              Service requests
+              <History className="w-4 h-4 text-slate-400" />
+              CRM activities
             </h2>
-            <p className="text-slate-500 text-sm">
-              Open or create a delivery request attributed to this partner.
-            </p>
-            {canCreateServiceRequestForPartner ? (
-              <Link
-                href={`/service-requests/new?partnerId=${partner.id}`}
-                className="mt-4 block w-full text-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-indigo-500"
-              >
-                Create service request
-              </Link>
-            ) : null}
-            <Link
-              href="/leads?kind=cross_sell"
-              className={`${canCreateServiceRequestForPartner ? "mt-2" : "mt-4"} block text-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors`}
-            >
-              View cross-sell in Leads
-            </Link>
+            <PartnerCrmActivities
+              partnerId={partner.id}
+              canManage={canManageCrmActivities}
+              assignees={teamForPartner.map((m) => ({ id: m.id, name: m.name }))}
+            />
           </div>
 
           {/* Documents */}

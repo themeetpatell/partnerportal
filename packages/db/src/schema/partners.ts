@@ -56,7 +56,7 @@ export const partners = pgTable("partners", {
   meetingScheduledDateAS: timestamp("meeting_scheduled_date_as"),
   meetingDatePM: timestamp("meeting_date_pm"),
   partnersId: text("partners_id"), // custom Zoho ID
-  /** Pre-sales / SDR — team_members.id */
+  /** Partnership executive — team_members.id */
   sdrTeamMemberId: uuid("sdr_team_member_id"),
   /** Partnership manager assignment — team_members.id */
   partnershipManagerTeamMemberId: uuid("partnership_manager_team_member_id"),
@@ -126,6 +126,9 @@ export const teamMembers = pgTable(
     // pre_sales_representative, sales_representative, operation_manager, viewer
     role: text("role").notNull(),
     name: text("name").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    avatarUrl: text("avatar_url"),
     email: text("email").notNull(),
     phone: text("phone"),
     designation: text("designation"),

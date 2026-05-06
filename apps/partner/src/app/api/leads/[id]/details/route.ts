@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { rateLimit } from "@repo/auth"
-import { db, leads } from "@repo/db"
+import { db, documents, leads } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import { isPaymentRecurringSlug } from "@repo/types"
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
@@ -33,6 +33,52 @@ function parseServiceInterestFromForm(formData: FormData, fallbackRaw: string) {
   const combined = [...new Set([...selected, ...custom])]
   if (combined.length > 0) return JSON.stringify(combined)
   return fallbackRaw
+}
+
+const MAX_UPLOAD_SIZE = 8 * 1024 * 1024
+const ALLOWED_UPLOAD_TYPES = new Set(["application/pdf", "image/png", "image/jpeg"])
+
+async function storeLeadTradeLicenseFile(params: {
+  file: File
+  tenantId: string
+  leadId: string
+  uploadedBy: string
+}) {
+  if (!ALLOWED_UPLOAD_TYPES.has(params.file.type)) {
+    return NextResponse.json({ error: "Trade license must be PDF, PNG, or JPG." }, { status: 422 })
+  }
+
+  if (params.file.size > MAX_UPLOAD_SIZE) {
+    return NextResponse.json({ error: "Trade license upload must be under 8 MB." }, { status: 422 })
+  }
+
+  const buffer = Buffer.from(await params.file.arrayBuffer())
+  const [document] = await db
+    .insert(documents)
+    .values({
+      tenantId: params.tenantId,
+      ownerType: "lead",
+      ownerId: params.leadId,
+      documentType: "trade_license",
+      fileName: params.file.name || "trade-license",
+      zohoWorkdriveId: `in-app:${params.leadId}:trade_license:${Date.now()}`,
+      zohoWorkdriveUrl: "pending",
+      storageProvider: "database",
+      mimeType: params.file.type,
+      fileDataBase64: buffer.toString("base64"),
+      uploadedBy: params.uploadedBy,
+      uploadedAt: new Date(),
+    })
+    .returning({ id: documents.id })
+
+  if (document) {
+    await db
+      .update(documents)
+      .set({ zohoWorkdriveUrl: `/api/documents/${document.id}` })
+      .where(eq(documents.id, document.id))
+  }
+
+  return null
 }
 
 export async function POST(
@@ -102,6 +148,17 @@ export async function POST(
       : lead.serviceInterest
 
   const now = new Date()
+  const tradeLicenseFile = formData.get("tradeLicenseFile")
+  if (tradeLicenseFile instanceof File && tradeLicenseFile.size > 0) {
+    const uploadError = await storeLeadTradeLicenseFile({
+      file: tradeLicenseFile,
+      tenantId: lead.tenantId,
+      leadId: lead.id,
+      uploadedBy: partner.authUserId,
+    })
+    if (uploadError) return uploadError
+  }
+
   const [updatedLead] = await db
     .update(leads)
     .set({

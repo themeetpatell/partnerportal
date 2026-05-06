@@ -43,7 +43,6 @@ export function derivePartnerOperationalStatusFromRollup(
     return "yet_to_activate"
   }
 
-  const sixtyDaysAgo = now.getTime() - 60 * DAY_MS
   const ninetyDaysAgo = now.getTime() - 90 * DAY_MS
 
   if (rollup.qualifiedInLast60Days > 0) {
@@ -78,7 +77,6 @@ export function derivePartnerOperationalStatus(
     .map((lead) => new Date(lead.createdAt).getTime())
 
   const sixtyDaysAgo = now.getTime() - 60 * DAY_MS
-  const ninetyDaysAgo = now.getTime() - 90 * DAY_MS
 
   let qualifiedInLast60Days = 0
   for (const ts of qualifiedLeadDates) {

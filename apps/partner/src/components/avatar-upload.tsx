@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Camera, User, Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -50,12 +51,15 @@ export function AvatarUpload({ profileImageUrl }: AvatarUploadProps) {
 
   return (
     <div className="relative shrink-0">
-      <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.65rem] border border-border bg-gradient-to-br from-secondary via-secondary/70 to-secondary/40 text-foreground shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
+      <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.65rem] border border-border bg-gradient-to-br from-secondary via-secondary/70 to-secondary/40 text-foreground shadow-[0_18px_40px_rgba(15,23,42,0.35)] sm:h-24 sm:w-24 sm:rounded-[2rem]">
         {preview ? (
-          <img
+          <Image
             src={preview}
             alt="Profile picture"
-            className="h-full w-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 80px, 96px"
+            unoptimized
           />
         ) : (
           <User className="h-8 w-8 sm:h-10 sm:w-10" />

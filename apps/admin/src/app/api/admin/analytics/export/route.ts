@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, leads, partners, serviceRequests, invoices, teamMembers } from "@repo/db"
+import { db, leads, partners, invoices, commissions, teamMembers } from "@repo/db"
 import { eq, and, isNull, gte, lte } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -13,11 +13,16 @@ function getDateRange(preset: string | undefined) {
   const m = now.getMonth()
   const d = now.getDate()
   switch (preset) {
-    case "today": return { from: new Date(y, m, d), to: now }
-    case "this_month": return { from: new Date(y, m, 1), to: now }
-    case "last_month": return { from: new Date(y, m - 1, 1), to: new Date(y, m, 1) }
-    case "this_year": return { from: new Date(y, 0, 1), to: now }
-    default: return {}
+    case "today":
+      return { from: new Date(y, m, d), to: now }
+    case "this_month":
+      return { from: new Date(y, m, 1), to: now }
+    case "last_month":
+      return { from: new Date(y, m - 1, 1), to: new Date(y, m, 1) }
+    case "this_year":
+      return { from: new Date(y, 0, 1), to: now }
+    default:
+      return {}
   }
 }
 
@@ -26,9 +31,7 @@ function toCsv(rows: Record<string, unknown>[]): string {
   const headers = Object.keys(rows[0]!)
   const lines = [
     headers.join(","),
-    ...rows.map((r) =>
-      headers.map((h) => JSON.stringify(r[h] ?? "")).join(",")
-    ),
+    ...rows.map((r) => headers.map((h) => JSON.stringify(r[h] ?? "")).join(",")),
   ]
   return lines.join("\n")
 }
@@ -40,7 +43,6 @@ export async function GET(req: NextRequest) {
   const limited = rateLimit(`analytics-export:${userId}`, 10, 60_000)
   if (limited) return limited
 
-  // Verify role — only admin, partnership, finance can export analytics
   const [member] = await db
     .select()
     .from(teamMembers)
@@ -65,12 +67,11 @@ export async function GET(req: NextRequest) {
   const partnerType = sp.get("partnerType")
   const leadStatus = sp.get("leadStatus")
   const leadSource = sp.get("leadSource")
-  const serviceStatus = sp.get("serviceStatus")
   const teamMemberId = sp.get("teamMemberId")
 
   const leadScopeClause = scopedPartnerFilters(scope, leads.partnerId, partnerId)
-  const srScopeClause = scopedPartnerFilters(scope, serviceRequests.partnerId, partnerId)
   const invScopeClause = scopedPartnerFilters(scope, invoices.partnerId, partnerId)
+  const commissionScopeClause = scopedPartnerFilters(scope, commissions.partnerId, partnerId)
 
   const dateFilter = (col: Parameters<typeof gte>[0]) => {
     const conditions = []
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
     return conditions
   }
 
-  const [leadRows, srRows, invoiceRows] = await Promise.all([
+  const [leadRows, commissionRows, invoiceRows] = await Promise.all([
     db
       .select({
         id: leads.id,
@@ -102,32 +103,29 @@ export async function GET(req: NextRequest) {
           ...(leadStatus ? [eq(leads.status, leadStatus)] : []),
           ...(leadSource ? [eq(leads.source, leadSource)] : []),
           ...(teamMemberId ? [eq(leads.assignedTo, teamMemberId)] : []),
-          ...dateFilter(leads.createdAt)
-        )
+          ...dateFilter(leads.createdAt),
+        ),
       ),
     db
       .select({
-        id: serviceRequests.id,
-        customerCompany: serviceRequests.customerCompany,
+        id: commissions.id,
         partnerType: partners.type,
-        status: serviceRequests.status,
-        slaStatus: serviceRequests.slaStatus,
-        pricing: serviceRequests.pricing,
-        createdAt: serviceRequests.createdAt,
+        status: commissions.status,
+        amount: commissions.amount,
+        currency: commissions.currency,
+        sourceType: commissions.sourceType,
+        createdAt: commissions.createdAt,
       })
-      .from(serviceRequests)
-      .innerJoin(partners, eq(serviceRequests.partnerId, partners.id))
+      .from(commissions)
+      .innerJoin(partners, eq(commissions.partnerId, partners.id))
       .where(
         and(
-          eq(serviceRequests.tenantId, tenantId),
+          eq(commissions.tenantId, tenantId),
           eq(partners.tenantId, tenantId),
-          isNull(serviceRequests.deletedAt),
-          srScopeClause ?? undefined,
+          commissionScopeClause ?? undefined,
           ...(partnerType ? [eq(partners.type, partnerType)] : []),
-          ...(serviceStatus ? [eq(serviceRequests.status, serviceStatus)] : []),
-          ...(teamMemberId ? [eq(serviceRequests.assignedTo, teamMemberId)] : []),
-          ...dateFilter(serviceRequests.createdAt)
-        )
+          ...dateFilter(commissions.createdAt),
+        ),
       ),
     db
       .select({
@@ -147,8 +145,8 @@ export async function GET(req: NextRequest) {
           isNull(invoices.deletedAt),
           invScopeClause ?? undefined,
           ...(partnerType ? [eq(partners.type, partnerType)] : []),
-          ...dateFilter(invoices.createdAt)
-        )
+          ...dateFilter(invoices.createdAt),
+        ),
       ),
   ])
 
@@ -156,8 +154,8 @@ export async function GET(req: NextRequest) {
     "LEADS",
     toCsv(leadRows as Record<string, unknown>[]),
     "",
-    "SERVICE REQUESTS",
-    toCsv(srRows as Record<string, unknown>[]),
+    "COMMISSIONS",
+    toCsv(commissionRows as Record<string, unknown>[]),
     "",
     "INVOICES",
     toCsv(invoiceRows as Record<string, unknown>[]),

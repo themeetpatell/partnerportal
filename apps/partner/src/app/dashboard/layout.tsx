@@ -3,6 +3,7 @@ import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { SidebarNav } from "@/components/sidebar-nav"
 import { PageSkeleton } from "@/components/page-skeleton"
+import { NotificationCenter } from "@/components/notification-center"
 import {
   getCurrentPartnerRecord,
   hasApprovedWorkspaceAccess,
@@ -55,6 +56,9 @@ export default async function DashboardLayout({
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="surface-card-strong flex-1 rounded-[1.5rem] px-4 py-4 sm:rounded-[2rem] sm:px-6 sm:py-6 lg:px-8">
+            <div className="mb-4 flex justify-end">
+              <NotificationCenter />
+            </div>
             <Suspense fallback={<PageSkeleton />}>
               {children}
             </Suspense>

@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { auth, currentUser } from "@repo/auth/server"
-import { db, leads, partners, documents, commissions } from "@repo/db"
-import { eq, and, or, desc, isNull } from "drizzle-orm"
+import { db, leads, partners, documents, commissions, teamMembers } from "@repo/db"
+import { eq, and, or, desc, isNull, asc } from "drizzle-orm"
 import {
   ArrowLeft,
   Briefcase,
@@ -29,6 +29,7 @@ import {
   LEAD_LOST_REASONS,
   LEAD_INDUSTRY_OPTIONS,
   PAYMENT_RECURRING_OPTIONS,
+  COUNTRY_OPTIONS,
   leadSelectOptions,
 } from "@repo/types"
 import type { LeadStatus } from "@repo/types"
@@ -128,7 +129,7 @@ export default async function LeadDetailPage({
 
   const tenantId = getRequiredTenantId()
 
-  const [[leadRow], leadDocs, member, leadActor, leadCommissions] = await Promise.all([
+  const [[leadRow], leadDocs, member, leadActor, leadCommissions, ownerRows] = await Promise.all([
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
@@ -154,6 +155,11 @@ export default async function LeadDetailPage({
         ),
       )
       .orderBy(desc(commissions.calculatedAt)),
+    db
+      .select({ id: teamMembers.id, authUserId: teamMembers.authUserId, name: teamMembers.name, role: teamMembers.role })
+      .from(teamMembers)
+      .where(and(eq(teamMembers.tenantId, tenantId), eq(teamMembers.isActive, true)))
+      .orderBy(asc(teamMembers.name)),
   ])
 
   if (!leadRow) notFound()
@@ -198,23 +204,36 @@ export default async function LeadDetailPage({
   )
 
   const serviceOptions = mergeLeadServiceOptionsWithStored(services)
+  const ownerOptions = ownerRows.map((row) => ({
+    label: `${row.name} (${row.role.replace(/_/g, " ")})`,
+    value: row.authUserId,
+  }))
+  const partnerPm = partner?.partnershipManagerTeamMemberId
+    ? ownerRows.find((row) => row.id === partner.partnershipManagerTeamMemberId) ?? null
+    : null
+  const partnerSdr = partner?.sdrTeamMemberId
+    ? ownerRows.find((row) => row.id === partner.sdrTeamMemberId) ?? null
+    : null
+  const partnerProfileUserOption = (row: typeof ownerRows[number] | null) =>
+    row
+      ? [{ label: `${row.name} (${row.role.replace(/_/g, " ")})`, value: row.id }]
+      : []
 
   const contactNames = mergeLeadContactNamesForDisplay(lead)
 
   const contactCompanyFields: readonly LeadFieldDef[] = [
-    { kind: "readonlyText", name: "customerNameSummary", label: "Full name" },
     { kind: "text", name: "firstName", label: "First name" },
     { kind: "text", name: "lastName", label: "Last name" },
     { kind: "email", name: "customerEmail", label: "Email", required: true },
     { kind: "tel", name: "customerPhone", label: "Phone" },
     { kind: "text", name: "customerCompany", label: "Company", colSpan: 2 },
-    { kind: "multiselect", name: "serviceInterestMulti", label: "Services", options: serviceOptions, colSpan: 2 },
+    { kind: "multiselect", name: "serviceInterestMulti", label: "Services of interest", options: serviceOptions, colSpan: 2 },
     { kind: "textarea", name: "serviceInterestCustom", label: "Additional services (comma or newline separated)", rows: 2, colSpan: 2 },
+    { kind: "file", name: "tradeLicenseFile", label: "Trade license upload", accept: ".pdf,.png,.jpg,.jpeg", colSpan: 2 },
     { kind: "textarea", name: "notes", label: "Notes", rows: 3, colSpan: 2 },
     { kind: "readonlyDate", name: "createdAt", label: "Submitted" },
   ]
   const contactCompanyInitial = {
-    customerNameSummary: lead.customerName,
     firstName: contactNames.firstName,
     lastName: contactNames.lastName,
     customerEmail: lead.customerEmail,
@@ -222,29 +241,63 @@ export default async function LeadDetailPage({
     customerCompany: lead.customerCompany,
     serviceInterestMulti: services,
     serviceInterestCustom: null,
+    tradeLicenseFile: null,
     notes: lead.notes,
     createdAt: lead.createdAt instanceof Date ? lead.createdAt.toISOString() : lead.createdAt,
   }
 
-  const sourceOwnershipFields: readonly LeadFieldDef[] = [
-    { kind: "text", name: "source", label: "Source" },
-    { kind: "text", name: "channel", label: "Channel" },
-    { kind: "text", name: "country", label: "Country" },
+  const sourceRegionFields: readonly LeadFieldDef[] = [
+    { kind: "readonlyText", name: "source", label: "Source" },
+    {
+      kind: "select",
+      name: "country",
+      label: "Country",
+      options: leadSelectOptions([...COUNTRY_OPTIONS]),
+      placeholder: "Select country",
+    },
     { kind: "text", name: "city", label: "City" },
-    { kind: "text", name: "leadOwner", label: "Lead owner" },
-    { kind: "text", name: "dealOwner", label: "Deal owner" },
-    { kind: "text", name: "partnershipManager", label: "Partnership manager" },
-    { kind: "text", name: "appointmentSetter", label: "Appointment setter" },
   ]
-  const sourceOwnershipInitial = {
+  const sourceRegionInitial = {
     source: lead.source,
-    channel: lead.channel,
     country: lead.country,
     city: lead.city,
-    leadOwner: lead.leadOwner,
-    dealOwner: lead.dealOwner,
-    partnershipManager: lead.partnershipManager,
-    appointmentSetter: lead.appointmentSetter,
+  }
+
+  const ownershipFields: readonly LeadFieldDef[] = [
+    {
+      kind: "select",
+      name: "leadOwnerUserId",
+      label: "Lead owner",
+      options: ownerOptions,
+      placeholder: "Select lead owner",
+    },
+    {
+      kind: "select",
+      name: "dealOwnerUserId",
+      label: "Deal owner",
+      options: ownerOptions,
+      placeholder: "Select deal owner",
+    },
+    {
+      kind: "select",
+      name: "partnershipManagerTeamMemberId",
+      label: "Partnership manager",
+      options: partnerProfileUserOption(partnerPm),
+      placeholder: "Select partnership manager",
+    },
+    {
+      kind: "select",
+      name: "sdrTeamMemberId",
+      label: "Partnership executive",
+      options: partnerProfileUserOption(partnerSdr),
+      placeholder: "Select partnership executive",
+    },
+  ]
+  const ownershipInitial = {
+    leadOwnerUserId: lead.leadOwnerUserId ?? null,
+    dealOwnerUserId: lead.dealOwnerUserId ?? null,
+    partnershipManagerTeamMemberId: partnerPm?.id ?? null,
+    sdrTeamMemberId: partnerSdr?.id ?? null,
   }
 
   const qualificationFields: readonly LeadFieldDef[] = [
@@ -304,7 +357,17 @@ export default async function LeadDetailPage({
   const pipelineFields: readonly LeadFieldDef[] = [
     { kind: "textarea", name: "proposalSummary", label: "Proposal summary", rows: 2, colSpan: 2 },
     { kind: "number", name: "proposalAmount", label: "Proposal amount (AED)" },
-    { kind: "text", name: "paymentStatus", label: "Payment status" },
+    {
+      kind: "select",
+      name: "paymentStatus",
+      label: "Payment status",
+      options: [
+        { label: "Paid", value: "paid" },
+        { label: "Unpaid", value: "unpaid" },
+        { label: "Partially paid", value: "partially_paid" },
+      ],
+      placeholder: "Select payment status",
+    },
     { kind: "text", name: "paymentReference", label: "Payment reference" },
     { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
     {
@@ -523,11 +586,22 @@ export default async function LeadDetailPage({
           <section className="surface-card rounded-2xl p-6">
             <LeadEditCard
               leadId={lead.id}
-              title="Source & Ownership"
+              title="Source & Region"
               icon={<MapPin className="h-4 w-4" />}
               canEdit={canManageLeads}
-              fields={sourceOwnershipFields}
-              initialValues={sourceOwnershipInitial}
+              fields={sourceRegionFields}
+              initialValues={sourceRegionInitial}
+            />
+          </section>
+
+          <section className="surface-card rounded-2xl p-6">
+            <LeadEditCard
+              leadId={lead.id}
+              title="Team & ownership"
+              icon={<Building2 className="h-4 w-4" />}
+              canEdit={canManageLeads}
+              fields={ownershipFields}
+              initialValues={ownershipInitial}
             />
           </section>
 

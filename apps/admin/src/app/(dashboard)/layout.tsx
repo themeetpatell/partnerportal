@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { currentUser } from "@repo/auth/server"
 import { redirect } from "next/navigation"
 import { AdminSidebarNav } from "@/components/admin-sidebar-nav"
+import { AdminNotificationCenter } from "@/components/admin-notification-center"
 import { PageSkeleton } from "@/components/page-skeleton"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 
@@ -61,20 +62,26 @@ export default async function DashboardLayout({
     redirect("/sign-in")
   }
 
+  const displayFirst = teamMember.firstName?.trim() || user.firstName
+  const displayLast = teamMember.lastName?.trim() || user.lastName
   const userName =
+    [displayFirst, displayLast].filter(Boolean).join(" ") ||
+    teamMember.name ||
     [user.firstName, user.lastName].filter(Boolean).join(" ") ||
     user.email ||
     "Admin"
 
-  const userEmail = user.email || ""
+  const userEmail = teamMember.email || user.email || ""
 
   const userInitials =
-    [user.firstName?.[0], user.lastName?.[0]]
+    [displayFirst?.[0], displayLast?.[0]]
       .filter(Boolean)
       .join("")
       .toUpperCase() ||
-    userEmail.slice(0, 2).toUpperCase() ||
+    userName.slice(0, 2).toUpperCase() ||
     "A"
+
+  const userAvatarUrl = teamMember.avatarUrl?.trim() || null
 
   const userRole = formatRoleLabel(teamMember.role)
 
@@ -84,12 +91,16 @@ export default async function DashboardLayout({
         userName={userName}
         userEmail={userEmail}
         userInitials={userInitials}
+        userAvatarUrl={userAvatarUrl}
         userRole={userRole}
         teamRole={teamMember.role}
         teamPermissions={teamMember.permissions}
       />
       <main className="flex-1 min-w-0 overflow-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="mb-4 flex justify-end">
+            <AdminNotificationCenter />
+          </div>
           <Suspense fallback={<PageSkeleton />}>
             {children}
           </Suspense>

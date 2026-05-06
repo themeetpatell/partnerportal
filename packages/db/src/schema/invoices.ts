@@ -10,6 +10,8 @@ export const invoices = pgTable(
     tenantId: uuid("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
     partnerId: uuid("partner_id").notNull().references(() => partners.id),
     serviceRequestId: uuid("service_request_id").references(() => serviceRequests.id),
+    /** JSON array of lead UUIDs — commission invoice line context */
+    relatedLeadIds: text("related_lead_ids"),
     invoiceNumber: text("invoice_number").notNull().unique(),
     periodStart: timestamp("period_start").notNull(),
     periodEnd: timestamp("period_end").notNull(),

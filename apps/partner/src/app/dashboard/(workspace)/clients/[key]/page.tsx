@@ -17,10 +17,12 @@ import {
   MapPin,
   NotebookText,
   Phone,
+  Sparkles,
   User,
 } from "lucide-react"
 import { buildClientKey, buildClientRecords } from "@/lib/client-records"
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
+import { ClientEditCard } from "@/components/client-edit-card"
 
 function formatDate(date: Date | null | undefined) {
   if (!date) return "—"
@@ -53,6 +55,24 @@ function Field({
       <p className="mt-2 text-sm font-medium leading-6 text-foreground break-words">
         {value || <span className="text-muted-foreground/60">—</span>}
       </p>
+    </div>
+  )
+}
+
+function HeroStat({
+  label,
+  value,
+  description,
+}: {
+  label: string
+  value: string | number
+  description: string
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-secondary/40 px-4 py-4">
+      <p className="font-heading text-2xl font-semibold text-foreground">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-foreground">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
     </div>
   )
 }
@@ -149,84 +169,87 @@ export default async function ClientDetailPage({
         </Link>
       </div>
 
-      <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <div className="eyebrow">
-              {client.source === "saved" ? "Saved client" : "Activity-only client"}
+      <section className="surface-card overflow-hidden rounded-[2rem] p-0">
+        <div className="border-b border-border bg-secondary/25 px-6 py-7 sm:px-7">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <div className="eyebrow">
+                {client.source === "saved" ? "Saved client" : "Activity-only client"}
+              </div>
+              <h1 className="page-title mt-4">{client.displayName}</h1>
+              <p className="page-subtitle mt-3 max-w-2xl">
+                Client profile, renewal status, and every linked lead or service request in one working view.
+              </p>
             </div>
-            <h1 className="page-title mt-4">{client.displayName}</h1>
-            <p className="page-subtitle mt-3 max-w-2xl">
-              Full client detail view with contact information, renewal tracking, and linked lead and service activity.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="metric-card min-w-[160px]">
-              <p className="metric-value">{client.leadCount}</p>
-              <p className="mt-2 text-sm font-semibold text-foreground">Leads</p>
-            </div>
-            <div className="metric-card min-w-[160px]">
-              <p className="metric-value">{client.requestCount}</p>
-              <p className="mt-2 text-sm font-semibold text-foreground">Service requests</p>
-            </div>
-            <div className="metric-card min-w-[160px]">
-              <p className="metric-value text-lg">{formatDate(client.lastActivity)}</p>
-              <p className="mt-2 text-sm font-semibold text-foreground">Last activity</p>
+            <div className="flex shrink-0 items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-2 text-sm font-medium text-primary">
+              <Sparkles className="h-4 w-4" />
+              {client.source === "saved" ? "Editable profile" : "Save to edit"}
             </div>
           </div>
+        </div>
+        <div className="grid gap-3 px-6 py-5 sm:grid-cols-3 sm:px-7">
+          <HeroStat label="Leads" value={client.leadCount} description="Matched lead records" />
+          <HeroStat label="Service requests" value={client.requestCount} description="Linked delivery work" />
+          <HeroStat label="Last activity" value={formatDate(client.lastActivity)} description="Most recent touchpoint" />
         </div>
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_420px]">
         <div className="space-y-6">
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
-            <h2 className="font-heading text-2xl font-semibold text-foreground">Client details</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The saved profile or best-known activity profile for this client.
-            </p>
+            {client.source === "saved" && client.clientId ? (
+              <ClientEditCard
+                client={{
+                  id: client.clientId,
+                  companyName: client.displayName,
+                  contactName: client.contactName,
+                  email: client.email,
+                  phone: client.phone,
+                  nationality: client.nationality,
+                  tradeLicenseNumber: client.tradeLicenseNumber,
+                  city: client.city,
+                  country: client.country,
+                  status: client.status,
+                  renewalDate: client.renewalDate ? client.renewalDate.toISOString() : null,
+                  renewalState: client.renewalState,
+                  notes: client.notes,
+                }}
+              />
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="font-heading text-2xl font-semibold text-foreground">Client details</h2>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      Best-known activity profile for this client.
+                    </p>
+                  </div>
+                  <Link href={`/dashboard/clients/new?company=${encodeURIComponent(client.displayName)}`} className="primary-button h-10 px-4">
+                    Save client
+                  </Link>
+                </div>
 
-            <div className="mt-6 grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
-              <Field icon={Building2} label="Company" value={client.displayName} />
-              <Field icon={User} label="Primary contact" value={client.contactName} />
-              <Field icon={Mail} label="Email" value={client.email} />
-              <Field icon={Phone} label="Phone" value={client.phone} />
-              <Field icon={User} label="Nationality" value={client.nationality} />
-              <Field icon={Building2} label="Trade license number" value={client.tradeLicenseNumber} />
-              <Field
-                icon={MapPin}
-                label="Location"
-                value={[client.city, client.country].filter(Boolean).join(", ") || null}
-              />
-              <Field
-                icon={Calendar}
-                label="Renewal date"
-                value={client.renewalDate ? formatDate(client.renewalDate) : "Not tracked"}
-              />
-              <Field
-                icon={Globe}
-                label="Client record type"
-                value={client.source === "saved" ? "Saved client" : "Activity only"}
-              />
-              <Field
-                icon={Globe}
-                label="Lifecycle status"
-                value={client.status ? formatLabel(client.status) : "Not set"}
-              />
-              <Field
-                icon={Calendar}
-                label="Renewal state"
-                value={formatLabel(client.renewalState)}
-              />
-            </div>
-
-            <div className="mt-6 border-t border-border pt-6">
-              <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                Notes
-              </p>
-              <p className="mt-3 text-sm leading-7 text-foreground/90">
-                {client.notes?.trim() || "No notes saved for this client yet."}
-              </p>
-            </div>
+                <div className="mt-6 grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
+                  <Field icon={Building2} label="Company" value={client.displayName} />
+                  <Field icon={User} label="Primary contact" value={client.contactName} />
+                  <Field icon={Mail} label="Email" value={client.email} />
+                  <Field icon={Phone} label="Phone" value={client.phone} />
+                  <Field icon={User} label="Nationality" value={client.nationality} />
+                  <Field icon={Building2} label="Trade license number" value={client.tradeLicenseNumber} />
+                  <Field
+                    icon={MapPin}
+                    label="Location"
+                    value={[client.city, client.country].filter(Boolean).join(", ") || null}
+                  />
+                  <Field
+                    icon={Calendar}
+                    label="Renewal date"
+                    value={client.renewalDate ? formatDate(client.renewalDate) : "Not tracked"}
+                  />
+                  <Field icon={Globe} label="Client record type" value="Activity only" />
+                </div>
+              </>
+            )}
           </section>
 
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
@@ -341,6 +364,7 @@ export default async function ClientDetailPage({
           </section>
         </aside>
       </div>
+
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { currentUser } from "@repo/auth/server"
-import { db, partners, leads, commissions } from "@repo/db"
-import { eq, count, sum, and, isNull, desc } from "drizzle-orm"
+import { db, partners, leads, commissions, invoices } from "@repo/db"
+import { eq, count, sum, and, isNull, desc, ne } from "drizzle-orm"
 import {
   UserCheck,
   Clock,
@@ -10,6 +10,9 @@ import {
   DollarSign,
   ArrowRight,
   Building2,
+  Trophy,
+  Receipt,
+  BadgeCheck,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -88,6 +91,15 @@ export default async function AdminOverviewPage() {
   const canCommissions = member
     ? hasModuleAccess(member.role, member.permissions, "commissions")
     : false
+  const canInvoices = member
+    ? hasModuleAccess(member.role, member.permissions, "invoices")
+    : false
+
+  const invoiceBase = and(
+    eq(invoices.tenantId, tenantId),
+    isNull(invoices.deletedAt),
+    scopedPartnerFilters(scope, invoices.partnerId, null) ?? undefined,
+  )
 
   const [
     totalPartnersResult,
@@ -95,6 +107,9 @@ export default async function AdminOverviewPage() {
     totalLeadsResult,
     submittedLeadsResult,
     pendingCommissionsResult,
+    approvedPartnersResult,
+    wonLeadsResult,
+    openInvoicesResult,
     pendingPartnersList,
     recentLeadsList,
   ] = await Promise.all([
@@ -122,6 +137,30 @@ export default async function AdminOverviewPage() {
           .from(commissions)
           .where(commissionPendingBase)
       : Promise.resolve([{ total: null }]),
+    canPartners
+      ? db
+          .select({ count: count() })
+          .from(partners)
+          .where(and(partnerBase, eq(partners.status, "approved")))
+      : Promise.resolve([{ count: 0 }]),
+    canLeads
+      ? db
+          .select({ count: count() })
+          .from(leads)
+          .where(and(leadBase, eq(leads.status, "deal_won")))
+      : Promise.resolve([{ count: 0 }]),
+    canInvoices
+      ? db
+          .select({ count: count() })
+          .from(invoices)
+          .where(
+            and(
+              invoiceBase,
+              ne(invoices.status, "paid"),
+              ne(invoices.status, "cancelled"),
+            ),
+          )
+      : Promise.resolve([{ count: 0 }]),
     canPartners
       ? db
           .select({
@@ -160,6 +199,9 @@ export default async function AdminOverviewPage() {
   const pendingCommissionsTotal = Number(
     pendingCommissionsResult[0]?.total ?? 0,
   ).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const approvedPartners = Number(approvedPartnersResult[0]?.count ?? 0)
+  const wonLeads = Number(wonLeadsResult[0]?.count ?? 0)
+  const openInvoices = Number(openInvoicesResult[0]?.count ?? 0)
 
   const kpiCards = [
     canPartners && {
@@ -178,6 +220,14 @@ export default async function AdminOverviewPage() {
       color: "text-yellow-400",
       bg: "bg-yellow-950/40 border-yellow-800/30",
     },
+    canPartners && {
+      label: "Active Partners",
+      value: String(approvedPartners),
+      icon: BadgeCheck,
+      description: "Approved workspace accounts in your scope",
+      color: "text-emerald-400",
+      bg: "bg-emerald-950/40 border-emerald-800/30",
+    },
     canLeads && {
       label: "Total Leads",
       value: String(totalLeads),
@@ -194,6 +244,14 @@ export default async function AdminOverviewPage() {
       color: "text-orange-400",
       bg: "bg-orange-950/40 border-orange-800/30",
     },
+    canLeads && {
+      label: "Closed Won",
+      value: String(wonLeads),
+      icon: Trophy,
+      description: "Lifetime wins in your lead scope",
+      color: "text-green-400",
+      bg: "bg-green-950/40 border-green-800/30",
+    },
     canCommissions && {
       label: "Commissions Pending",
       value: `AED ${pendingCommissionsTotal}`,
@@ -201,6 +259,14 @@ export default async function AdminOverviewPage() {
       description: "Awaiting approval (your scope)",
       color: "text-green-400",
       bg: "bg-green-950/40 border-green-800/30",
+    },
+    canInvoices && {
+      label: "Open Invoices",
+      value: String(openInvoices),
+      icon: Receipt,
+      description: "Draft, sent, or overdue — not paid or voided",
+      color: "text-cyan-400",
+      bg: "bg-cyan-950/40 border-cyan-800/30",
     },
   ].filter(Boolean) as {
     label: string

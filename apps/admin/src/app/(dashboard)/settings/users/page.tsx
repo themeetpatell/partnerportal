@@ -39,7 +39,7 @@ export default async function UsersPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Users &amp; Access</h1>
+          <h1 className="text-2xl font-bold text-white">Users &amp; Permissions</h1>
           <p className="text-zinc-400 text-sm mt-1">
             Manage team members, roles, and permissions.
           </p>

@@ -1,6 +1,5 @@
-import type { ReactNode } from "react"
-import { db, leads, documents } from "@repo/db"
-import { and, eq, isNull } from "drizzle-orm"
+import { db, leads, documents, teamMembers } from "@repo/db"
+import { and, asc, eq, isNull } from "drizzle-orm"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { z } from "zod"
@@ -27,6 +26,7 @@ import {
   LEAD_LOST_REASONS,
   LEAD_INDUSTRY_OPTIONS,
   PAYMENT_RECURRING_OPTIONS,
+  COUNTRY_OPTIONS,
   leadSelectOptions,
 } from "@repo/types"
 import type { LeadStatus } from "@repo/types"
@@ -67,18 +67,6 @@ function formatDateTime(date: Date | string | null | undefined) {
   })
 }
 
-function SidebarField({ label, value }: { label: string; value: ReactNode }) {
-  if (value == null || value === "") return null
-  return (
-    <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </dt>
-      <dd className="mt-1 text-sm text-foreground">{value}</dd>
-    </div>
-  )
-}
-
 export default async function LeadDetailPage({
   params,
   searchParams,
@@ -96,7 +84,7 @@ export default async function LeadDetailPage({
 
   if (!partner) notFound()
 
-  const [[lead], leadDocs] = await Promise.all([
+  const [[lead], leadDocs, partnerTeamRows] = await Promise.all([
     db
       .select()
       .from(leads)
@@ -106,6 +94,11 @@ export default async function LeadDetailPage({
       .select()
       .from(documents)
       .where(and(eq(documents.ownerType, "lead"), eq(documents.ownerId, id))),
+    db
+      .select({ id: teamMembers.id, name: teamMembers.name, role: teamMembers.role })
+      .from(teamMembers)
+      .where(and(eq(teamMembers.tenantId, partner.tenantId), eq(teamMembers.isActive, true)))
+      .orderBy(asc(teamMembers.name)),
   ])
 
   if (!lead) notFound()
@@ -125,10 +118,20 @@ export default async function LeadDetailPage({
 
   const serviceOptions = mergeLeadServiceOptionsWithStored(services)
 
+  const partnerPm = partner.partnershipManagerTeamMemberId
+    ? partnerTeamRows.find((row) => row.id === partner.partnershipManagerTeamMemberId) ?? null
+    : null
+  const partnerSdr = partner.sdrTeamMemberId
+    ? partnerTeamRows.find((row) => row.id === partner.sdrTeamMemberId) ?? null
+    : null
+  const partnerProfileUserOption = (row: typeof partnerTeamRows[number] | null) =>
+    row
+      ? [{ label: `${row.name} (${row.role.replace(/_/g, " ")})`, value: row.id }]
+      : []
+
   const contactNames = mergeLeadContactNamesForDisplay(lead)
 
   const contactCompanyFields: readonly LeadFieldDef[] = [
-    { kind: "readonlyText", name: "customerNameSummary", label: "Full name" },
     { kind: "text", name: "firstName", label: "First name" },
     { kind: "text", name: "lastName", label: "Last name" },
     { kind: "email", name: "customerEmail", label: "Email", required: true },
@@ -136,11 +139,11 @@ export default async function LeadDetailPage({
     { kind: "text", name: "customerCompany", label: "Company", colSpan: 2 },
     { kind: "multiselect", name: "serviceInterestMulti", label: "Services of interest", options: serviceOptions, colSpan: 2 },
     { kind: "textarea", name: "serviceInterestCustom", label: "Additional services (comma or newline separated)", rows: 2, colSpan: 2 },
+    { kind: "file", name: "tradeLicenseFile", label: "Trade license upload", accept: ".pdf,.png,.jpg,.jpeg", colSpan: 2 },
     { kind: "textarea", name: "notes", label: "Notes", rows: 3, colSpan: 2 },
     { kind: "readonlyDate", name: "createdAt", label: "Submitted" },
   ]
   const contactCompanyInitial = {
-    customerNameSummary: lead.customerName,
     firstName: contactNames.firstName,
     lastName: contactNames.lastName,
     customerEmail: lead.customerEmail,
@@ -148,20 +151,25 @@ export default async function LeadDetailPage({
     customerCompany: lead.customerCompany,
     serviceInterestMulti: services,
     serviceInterestCustom: null,
+    tradeLicenseFile: null,
     notes: lead.notes,
     createdAt:
       lead.createdAt instanceof Date ? lead.createdAt.toISOString() : lead.createdAt,
   }
 
   const sourceRegionFields: readonly LeadFieldDef[] = [
-    { kind: "text", name: "source", label: "Source" },
-    { kind: "text", name: "channel", label: "Channel" },
-    { kind: "text", name: "country", label: "Country" },
+    { kind: "readonlyText", name: "source", label: "Source" },
+    {
+      kind: "select",
+      name: "country",
+      label: "Country",
+      options: leadSelectOptions([...COUNTRY_OPTIONS]),
+      placeholder: "Select country",
+    },
     { kind: "text", name: "city", label: "City" },
   ]
   const sourceRegionInitial = {
     source: lead.source,
-    channel: lead.channel,
     country: lead.country,
     city: lead.city,
   }
@@ -169,14 +177,26 @@ export default async function LeadDetailPage({
   const ownershipFields: readonly LeadFieldDef[] = [
     { kind: "text", name: "leadOwner", label: "Lead owner" },
     { kind: "text", name: "dealOwner", label: "Deal owner" },
-    { kind: "text", name: "partnershipManager", label: "Partnership manager" },
-    { kind: "text", name: "appointmentSetter", label: "Appointment setter" },
+    {
+      kind: "select",
+      name: "partnershipManagerTeamMemberId",
+      label: "Partnership manager",
+      options: partnerProfileUserOption(partnerPm),
+      placeholder: "Select partnership manager",
+    },
+    {
+      kind: "select",
+      name: "sdrTeamMemberId",
+      label: "Partnership executive",
+      options: partnerProfileUserOption(partnerSdr),
+      placeholder: "Select partnership executive",
+    },
   ]
   const ownershipInitial = {
     leadOwner: lead.leadOwner,
     dealOwner: lead.dealOwner,
-    partnershipManager: lead.partnershipManager,
-    appointmentSetter: lead.appointmentSetter,
+    partnershipManagerTeamMemberId: partnerPm?.id ?? null,
+    sdrTeamMemberId: partnerSdr?.id ?? null,
   }
 
   const qualificationFields: readonly LeadFieldDef[] = [
@@ -236,7 +256,17 @@ export default async function LeadDetailPage({
   const pipelineFields: readonly LeadFieldDef[] = [
     { kind: "textarea", name: "proposalSummary", label: "Proposal summary", rows: 2, colSpan: 2 },
     { kind: "number", name: "proposalAmount", label: "Proposal amount (AED)" },
-    { kind: "text", name: "paymentStatus", label: "Payment status" },
+    {
+      kind: "select",
+      name: "paymentStatus",
+      label: "Payment status",
+      options: [
+        { label: "Paid", value: "paid" },
+        { label: "Unpaid", value: "unpaid" },
+        { label: "Partially paid", value: "partially_paid" },
+      ],
+      placeholder: "Select payment status",
+    },
     { kind: "text", name: "paymentReference", label: "Payment reference" },
     { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
     {
@@ -415,7 +445,6 @@ export default async function LeadDetailPage({
               title="Pipeline & proposal"
               icon={<CircleDollarSign className="h-4 w-4" />}
               canEdit={false}
-              description="Admin keeps this fresh—you’re on read-only cruise control."
               fields={pipelineFields}
               initialValues={pipelineInitial}
             />
@@ -479,19 +508,6 @@ export default async function LeadDetailPage({
                   </dd>
                 </div>
               ) : null}
-            </dl>
-          </section>
-
-          {/* Source info */}
-          <section className="surface-card rounded-[2rem] px-6 py-6">
-            <h2 className="flex items-center gap-2 font-heading text-lg font-semibold text-foreground">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              Lead source
-            </h2>
-            <dl className="mt-4 space-y-3">
-              <SidebarField label="Channel" value={lead.channel?.replace(/_/g, " ")} />
-              <SidebarField label="Country" value={lead.country} />
-              <SidebarField label="City" value={lead.city} />
             </dl>
           </section>
 

@@ -4,10 +4,11 @@ import { redirect } from "next/navigation"
 import {
   db,
   derivePartnerOperationalStatusFromRollup,
+  documents,
   formatPartnerOperationalStatus,
   leads,
 } from "@repo/db"
-import { and, eq, isNull, sql } from "drizzle-orm"
+import { and, desc, eq, isNull, sql } from "drizzle-orm"
 import {
   ArrowUpRight,
   Briefcase,
@@ -158,17 +159,31 @@ export default async function ProfilePage({
     redirect("/onboarding")
   }
 
-  const [partnerLeadRollup] = await db
-    .select({
-      totalLeads: sql<number>`count(*)::int`,
-      latestLeadAt: sql<Date | null>`max(${leads.createdAt})`,
-      qualifiedInLast60Days:
-        sql<number>`count(*) filter (where ${leads.status} in ('lead_qualified','proposal_sent','deal_won') and ${leads.createdAt} >= now() - interval '60 days')::int`,
-      anyInLast60Days:
-        sql<number>`count(*) filter (where ${leads.createdAt} >= now() - interval '60 days')::int`,
-    })
-    .from(leads)
-    .where(and(eq(leads.partnerId, partnerRecord.id), isNull(leads.deletedAt)))
+  const [[partnerLeadRollup], [tradeLicenseDocument]] = await Promise.all([
+    db
+      .select({
+        totalLeads: sql<number>`count(*)::int`,
+        latestLeadAt: sql<Date | null>`max(${leads.createdAt})`,
+        qualifiedInLast60Days:
+          sql<number>`count(*) filter (where ${leads.status} in ('lead_qualified','proposal_sent','deal_won') and ${leads.createdAt} >= now() - interval '60 days')::int`,
+        anyInLast60Days:
+          sql<number>`count(*) filter (where ${leads.createdAt} >= now() - interval '60 days')::int`,
+      })
+      .from(leads)
+      .where(and(eq(leads.partnerId, partnerRecord.id), isNull(leads.deletedAt))),
+    db
+      .select({ id: documents.id, fileName: documents.fileName })
+      .from(documents)
+      .where(
+        and(
+          eq(documents.ownerType, "partner"),
+          eq(documents.ownerId, partnerRecord.id),
+          eq(documents.documentType, "trade_license"),
+        ),
+      )
+      .orderBy(desc(documents.uploadedAt))
+      .limit(1),
+  ])
 
   const partnerTypeLabel =
     partnerRecord.type === "channel" ? "Channel Partner" : "Referral Partner"
@@ -311,7 +326,7 @@ export default async function ProfilePage({
         <h1 className="page-title">Profile</h1>
       </div>
 
-      <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_30px_80px_rgba(15,23,42,0.45)]">
+      <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_16px_36px_rgba(15,23,42,0.16)]">
         <div className="px-5 pt-6 pb-6 sm:px-8 sm:pt-8 sm:pb-8">
           {/* Row 1: Avatar + Identity */}
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -539,6 +554,12 @@ export default async function ProfilePage({
                   icon={FileText}
                   label="Trade license"
                   value={partnerRecord.tradeLicense}
+                />
+                <FieldRow
+                  icon={FileText}
+                  label="Trade license file"
+                  value={tradeLicenseDocument?.fileName}
+                  href={tradeLicenseDocument ? `/api/documents/${tradeLicenseDocument.id}?disposition=inline` : null}
                 />
                 <FieldRow
                   icon={User}

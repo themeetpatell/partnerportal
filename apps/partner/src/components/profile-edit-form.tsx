@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
-import { Pencil, X, Save, Loader2 } from "lucide-react"
-import { NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
+import { FileUp, Pencil, X, Save, Loader2 } from "lucide-react"
+import { COUNTRY_OPTIONS, NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
+import { toast } from "sonner"
 
 /* ── Types ────────────────────────────────────────────── */
 
@@ -63,6 +64,39 @@ function TextField({
         placeholder={placeholder}
         className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
       />
+    </div>
+  )
+}
+
+function FileField({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string
+  name: string
+  value: File | null
+  onChange: (name: string, value: File | null) => void
+}) {
+  return (
+    <div className="sm:col-span-2">
+      <label className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+        {label}
+      </label>
+      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-secondary/40 px-4 py-5 text-center transition-colors hover:border-primary/40 hover:bg-secondary/70">
+        <FileUp className="h-5 w-5 text-primary" />
+        <span className="mt-2 text-sm font-medium text-foreground">
+          {value?.name || "Upload trade license"}
+        </span>
+        <span className="mt-1 text-xs text-muted-foreground">PDF, PNG, or JPG up to 8 MB</span>
+        <input
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg"
+          className="sr-only"
+          onChange={(event) => onChange(name, event.target.files?.[0] ?? null)}
+        />
+      </label>
     </div>
   )
 }
@@ -202,9 +236,9 @@ export function ProfileEditForm({
   const [isEditing, setIsEditing] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const [formData, setFormData] = useState<Record<string, string | boolean>>({})
+  const [formData, setFormData] = useState<Record<string, string | boolean | File | null>>({})
 
-  const handleChange = (name: string, value: string | boolean) => {
+  const handleChange = (name: string, value: string | boolean | File | null) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
@@ -219,7 +253,9 @@ export function ProfileEditForm({
 
     // Only send fields that were actually changed
     const payload: Record<string, string | boolean | null> = {}
+    const tradeLicenseFile = formData.tradeLicenseFile instanceof File ? formData.tradeLicenseFile : null
     for (const [key, val] of Object.entries(formData)) {
+      if (val instanceof File || key === "tradeLicenseFile") continue
       if (typeof val === "string" && val === "") {
         payload[key] = null
       } else {
@@ -227,24 +263,41 @@ export function ProfileEditForm({
       }
     }
 
-    if (Object.keys(payload).length === 0) {
+    if (Object.keys(payload).length === 0 && !tradeLicenseFile) {
       setIsEditing(false)
       return
     }
 
     try {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      if (Object.keys(payload).length > 0) {
+        const res = await fetch("/api/profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
 
-      if (!res.ok) {
-        const data = await res.json()
-        setError(data.error ?? "Failed to save changes.")
-        return
+        if (!res.ok) {
+          const data = await res.json()
+          setError(data.error ?? "Failed to save changes.")
+          return
+        }
       }
 
+      if (tradeLicenseFile) {
+        const upload = new FormData()
+        upload.append("file", tradeLicenseFile)
+        const uploadRes = await fetch("/api/profile/documents", {
+          method: "POST",
+          body: upload,
+        })
+        if (!uploadRes.ok) {
+          const data = await uploadRes.json().catch(() => ({}))
+          setError(data.error ?? "Trade license upload failed.")
+          return
+        }
+      }
+
+      toast.success("Profile updated.")
       setIsEditing(false)
       setFormData({})
       startTransition(() => router.refresh())
@@ -254,10 +307,15 @@ export function ProfileEditForm({
   }
 
   const val = (key: keyof PartnerData): string => {
-    if (key in formData) return String(formData[key] ?? "")
+    if (key in formData && !(formData[key] instanceof File)) return String(formData[key] ?? "")
     const raw = partner[key]
     if (raw === null || raw === undefined) return ""
     return String(raw)
+  }
+
+  const fileVal = (key: string): File | null => {
+    const value = formData[key]
+    return value instanceof File ? value : null
   }
 
   const boolVal = (key: keyof PartnerData): boolean => {
@@ -314,13 +372,13 @@ export function ProfileEditForm({
       <div className="grid gap-4 sm:grid-cols-2">
         {section === "contact" && (
           <>
-            <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} />
-            <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} />
-            <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} />
-            <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} placeholder="e.g. 1990-01-15" />
-            <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" />
+            <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} placeholder="Meet Patel" />
+            <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} placeholder="+971 50 000 0000" />
+            <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} placeholder="Managing Partner" />
+            <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} type="date" />
+            <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" placeholder="alternate@example.com" />
             <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
-            <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
+            <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} placeholder="linkedin.com/in/your-name" />
             <SelectField
               label="Nationality"
               name="nationality"
@@ -335,7 +393,7 @@ export function ProfileEditForm({
 
         {section === "company" && (
           <>
-            <TextField label="Company name" name="companyName" value={val("companyName")} onChange={handleChange} />
+            <TextField label="Company name" name="companyName" value={val("companyName")} onChange={handleChange} placeholder="Company LLC" />
             <SelectField
               label="Business size"
               name="businessSize"
@@ -363,14 +421,15 @@ export function ProfileEditForm({
         {section === "financial" && (
           <>
             <CheckboxField label="VAT registered" name="vatRegistered" checked={boolVal("vatRegistered")} onChange={handleChange} />
-            <TextField label="VAT number" name="vatNumber" value={val("vatNumber")} onChange={handleChange} />
-            <TextField label="Trade license" name="tradeLicense" value={val("tradeLicense")} onChange={handleChange} />
-            <TextField label="Emirate ID / Passport" name="emirateIdPassport" value={val("emirateIdPassport")} onChange={handleChange} />
-            <TextField label="Beneficiary name (as per bank)" name="beneficiaryName" value={val("beneficiaryName")} onChange={handleChange} />
-            <TextField label="Bank name" name="bankName" value={val("bankName")} onChange={handleChange} />
-            <TextField label="Bank country" name="bankCountry" value={val("bankCountry")} onChange={handleChange} />
-            <TextField label="Account No / IBAN" name="accountNoIban" value={val("accountNoIban")} onChange={handleChange} />
-            <TextField label="SWIFT / BIC code" name="swiftBicCode" value={val("swiftBicCode")} onChange={handleChange} />
+            <TextField label="VAT number" name="vatNumber" value={val("vatNumber")} onChange={handleChange} placeholder="TRN / VAT number" />
+            <TextField label="Trade license" name="tradeLicense" value={val("tradeLicense")} onChange={handleChange} placeholder="Trade license number" />
+            <TextField label="Emirate ID / Passport" name="emirateIdPassport" value={val("emirateIdPassport")} onChange={handleChange} placeholder="ID or passport number" />
+            <TextField label="Beneficiary name (as per bank)" name="beneficiaryName" value={val("beneficiaryName")} onChange={handleChange} placeholder="Name on bank account" />
+            <TextField label="Bank name" name="bankName" value={val("bankName")} onChange={handleChange} placeholder="Bank name" />
+            <SelectField label="Bank country" name="bankCountry" value={val("bankCountry")} onChange={handleChange} options={[...COUNTRY_OPTIONS].map((n) => ({ label: n, value: n }))} placeholder="Select bank country" />
+            <TextField label="Account No / IBAN" name="accountNoIban" value={val("accountNoIban")} onChange={handleChange} placeholder="AE00 0000 0000 0000 0000 000" />
+            <TextField label="SWIFT / BIC code" name="swiftBicCode" value={val("swiftBicCode")} onChange={handleChange} placeholder="BANKAEAD" />
+            <FileField label="Trade license upload" name="tradeLicenseFile" value={fileVal("tradeLicenseFile")} onChange={handleChange} />
           </>
         )}
       </div>

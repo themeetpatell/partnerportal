@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { BookOpen, ChevronRight, DollarSign, FileText, HelpCircle, Lightbulb, ShieldCheck, TrendingUp } from "lucide-react"
+import { BookOpen, ChevronRight, DollarSign, FileText, HelpCircle, Lightbulb, Search, ShieldCheck, TrendingUp } from "lucide-react"
 
 // ─── Content ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +24,10 @@ const SERVICE_CATEGORIES = [
           { q: "We'll handle it ourselves.", a: "FTA rejections are common with DIY filings. Finanshels' success rate is near 100% because we know exactly what documentation the FTA expects." },
           { q: "We're not big enough yet.", a: "The threshold is AED 375K annually — that's ~AED 31K/month. If they're close, it's worth getting it right from the start to avoid penalties." },
         ],
+        faqs: [
+          { q: "What documents does the client usually need?", a: "Trade licence, Emirates ID/passport of owners, contact details, bank details if available, and recent revenue evidence." },
+          { q: "How long does VAT registration take?", a: "Usually 5-10 business days once complete documents are available." },
+        ],
       },
       {
         name: "VAT Filing",
@@ -36,6 +40,10 @@ const SERVICE_CATEGORIES = [
         ],
         objections: [
           { q: "Our accountant does it.", a: "Finanshels specialises in UAE tax compliance. Many accountants outsource VAT filing to us anyway — we have direct FTA experience." },
+        ],
+        faqs: [
+          { q: "How often are VAT returns filed?", a: "Most UAE VAT returns are quarterly, but the FTA can assign a different period." },
+          { q: "Can Finanshels clean up old VAT periods?", a: "Yes. We can review prior submissions, reconcile ledgers, and correct issues before the next filing." },
         ],
       },
       {
@@ -51,6 +59,10 @@ const SERVICE_CATEGORIES = [
           { q: "We're a free zone company — we're exempt.", a: "Most free zone companies are still required to register and file, even if they qualify for 0% tax. Finanshels can confirm their status and handle the filing." },
           { q: "Our profit is below AED 375K so we don't owe tax.", a: "You still have to register and file a return. Non-compliance penalties apply regardless of profit." },
         ],
+        faqs: [
+          { q: "Is registration required even with no tax due?", a: "Yes, most UAE companies still need to register and file even if no tax is payable." },
+          { q: "What is the strongest urgency trigger?", a: "Non-registration penalties and annual filing deadlines are the strongest triggers." },
+        ],
       },
       {
         name: "AML Compliance",
@@ -63,6 +75,10 @@ const SERVICE_CATEGORIES = [
         ],
         objections: [
           { q: "We don't deal with suspicious transactions.", a: "AML compliance isn't just about reporting suspicious activity — it's about having the programme, policies, and registration in place. The obligation is on all DNFBPs." },
+        ],
+        faqs: [
+          { q: "Which businesses are the warmest fit?", a: "Real estate, accounting, legal, precious metals, and company formation businesses are strong fits." },
+          { q: "Is this a one-time setup?", a: "There is initial setup, then ongoing monitoring, reporting, and policy maintenance." },
         ],
       },
     ],
@@ -86,6 +102,10 @@ const SERVICE_CATEGORIES = [
         objections: [
           { q: "We manage in Excel.", a: "Excel works until it doesn't. Finanshels moves clients to a proper system — they get real financial data, not estimates." },
         ],
+        faqs: [
+          { q: "Who is the best prospect?", a: "A growing business with frequent transactions, poor visibility, or bank/investor reporting needs." },
+          { q: "Can this be bundled?", a: "Yes. It pairs naturally with VAT filing, management reporting, and audit preparation." },
+        ],
       },
       {
         name: "Quarterly Accounting (Growth)",
@@ -96,6 +116,10 @@ const SERVICE_CATEGORIES = [
           "Quarterly accounts are required as supporting documentation for many VAT filings and bank facilities.",
         ],
         objections: [],
+        faqs: [
+          { q: "Why quarterly instead of monthly?", a: "It is a lighter option for SMEs that need reliable books without a monthly finance rhythm." },
+          { q: "Can clients upgrade later?", a: "Yes. Quarterly clients often move to monthly as transactions or reporting needs increase." },
+        ],
       },
       {
         name: "Annual Accounting (Essential)",
@@ -106,6 +130,10 @@ const SERVICE_CATEGORIES = [
           "Natural upsell path: once they see the value, move them to quarterly or monthly.",
         ],
         objections: [],
+        faqs: [
+          { q: "Who buys annual accounting?", a: "Smaller businesses that mainly need year-end books for tax, audit, or compliance." },
+          { q: "What is the upsell path?", a: "Move them to quarterly or monthly once they see the value of cleaner financial records." },
+        ],
       },
       {
         name: "Financial Statement Preparation",
@@ -118,6 +146,10 @@ const SERVICE_CATEGORIES = [
         objections: [
           { q: "We have basic accounts already.", a: "Basic internal accounts are not the same as IFRS-compliant financials that banks and auditors accept. Finanshels prepares these to institutional standard." },
         ],
+        faqs: [
+          { q: "When does a client need this urgently?", a: "Bank loans, investor diligence, audits, shareholder reporting, and major tenders." },
+          { q: "Is this different from bookkeeping?", a: "Yes. Bookkeeping records activity; financial statements present it in accepted reporting format." },
+        ],
       },
       {
         name: "Management Accounting",
@@ -128,6 +160,10 @@ const SERVICE_CATEGORIES = [
           "Founders love this — it's the CFO-level visibility they can't afford to hire for full-time.",
         ],
         objections: [],
+        faqs: [
+          { q: "What outcome should I pitch?", a: "Better decisions from monthly KPI, cash flow, and budget-versus-actual reporting." },
+          { q: "Who signs off fastest?", a: "Owners who cannot see margins, cash burn, or product profitability clearly." },
+        ],
       },
     ],
   },
@@ -150,6 +186,10 @@ const SERVICE_CATEGORIES = [
         objections: [
           { q: "Our auditor is a small firm we've used for years.", a: "Finanshels is a licensed audit firm in the UAE. For businesses seeking bank facilities or scaling, the credibility of the audit firm matters." },
         ],
+        faqs: [
+          { q: "When should I pitch audit?", a: "Ahead of year-end, licence renewal, bank financing, or free zone submission deadlines." },
+          { q: "Is audit recurring?", a: "Yes. Many UAE entities need annual audits, making this a repeat opportunity." },
+        ],
       },
       {
         name: "Audited Financial Statements",
@@ -160,6 +200,10 @@ const SERVICE_CATEGORIES = [
           "High value engagement — strong commission potential.",
         ],
         objections: [],
+        faqs: [
+          { q: "Why bundle audit and statements?", a: "Clients avoid coordinating multiple providers and get a bank/investor-ready package." },
+          { q: "Who needs audited statements?", a: "Companies seeking finance, raising investment, or meeting authority/shareholder requirements." },
+        ],
       },
       {
         name: "Liquidation",
@@ -170,6 +214,10 @@ const SERVICE_CATEGORIES = [
           "Business owners who are shutting down need a trusted specialist, not a general law firm.",
         ],
         objections: [],
+        faqs: [
+          { q: "What triggers liquidation demand?", a: "Closing a company, restructuring, unpaid compliance cleanup, or group simplification." },
+          { q: "Why use a specialist?", a: "Liquidation can involve tax, VAT deregistration, authority approvals, and accounting clearance." },
+        ],
       },
     ],
   },
@@ -193,6 +241,10 @@ const SERVICE_CATEGORIES = [
           { q: "We can't afford a CFO.", a: "A fractional CFO costs a fraction of a full-time hire. You get the same calibre of strategic thinking — just on the days you actually need it." },
           { q: "Our accountant handles strategy.", a: "Accountants look backwards. A CFO looks forwards — managing cash runway, structuring deals, and securing financing." },
         ],
+        faqs: [
+          { q: "What is the best buying trigger?", a: "Fundraising, bank financing, cash flow pressure, board reporting, or rapid scaling." },
+          { q: "How should I position it?", a: "Senior finance leadership without the cost of a full-time CFO." },
+        ],
       },
       {
         name: "Financial Modelling",
@@ -205,6 +257,10 @@ const SERVICE_CATEGORIES = [
         objections: [
           { q: "We have a model already.", a: "Investor-grade models are different from operational ones. Finanshels builds models that answer investor questions before they're asked." },
         ],
+        faqs: [
+          { q: "Who needs financial modelling?", a: "Founders raising capital, operators planning expansion, and businesses seeking bank finance." },
+          { q: "What makes it valuable?", a: "It translates strategy into numbers investors, lenders, and leadership teams can test." },
+        ],
       },
       {
         name: "Salary Benchmarking",
@@ -215,6 +271,10 @@ const SERVICE_CATEGORIES = [
           "Good entry point into a relationship — often leads to broader advisory mandates.",
         ],
         objections: [],
+        faqs: [
+          { q: "Who buys salary benchmarking?", a: "Companies scaling teams, correcting pay bands, or trying to retain key people." },
+          { q: "What is the sales angle?", a: "Hiring confidently without overpaying or losing talent because offers are mispriced." },
+        ],
       },
     ],
   },
@@ -275,7 +335,35 @@ function ColorClasses(color: string) {
   return map[color] ?? map["indigo"]!
 }
 
-export default function LearnPage() {
+function serviceMatches(service: (typeof SERVICE_CATEGORIES)[number]["services"][number], query: string) {
+  if (!query) return true
+  const haystack = [
+    service.name,
+    service.what,
+    service.who,
+    ...service.pitch,
+    ...service.objections.flatMap((item) => [item.q, item.a]),
+    ...(service.faqs ?? []).flatMap((item) => [item.q, item.a]),
+  ].join(" ").toLowerCase()
+  return haystack.includes(query.toLowerCase())
+}
+
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ service?: string; q?: string }>
+}) {
+  const { service, q } = await searchParams
+  const activeService = service ?? "all"
+  const query = q?.trim() ?? ""
+  const filteredCategories = SERVICE_CATEGORIES
+    .filter((cat) => activeService === "all" || cat.id === activeService)
+    .map((cat) => ({
+      ...cat,
+      services: cat.services.filter((item) => serviceMatches(item, query)),
+    }))
+    .filter((cat) => cat.services.length > 0)
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -306,6 +394,35 @@ export default function LearnPage() {
             )
           })}
         </div>
+
+        <form action="/dashboard/learn" className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px_auto]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              name="q"
+              defaultValue={query}
+              placeholder="Search service, objection, FAQ, or pitch angle"
+              className="field-input h-11 pl-10"
+            />
+          </div>
+          <select name="service" defaultValue={activeService} className="field-input h-11">
+            <option value="all">All services</option>
+            {SERVICE_CATEGORIES.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.title}</option>
+            ))}
+          </select>
+          <button type="submit" className="secondary-button h-11 justify-center px-4">Filter</button>
+        </form>
+
+        {(query || activeService !== "all") ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/dashboard/learn" className="tag-pill">Clear filters</Link>
+            <span className="tag-pill border-primary/20 bg-primary/10 text-primary">
+              {filteredCategories.reduce((sum, cat) => sum + cat.services.length, 0)} matching services
+            </span>
+          </div>
+        ) : null}
       </section>
 
       {/* General sales guide */}
@@ -337,7 +454,17 @@ export default function LearnPage() {
       </section>
 
       {/* Service categories */}
-      {SERVICE_CATEGORIES.map((cat) => {
+      {filteredCategories.length === 0 ? (
+        <section className="surface-card rounded-[2rem] px-6 py-12 text-center sm:px-8">
+          <p className="font-heading text-2xl font-semibold text-foreground">No matching services</p>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
+            Try a different search term or service filter.
+          </p>
+          <Link href="/dashboard/learn" className="secondary-button mt-6">Clear filters</Link>
+        </section>
+      ) : null}
+
+      {filteredCategories.map((cat) => {
         const c = ColorClasses(cat.color)
         return (
           <section key={cat.id} id={cat.id} className="surface-card rounded-[2rem] px-6 py-7 sm:px-8">
@@ -405,6 +532,25 @@ export default function LearnPage() {
                             <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
                               → {obj.a}
                             </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {service.faqs?.length ? (
+                    <div className="mt-4 border-t border-border pt-4">
+                      <div className="flex items-center gap-1.5">
+                        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60" />
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                          FAQs
+                        </p>
+                      </div>
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        {service.faqs.map((faq) => (
+                          <div key={faq.q} className="rounded-xl border border-border bg-secondary/40 px-4 py-3">
+                            <p className="text-sm font-medium text-[var(--portal-text-soft)]">{faq.q}</p>
+                            <p className="mt-1.5 text-sm leading-6 text-muted-foreground">{faq.a}</p>
                           </div>
                         ))}
                       </div>

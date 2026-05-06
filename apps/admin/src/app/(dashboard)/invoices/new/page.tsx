@@ -1,14 +1,11 @@
 import { redirect } from "next/navigation"
 import { currentUser } from "@repo/auth/server"
-import { db, partners, serviceRequests } from "@repo/db"
-import { and, eq, isNull } from "drizzle-orm"
+import { db, partners, leads } from "@repo/db"
+import { and, desc, eq, isNull } from "drizzle-orm"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
-import {
-  resolvePartnerScopeForActor,
-  partnerScopeWhere,
-} from "@/lib/row-scope"
+import { resolvePartnerScopeForActor, partnerScopeWhere } from "@/lib/row-scope"
 import { NewInvoiceForm } from "./form"
 
 export default async function NewInvoicePage() {
@@ -30,9 +27,9 @@ export default async function NewInvoicePage() {
         })
 
   const partnerClause = partnerScopeWhere(rowScope, partners.id)
-  const srPartnerClause = partnerScopeWhere(rowScope, serviceRequests.partnerId)
+  const leadPartnerClause = partnerScopeWhere(rowScope, leads.partnerId)
 
-  const [partnersList, srList] = await Promise.all([
+  const [partnersList, billableLeads] = await Promise.all([
     db
       .select({ id: partners.id, companyName: partners.companyName })
       .from(partners)
@@ -46,21 +43,23 @@ export default async function NewInvoicePage() {
       .orderBy(partners.companyName),
     db
       .select({
-        id: serviceRequests.id,
-        customerCompany: serviceRequests.customerCompany,
-        partnerId: serviceRequests.partnerId,
-        status: serviceRequests.status,
+        id: leads.id,
+        partnerId: leads.partnerId,
+        customerCompany: leads.customerCompany,
+        customerName: leads.customerName,
+        status: leads.status,
       })
-      .from(serviceRequests)
+      .from(leads)
       .where(
         and(
-          eq(serviceRequests.tenantId, tenantId),
-          isNull(serviceRequests.deletedAt),
-          srPartnerClause ?? undefined,
+          eq(leads.tenantId, tenantId),
+          isNull(leads.deletedAt),
+          leadPartnerClause ?? undefined,
         ),
       )
-      .orderBy(serviceRequests.createdAt),
+      .orderBy(desc(leads.createdAt))
+      .limit(2500),
   ])
 
-  return <NewInvoiceForm partners={partnersList} serviceRequests={srList} />
+  return <NewInvoiceForm partners={partnersList} billableLeads={billableLeads} />
 }

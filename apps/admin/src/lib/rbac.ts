@@ -343,7 +343,7 @@ export function getTeamRoleMeta(role: unknown) {
   return TEAM_ROLE_META[normalized]
 }
 
-/** Team member picklists: pre-sales / SDR pool */
+/** Team member picklists: partnership executive pool */
 export function isPreSalesAssignableRole(role: unknown): boolean {
   const n = normalizeTeamRole(role)
   if (!n) return false
