@@ -90,7 +90,12 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    /*
+     * Run middleware for document / RSC navigations only — not for API routes (they
+     * validate their own auth) or static assets. Cuts duplicate Supabase work on
+     * every client fetch while layout + route handlers still refresh the session on
+     * full page loads.
+     */
+    "/((?!api/|_next/static|_next/image|_next/webpack|favicon.ico|.*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)$).*)",
   ],
 }

@@ -432,7 +432,7 @@ export default function LearnPage() {
           <Link href="/dashboard/leads/new" className="primary-button">
             Submit a lead
           </Link>
-          <Link href="/dashboard/service-requests/new" className="secondary-button">
+          <Link href="/dashboard/leads/new?leadType=existing" className="secondary-button">
             New service request
           </Link>
         </div>

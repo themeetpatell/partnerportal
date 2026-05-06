@@ -25,6 +25,8 @@ import {
   LEAD_DECISION_ROLES,
   LEAD_URGENCY_TIMELINES,
   LEAD_LOST_REASONS,
+  LEAD_INDUSTRY_OPTIONS,
+  PAYMENT_RECURRING_OPTIONS,
   leadSelectOptions,
 } from "@repo/types"
 import type { LeadStatus } from "@repo/types"
@@ -178,7 +180,14 @@ export default async function LeadDetailPage({
   }
 
   const qualificationFields: readonly LeadFieldDef[] = [
-    { kind: "text", name: "industry", label: "Industry" },
+    {
+      kind: "select",
+      name: "industry",
+      label: "Industry",
+      options: leadSelectOptions([...LEAD_INDUSTRY_OPTIONS]),
+      placeholder: "Select industry",
+      colSpan: 2,
+    },
     {
       kind: "select",
       name: "businessInUae",
@@ -230,6 +239,14 @@ export default async function LeadDetailPage({
     { kind: "text", name: "paymentStatus", label: "Payment status" },
     { kind: "text", name: "paymentReference", label: "Payment reference" },
     { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
+    {
+      kind: "select",
+      name: "paymentRecurring",
+      label: "Payment recurring?",
+      options: [...PAYMENT_RECURRING_OPTIONS],
+      placeholder: "None (one-time)",
+      colSpan: 2,
+    },
     { kind: "textarea", name: "stageNotes", label: "Stage notes", rows: 2, colSpan: 2 },
     {
       kind: "select",
@@ -252,6 +269,7 @@ export default async function LeadDetailPage({
     paymentStatus: lead.paymentStatus,
     paymentReference: lead.paymentReference,
     paymentAmount: lead.paymentAmount,
+    paymentRecurring: lead.paymentRecurring,
     stageNotes: lead.stageNotes,
     lostReason: lead.lostReason ?? lead.rejectionReason,
     approvedAt: toIso(lead.approvedAt),
@@ -397,7 +415,7 @@ export default async function LeadDetailPage({
               title="Pipeline & proposal"
               icon={<CircleDollarSign className="h-4 w-4" />}
               canEdit={false}
-              description="Same fields as the admin portal. Your team updates these as the deal progresses."
+              description="Admin keeps this fresh—you’re on read-only cruise control."
               fields={pipelineFields}
               initialValues={pipelineInitial}
             />
@@ -481,11 +499,11 @@ export default async function LeadDetailPage({
           {lead.status === "deal_won" ? (
             <section className="surface-card rounded-[2rem] px-6 py-6">
               <h2 className="font-heading text-lg font-semibold text-foreground">Next steps</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                This lead is won. You can cross-sell or upsell to this client.
+              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
+                Won it—now milk it: service request or another lead.
               </p>
               <div className="mt-4 flex flex-col gap-2">
-                <Link href="/dashboard/service-requests/new" className="primary-button justify-center">
+                <Link href="/dashboard/leads/new?leadType=existing" className="primary-button justify-center">
                   Create service request
                 </Link>
                 <Link

@@ -148,6 +148,20 @@
       "when": 1778496000000,
       "tag": "0020_team_roles_partner_lead_owners",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1778500000000,
+      "tag": "0021_lead_payment_recurring",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1778510000000,
+      "tag": "0022_lead_intake_unify_service_requests",
+      "breakpoints": true
     }
   ]
 }

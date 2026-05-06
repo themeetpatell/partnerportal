@@ -710,7 +710,7 @@ export default async function AnalyticsPage({
             sub={`${serviceCompletionRate}% completion rate`}
             icon={ClipboardList}
             color="bg-purple-950/40 border-purple-800/30 text-purple-400"
-            href="/service-requests"
+            href="/leads?kind=cross_sell"
           />
           <StatCard
             label="Pending Commissions"

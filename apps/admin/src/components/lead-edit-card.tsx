@@ -365,7 +365,7 @@ export function LeadEditCard({
               Editing — make changes below
             </p>
           ) : description ? (
-            <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+            <p className="mt-1 text-[11px] leading-snug text-slate-500">{description}</p>
           ) : null}
         </div>
 

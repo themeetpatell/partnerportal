@@ -1,8 +1,10 @@
+import { redirect } from "next/navigation"
 import { currentUser } from "@repo/auth/server"
 import { db, partners, serviceRequests } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 import {
   resolvePartnerScopeForActor,
   partnerScopeWhere,
@@ -15,6 +17,9 @@ export default async function NewInvoicePage() {
     getCurrentActiveTeamMember(),
     currentUser(),
   ])
+  if (!activeMember || !hasAnyTeamRole(activeMember.role, FINANCE_ROLES)) {
+    redirect("/invoices")
+  }
   const rowScope =
     sessionUser?.id === undefined
       ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })

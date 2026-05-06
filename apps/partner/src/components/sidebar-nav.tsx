@@ -86,11 +86,11 @@ function getMobileTopbarMeta(pathname: string) {
   }
 
   if (/^\/dashboard\/service-requests\/[0-9a-f-]{36}$/i.test(pathname)) {
-    return { section: "Leads", title: "Cross-sell request" }
+    return { section: "Leads", title: "Referral details" }
   }
 
   if (pathname.startsWith("/dashboard/service-requests")) {
-    return { section: "Leads", title: "Cross-sell referrals" }
+    return { section: "Leads", title: "Leads" }
   }
 
   if (pathname.startsWith("/dashboard/commissions")) {

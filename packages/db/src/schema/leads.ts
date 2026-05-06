@@ -1,4 +1,14 @@
-import { index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
+import {
+  index,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  type AnyPgColumn,
+} from "drizzle-orm/pg-core"
+import { isNotNull } from "drizzle-orm"
 import { tenants } from "./tenants"
 import { partners } from "./partners"
 
@@ -52,9 +62,19 @@ export const leads = pgTable(
     paymentStatus: text("payment_status"), // pending | paid | failed
     paymentReference: text("payment_reference"),
     paymentAmount: numeric("payment_amount", { precision: 12, scale: 2 }),
+    /** monthly | quarterly | annually | bi_annual — drives automated recurring commission rows */
+    paymentRecurring: text("payment_recurring"),
     paymentDate: timestamp("payment_date"),
     convertedAt: timestamp("converted_at"),
     rejectionReason: text("rejection_reason"),
+    /** new_lead | existing_lead — existing = follow-on from a won client (replaces cross-sell service requests). */
+    intakeType: text("intake_type").notNull().default("new_lead"),
+    /** When intake is existing_lead, optional link to the original won lead / account. */
+    sourceLeadId: uuid("source_lead_id").references((): AnyPgColumn => leads.id, {
+      onDelete: "set null",
+    }),
+    /** Populated when this row was migrated from `service_requests` (stable redirect / audit). */
+    legacyServiceRequestId: uuid("legacy_service_request_id"),
     deletedAt: timestamp("deleted_at"), // soft delete
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -72,6 +92,10 @@ export const leads = pgTable(
       table.createdAt,
     ),
     index("leads_customer_email_idx").on(table.customerEmail),
+    index("leads_intake_type_idx").on(table.intakeType),
+    uniqueIndex("leads_legacy_service_request_id_unique")
+      .on(table.legacyServiceRequestId)
+      .where(isNotNull(table.legacyServiceRequestId)),
   ],
 )
 

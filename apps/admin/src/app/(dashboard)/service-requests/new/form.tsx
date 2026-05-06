@@ -76,8 +76,8 @@ export function NewServiceRequestForm({
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? "Failed to create service request")
-      toast.success("Service request created")
-      router.push(`/service-requests/${data.id}`)
+      toast.success("Existing-client lead created")
+      router.push(`/leads/${data.id}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong")
     } finally {
@@ -89,7 +89,7 @@ export function NewServiceRequestForm({
     <div className="max-w-2xl space-y-8">
       <div className="flex items-center gap-3">
         <Link
-          href="/service-requests"
+          href="/leads?kind=cross_sell"
           className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -210,7 +210,7 @@ export function NewServiceRequestForm({
         </section>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link href="/service-requests" className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+          <Link href="/leads?kind=cross_sell" className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
             Cancel
           </Link>
           <button

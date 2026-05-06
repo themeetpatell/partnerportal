@@ -9,12 +9,21 @@ const BUCKET = "partner-avatars"
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
 
-function supabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!,
-    { auth: { persistSession: false } }
+function supabaseServiceKey(): string | null {
+  return (
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+    null
   )
+}
+
+function supabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  const key = supabaseServiceKey()
+  if (!url || !key) {
+    return null
+  }
+  return createClient(url, key, { auth: { persistSession: false } })
 }
 
 export async function POST(request: NextRequest) {
@@ -52,6 +61,15 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer())
 
     const client = supabaseAdmin()
+    if (!client) {
+      return NextResponse.json(
+        {
+          error:
+            "Avatar storage is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY (Supabase service role) in the partner app environment.",
+        },
+        { status: 503 },
+      )
+    }
 
     // Create bucket if it doesn't exist
     const { error: bucketErr } = await client.storage.createBucket(BUCKET, {
@@ -69,7 +87,11 @@ export async function POST(request: NextRequest) {
 
     if (uploadErr) {
       console.error("[avatar] upload:", uploadErr)
-      return NextResponse.json({ error: "Upload failed." }, { status: 500 })
+      const hint =
+        process.env.NODE_ENV === "development"
+          ? uploadErr.message
+          : "Check Supabase Storage: bucket policies and that the secret key is the service role."
+      return NextResponse.json({ error: `Upload failed. ${hint}` }, { status: 500 })
     }
 
     const { data: { publicUrl } } = client.storage.from(BUCKET).getPublicUrl(filePath)

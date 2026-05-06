@@ -66,7 +66,12 @@ stopStaleNodeListeners(port)
 const require = createRequire(import.meta.url)
 const nextBin = require.resolve("next/dist/bin/next")
 
-const result = spawnSync(process.execPath, [nextBin, "dev", "--port", port], {
+const devArgs =
+  process.env.USE_WEBPACK === "1"
+    ? ["dev", "--port", port]
+    : ["dev", "--turbo", "--port", port]
+
+const result = spawnSync(process.execPath, [nextBin, ...devArgs], {
   cwd: appDir,
   stdio: "inherit",
   env: process.env,

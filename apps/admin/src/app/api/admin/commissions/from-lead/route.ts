@@ -7,6 +7,7 @@ import { and, eq, isNull } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getCommissionVatOptionsFromEnv } from "@/lib/commission-env"
+import { createDealCloseCommissionFromLead } from "@/lib/create-lead-commissions"
 import { getRequiredTenantId } from "@/lib/env"
 import {
   countPartnerDealWonLeads,
@@ -183,15 +184,27 @@ export async function POST(req: NextRequest) {
   }
 
   if (!recurring) {
-    const [existing] = await db
-      .select({ id: commissions.id })
-      .from(commissions)
-      .where(and(eq(commissions.sourceType, "lead"), eq(commissions.sourceId, leadId)))
-      .limit(1)
-
-    if (existing) {
-      return fail("duplicate", isJson ? 409 : 303)
+    const created = await createDealCloseCommissionFromLead({
+      lead,
+      partner,
+      actorUserId: userId,
+      actorName,
+      basisAmountOverride: basisAmount,
+      snapshotSource: "manual_deal_close_from_lead",
+      logNote: "Deal-close commission created manually from lead.",
+    })
+    if (!created.ok) {
+      const statusMap: Record<typeof created.reason, number> = {
+        duplicate: 409,
+        not_deal_won: 422,
+        no_basis: 422,
+        no_model: 422,
+        zero_commission: 422,
+        server: 500,
+      }
+      return fail(created.reason, isJson ? statusMap[created.reason] : 303)
     }
+    return ok(created.commission, 201)
   }
 
   const commissionModel = await resolvePartnerCommissionModel(partner)
@@ -230,8 +243,8 @@ export async function POST(req: NextRequest) {
   }
 
   const calculationSnapshot = {
-    version: 2,
-    source: recurring ? "manual_recurring_from_lead" : "manual_deal_close_from_lead",
+    version: 3,
+    source: "manual_recurring_from_lead",
     leadId,
     grossFromLead: rawBasis,
     netForCommission: basis.netForCommission,
@@ -239,8 +252,8 @@ export async function POST(req: NextRequest) {
     crmAmountIncludesVatApplied: basis.crmAmountIncludesVat,
   }
 
-  const sourceType = recurring ? "lead_recurring_invoice" : "lead"
-  const sourceId = recurring ? randomUUID() : leadId
+  const sourceType = "lead_recurring_invoice"
+  const sourceId = randomUUID()
 
   let created: typeof commissions.$inferSelect | undefined
   try {
@@ -276,12 +289,12 @@ export async function POST(req: NextRequest) {
     actorId: userId,
     actorName,
     action: "created",
-    note: `${recurring ? "Recurring" : "Deal-close"} commission created manually from lead.`,
+    note: "Recurring commission created manually from lead.",
     metadata: {
       leadId,
       sourceType,
       basisAmount: rawBasis,
-      recurring,
+      recurring: true,
     },
   })
 

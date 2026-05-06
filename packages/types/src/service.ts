@@ -8,6 +8,17 @@ export const ServiceRequestStatusSchema = z.enum([
 ])
 export type ServiceRequestStatus = z.infer<typeof ServiceRequestStatusSchema>
 
+/** Allowed one-step status moves (admin API + UI). */
+export const SERVICE_REQUEST_STATUS_TRANSITIONS: Record<
+  ServiceRequestStatus,
+  readonly ServiceRequestStatus[]
+> = {
+  pending: ["in_progress", "cancelled"],
+  in_progress: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+}
+
 export const ServiceSchema = z.object({
   id: z.string().uuid(),
   tenantId: z.string().uuid(),

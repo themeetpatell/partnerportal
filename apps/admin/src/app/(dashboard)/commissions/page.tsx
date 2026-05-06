@@ -208,12 +208,12 @@ export default async function CommissionsPage({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-white">Commissions</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Review, approve, and process partner commission payouts
+        <p className="mt-1 text-[11px] leading-snug text-slate-500">
+          Approve → Start payout → Mark paid. Same dance, every row.
         </p>
         {partnerId ? (
-          <div className="mt-3 flex items-center gap-3 rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200 w-fit">
-            <span>Showing commission history for one partner</span>
+          <div className="mt-3 flex w-fit items-center gap-2 rounded-lg border border-emerald-800/40 bg-emerald-950/20 px-2.5 py-1.5 text-[11px] text-emerald-200">
+            <span>One partner only</span>
             <Link href="/commissions" className="font-medium text-emerald-300 hover:text-white transition-colors">
               Clear filter
             </Link>
@@ -273,11 +273,10 @@ export default async function CommissionsPage({
             <div className="w-12 h-12 rounded-full bg-white/6 border border-white/8 flex items-center justify-center mb-4">
               <DollarSign className="w-6 h-6 text-slate-600" />
             </div>
-            <p className="text-slate-400 font-medium text-sm">
-              No {activeStatus} commissions
-            </p>
-            <p className="text-slate-600 text-xs mt-1">
-              Finance creates commission rows from won leads on the lead detail page.
+            <p className="text-sm font-medium text-slate-400">No {activeStatus} commissions</p>
+            <p className="mt-1 max-w-sm text-[11px] leading-snug text-slate-600">
+              Deal won + real amounts = rows from the lead. Recurring? Extra rows roll in after
+              deal-close. Wrong tab? Switch above.
             </p>
           </div>
         ) : (

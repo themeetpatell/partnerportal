@@ -1,12 +1,5 @@
 import { currentUser } from "@repo/auth/server"
-import {
-  db,
-  commissions,
-  leads,
-  partnerClients,
-  serviceRequests,
-  services,
-} from "@repo/db"
+import { db, commissions, leads, partnerClients } from "@repo/db"
 import { and, count, desc, eq, isNull, notInArray, sum } from "drizzle-orm"
 import Link from "next/link"
 import { ArrowRight, CircleDollarSign, ClipboardList, Plus, Users, Wallet } from "lucide-react"
@@ -25,11 +18,29 @@ const leadStatusStyles: Record<string, string> = {
   deal_lost: "border border-border bg-secondary/60 text-[var(--portal-text-soft)]",
 }
 
-const requestStatusStyles: Record<string, string> = {
-  pending: "border border-border bg-secondary text-foreground/90",
-  in_progress: "border border-border bg-secondary text-foreground/90",
-  completed: "border border-border bg-secondary text-foreground",
-  cancelled: "border border-border bg-secondary text-[var(--portal-text-soft)]",
+function parseServices(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((s): s is string => typeof s === "string" && s.trim().length > 0) : []
+  } catch {
+    return []
+  }
+}
+
+function IntakeBadge({ intakeType }: { intakeType: string | null | undefined }) {
+  const isExisting = intakeType === "existing_lead"
+  return (
+    <span
+      className={`status-pill shrink-0 ${
+        isExisting
+          ? "border border-violet-500/25 bg-violet-500/10 text-violet-700 dark:border-violet-400/25 dark:text-violet-100"
+          : "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"
+      }`}
+    >
+      {isExisting ? "Existing lead" : "New lead"}
+    </span>
+  )
 }
 
 function formatDate(date: Date | null) {
@@ -57,14 +68,16 @@ export default async function DashboardPage() {
 
   let totalClients = 0
   let unlinkedClientActivity = 0
-  let activeRequests = 0
+  let openPipelineLeads = 0
   let totalEarned = 0
   let pendingPayout = 0
-  let recentRequests: Array<{
+  let recentLeads: Array<{
     id: string
-    customerCompany: string
-    customerContact: string
-    serviceName: string
+    intakeType: string | null
+    customerCompany: string | null
+    customerName: string
+    customerEmail: string
+    serviceInterest: string | null
     status: string
     createdAt: Date | null
   }> = []
@@ -73,7 +86,7 @@ export default async function DashboardPage() {
   try {
     if (partnerRecord) {
       const pid = partnerRecord.id
-      const [savedClientRows, leadRows, requestRows, paidResult, pendingResult, clientCountResult, activeRequestCountResult, unlinkedLeadCountResult] =
+      const [savedClientRows, leadRows, paidResult, pendingResult, clientCountResult, openPipelineCountResult, unlinkedLeadCountResult, recentLeadRows] =
         await Promise.all([
             // Recent 5 saved clients (for display)
             db
@@ -110,22 +123,6 @@ export default async function DashboardPage() {
               .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt)))
               .orderBy(desc(leads.createdAt))
               .limit(10),
-            // Recent 5 service requests (for display)
-            db
-              .select({
-                id: serviceRequests.id,
-                customerCompany: serviceRequests.customerCompany,
-                customerContact: serviceRequests.customerContact,
-                customerEmail: serviceRequests.customerEmail,
-                serviceName: services.name,
-                status: serviceRequests.status,
-                createdAt: serviceRequests.createdAt,
-              })
-              .from(serviceRequests)
-              .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-              .where(and(eq(serviceRequests.partnerId, pid), isNull(serviceRequests.deletedAt)))
-              .orderBy(desc(serviceRequests.createdAt))
-              .limit(10),
             // Aggregates — cheap COUNT/SUM queries
             db
               .select({ total: sum(commissions.amount) })
@@ -141,28 +138,41 @@ export default async function DashboardPage() {
               .where(and(eq(partnerClients.partnerId, pid), isNull(partnerClients.deletedAt))),
             db
               .select({ value: count() })
-              .from(serviceRequests)
-              .where(and(
-                eq(serviceRequests.partnerId, pid),
-                isNull(serviceRequests.deletedAt),
-                notInArray(serviceRequests.status, ["completed", "cancelled"]),
-              )),
+              .from(leads)
+              .where(
+                and(
+                  eq(leads.partnerId, pid),
+                  isNull(leads.deletedAt),
+                  notInArray(leads.status, ["deal_won", "deal_lost"]),
+                ),
+              ),
             db
               .select({ value: count() })
               .from(leads)
               .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt))),
+            db
+              .select({
+                id: leads.id,
+                intakeType: leads.intakeType,
+                customerCompany: leads.customerCompany,
+                customerName: leads.customerName,
+                customerEmail: leads.customerEmail,
+                serviceInterest: leads.serviceInterest,
+                status: leads.status,
+                createdAt: leads.createdAt,
+              })
+              .from(leads)
+              .where(and(eq(leads.partnerId, pid), isNull(leads.deletedAt)))
+              .orderBy(desc(leads.createdAt))
+              .limit(5),
           ])
 
-      activeRequests = Number(activeRequestCountResult[0]?.value ?? 0)
+      openPipelineLeads = Number(openPipelineCountResult[0]?.value ?? 0)
       totalEarned = Number(paidResult[0]?.total ?? 0)
       pendingPayout = Number(pendingResult[0]?.total ?? 0)
-      const clientRecords = buildClientRecords(
-        savedClientRows,
-        leadRows,
-        requestRows
-      )
+      const clientRecords = buildClientRecords(savedClientRows, leadRows, [])
 
-      recentRequests = requestRows.slice(0, 5)
+      recentLeads = recentLeadRows
       recentClients = clientRecords.slice(0, 5)
       totalClients = Number(clientCountResult[0]?.value ?? 0)
       const totalLeads = Number(unlinkedLeadCountResult[0]?.value ?? 0)
@@ -199,12 +209,12 @@ export default async function DashboardPage() {
       href: "/dashboard/clients",
     },
     {
-      label: "Open requests",
-      value: String(activeRequests),
+      label: "Open pipeline",
+      value: String(openPipelineLeads),
       icon: ClipboardList,
       detail:
-        activeRequests > 0 ? "Delivery requests in progress" : "No active service requests",
-      href: "/dashboard/service-requests",
+        openPipelineLeads > 0 ? "Leads not yet won or lost" : "Pipeline is clear right now",
+      href: "/dashboard/leads",
     },
     {
       label: "Paid earnings",
@@ -224,7 +234,7 @@ export default async function DashboardPage() {
 
   const accountNotice =
     partnerRecord?.status === "pending"
-      ? "Your partner account is pending approval. Lead and service-request submission will unlock once approved."
+      ? "Your partner account is pending approval. Lead submission will unlock once approved."
       : partnerRecord?.status === "rejected"
         ? `Your partner account was rejected${partnerRecord.rejectionReason ? `: ${partnerRecord.rejectionReason}` : "."}`
         : !partnerRecord
@@ -248,9 +258,12 @@ export default async function DashboardPage() {
             <Plus className="h-4 w-4" />
             New lead
           </Link>
-          <Link href="/dashboard/service-requests/new" className="secondary-button w-full justify-center sm:w-auto">
+          <Link
+            href="/dashboard/leads/new?leadType=existing"
+            className="secondary-button w-full justify-center sm:w-auto"
+          >
             <ClipboardList className="h-4 w-4" />
-            New request
+            Existing client referral
           </Link>
           <Link href="/dashboard/commissions" className="secondary-button w-full justify-center sm:w-auto">
             <CircleDollarSign className="h-4 w-4" />
@@ -288,7 +301,7 @@ export default async function DashboardPage() {
             <div>
               <p className="font-heading text-xl font-semibold text-foreground">Recent clients</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Latest client activity across leads and service requests.
+                Latest client activity from your lead pipeline.
               </p>
             </div>
             <Link href="/dashboard/clients" className="tag-pill">
@@ -300,7 +313,7 @@ export default async function DashboardPage() {
             <div className="empty-state m-4">
               <p className="font-heading text-2xl font-semibold text-foreground">No clients yet</p>
               <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
-                Submit your first lead or service request to start the client view.
+                Submit your first lead to start the client view.
               </p>
               <Link href="/dashboard/leads/new" className="primary-button mt-6">
                 <Plus className="h-4 w-4" />
@@ -328,13 +341,6 @@ export default async function DashboardPage() {
                         Lead · {formatLabel(client.latestLeadStatus)}
                       </span>
                     ) : null}
-                    {client.latestRequestStatus ? (
-                      <span
-                        className={`status-pill ${requestStatusStyles[client.latestRequestStatus] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
-                      >
-                        Request · {formatLabel(client.latestRequestStatus)}
-                      </span>
-                    ) : null}
                   </div>
 
                   {client.latestServiceName ? (
@@ -353,51 +359,58 @@ export default async function DashboardPage() {
         <div className="table-shell">
           <div className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-heading text-xl font-semibold text-foreground">Recent service requests</p>
+              <p className="font-heading text-xl font-semibold text-foreground">Recent leads</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Latest delivery requests sent to Finanshels.
+                New introductions and existing-client referrals in one place.
               </p>
             </div>
-            <Link href="/dashboard/service-requests" className="tag-pill">
+            <Link href="/dashboard/leads" className="tag-pill">
               View all
             </Link>
           </div>
 
-          {recentRequests.length === 0 ? (
+          {recentLeads.length === 0 ? (
             <div className="empty-state m-4">
-              <p className="font-heading text-2xl font-semibold text-foreground">
-                No service requests yet
-              </p>
+              <p className="font-heading text-2xl font-semibold text-foreground">No leads yet</p>
               <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-muted-foreground">
-                Create a request when a client is ready to move into delivery.
+                Send Finanshels a new introduction or a follow-on from a client you already closed.
               </p>
-              <Link href="/dashboard/service-requests/new" className="primary-button mt-6">
-                <ClipboardList className="h-4 w-4" />
-                New request
+              <Link href="/dashboard/leads/new" className="primary-button mt-6">
+                <Plus className="h-4 w-4" />
+                Submit a lead
               </Link>
             </div>
           ) : (
             <div className="divide-y divide-white/6">
-              {recentRequests.map((request) => (
-                <div key={request.id} className="px-6 py-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium text-foreground">{request.customerCompany}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {request.serviceName} · {request.customerContact}
-                      </p>
+              {recentLeads.map((lead) => {
+                const services = parseServices(lead.serviceInterest)
+                const servicesLine = services.length > 0 ? services.join(", ") : "—"
+                return (
+                  <Link key={lead.id} href={`/dashboard/leads/${lead.id}`} className="block px-6 py-5 transition-colors hover:bg-secondary/40">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {lead.customerCompany?.trim() || lead.customerName}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {servicesLine} · {lead.customerName}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <IntakeBadge intakeType={lead.intakeType} />
+                        <span
+                          className={`status-pill ${leadStatusStyles[lead.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
+                        >
+                          {formatLabel(lead.status)}
+                        </span>
+                      </div>
                     </div>
-                    <span
-                      className={`status-pill ${requestStatusStyles[request.status] || "border border-border bg-secondary/70 text-[var(--portal-text-soft)]"}`}
-                    >
-                      {formatLabel(request.status)}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    {formatDate(request.createdAt)}
-                  </p>
-                </div>
-              ))}
+                    <p className="mt-3 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+                      {formatDate(lead.createdAt)}
+                    </p>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>

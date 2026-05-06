@@ -27,6 +27,8 @@ import {
   LEAD_DECISION_ROLES,
   LEAD_URGENCY_TIMELINES,
   LEAD_LOST_REASONS,
+  LEAD_INDUSTRY_OPTIONS,
+  PAYMENT_RECURRING_OPTIONS,
   leadSelectOptions,
 } from "@repo/types"
 import type { LeadStatus } from "@repo/types"
@@ -36,15 +38,14 @@ import { LeadStageActions } from "@/components/lead-stage-actions"
 export const dynamic = "force-dynamic"
 
 const COMMISSION_CREATE_ERROR_COPY: Record<string, string> = {
-  duplicate: "A deal-close commission already exists for this lead.",
-  not_deal_won: "Mark the lead as deal won before creating a commission.",
-  no_basis:
-    "Set payment or proposal amount on the lead, or enter an explicit basis amount in the form.",
-  no_model: "Partner has no valid commission model or rate configured.",
-  no_partner: "Partner record missing for this lead.",
-  forbidden_scope: "You cannot create commissions for partners outside your row scope.",
-  zero_commission: "Calculated commission is zero — check the partner commission model.",
-  server: "Commission could not be created. Try again.",
+  duplicate: "Deal-close row already here—no double-dip.",
+  not_deal_won: "Flip to deal won first.",
+  no_basis: "Need a number: payment beats proposal; or type a basis in the form.",
+  no_model: "Partner has no commission model—fix in partner profile.",
+  no_partner: "Partner record MIA for this lead.",
+  forbidden_scope: "That partner is outside your scope.",
+  zero_commission: "Math says zero—check tiers/rates.",
+  server: "Couldn’t create it—retry?",
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -247,7 +248,14 @@ export default async function LeadDetailPage({
   }
 
   const qualificationFields: readonly LeadFieldDef[] = [
-    { kind: "text", name: "industry", label: "Industry" },
+    {
+      kind: "select",
+      name: "industry",
+      label: "Industry",
+      options: leadSelectOptions([...LEAD_INDUSTRY_OPTIONS]),
+      placeholder: "Select industry",
+      colSpan: 2,
+    },
     {
       kind: "select",
       name: "businessInUae",
@@ -299,6 +307,14 @@ export default async function LeadDetailPage({
     { kind: "text", name: "paymentStatus", label: "Payment status" },
     { kind: "text", name: "paymentReference", label: "Payment reference" },
     { kind: "number", name: "paymentAmount", label: "Payment amount (AED)" },
+    {
+      kind: "select",
+      name: "paymentRecurring",
+      label: "Payment recurring?",
+      options: [...PAYMENT_RECURRING_OPTIONS],
+      placeholder: "None (one-time)",
+      colSpan: 2,
+    },
     { kind: "textarea", name: "stageNotes", label: "Stage notes", rows: 2, colSpan: 2 },
     {
       kind: "select",
@@ -321,6 +337,7 @@ export default async function LeadDetailPage({
     paymentStatus: lead.paymentStatus,
     paymentReference: lead.paymentReference,
     paymentAmount: lead.paymentAmount,
+    paymentRecurring: lead.paymentRecurring,
     stageNotes: lead.stageNotes,
     lostReason: lead.lostReason ?? lead.rejectionReason,
     approvedAt: toIso(lead.approvedAt),
@@ -357,7 +374,7 @@ export default async function LeadDetailPage({
     query.commission === "ok"
       ? {
           tone: "border-emerald-400/16 bg-emerald-500/8 text-emerald-100",
-          text: "Commission created. It is pending review on the Commissions page.",
+          text: "Row landed—pending in Commissions.",
         }
       : null
 
@@ -403,30 +420,29 @@ export default async function LeadDetailPage({
           canManage={canManageLeads}
         />
         {!canManageLeads ? (
-          <div className="rounded-lg border border-amber-400/16 bg-amber-500/8 px-4 py-2 text-sm text-amber-100">
-            Pipeline actions require a pipeline role (Admin, Partnership Executive/Manager,
-            Pre-sales, Sales, or Operations).
+          <div className="rounded-lg border border-amber-400/16 bg-amber-500/8 px-3 py-1.5 text-[11px] leading-snug text-amber-100">
+            Pipeline controls? You’ll need Admin, Partnership, Pre-sales, Sales, or Ops.
           </div>
         ) : null}
       </div>
 
       {approvalBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${approvalBanner.tone}`}>
+        <div className={`rounded-xl border px-3 py-2 text-[11px] leading-snug ${approvalBanner.tone}`}>
           {approvalBanner.text}
         </div>
       ) : null}
       {actionErrorBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${actionErrorBanner.tone}`}>
+        <div className={`rounded-xl border px-3 py-2 text-[11px] leading-snug ${actionErrorBanner.tone}`}>
           {actionErrorBanner.text}
         </div>
       ) : null}
       {commissionOkBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${commissionOkBanner.tone}`}>
+        <div className={`rounded-xl border px-3 py-2 text-[11px] leading-snug ${commissionOkBanner.tone}`}>
           {commissionOkBanner.text}
         </div>
       ) : null}
       {commissionErrBanner ? (
-        <div className={`rounded-xl border px-4 py-3 text-sm ${commissionErrBanner.tone}`}>
+        <div className={`rounded-xl border px-3 py-2 text-[11px] leading-snug ${commissionErrBanner.tone}`}>
           {commissionErrBanner.text}
         </div>
       ) : null}
@@ -636,101 +652,38 @@ export default async function LeadDetailPage({
               <CircleDollarSign className="w-4 h-4 text-slate-400" />
               Partner commissions
             </h2>
-            <p className="text-slate-500 text-xs mb-4 leading-relaxed">
-              Finance creates commission rows from this lead when the deal is won (deal-close and
-              optional recurring periods). Basis defaults to payment amount, then proposal amount;
-              adjust with the optional field below. Approve and pay out from the Commissions page.
+            <p className="mb-3 text-[11px] leading-snug text-slate-500">
+              Mark <span className="text-slate-400">deal won</span> → we spin up deal-close off
+              partner&apos;s model, using <span className="text-slate-400">payment</span> first, then{" "}
+              <span className="text-slate-400">proposal</span>. Pick{" "}
+              <span className="text-slate-400">Payment recurring?</span> and the night job drops renewal
+              rows (after deal-close exists). Cash-out path:{" "}
+              <Link
+                href="/commissions"
+                className="text-indigo-400 underline-offset-2 hover:text-indigo-300 hover:underline"
+              >
+                Commissions
+              </Link>{" "}
+              → Approve → Start payout → Mark paid.
             </p>
-            {lead.status === "deal_won" && canManageCommissions ? (
-              <div className="mb-6 space-y-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                {!hasDealCloseCommission ? (
-                  <form
-                    action="/api/admin/commissions/from-lead"
-                    method="POST"
-                    className="flex flex-wrap items-end gap-3"
-                  >
-                    <input type="hidden" name="leadId" value={lead.id} />
-                    <input
-                      type="hidden"
-                      name="redirectTo"
-                      value={`/leads/${lead.id}`}
-                    />
-                    <div className="flex flex-col gap-1">
-                      <label className="text-xs text-slate-500" htmlFor="deal-basis-amount">
-                        Basis (AED, optional)
-                      </label>
-                      <input
-                        id="deal-basis-amount"
-                        name="basisAmount"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Uses payment / proposal"
-                        className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-44"
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      className="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 transition-colors"
-                    >
-                      Create deal commission
-                    </button>
-                  </form>
-                ) : (
-                  <>
-                    <p className="text-slate-500 text-xs">
-                      Deal-close commission exists. Add rows below for extra billing periods
-                      (e.g. renewals).
-                    </p>
-                    <form
-                      action="/api/admin/commissions/from-lead"
-                      method="POST"
-                      className="flex flex-wrap items-end gap-3 pt-2 border-t border-white/10"
-                    >
-                      <input type="hidden" name="leadId" value={lead.id} />
-                      <input type="hidden" name="redirectTo" value={`/leads/${lead.id}`} />
-                      <input type="hidden" name="recurring" value="1" />
-                      <div className="flex flex-col gap-1">
-                        <label
-                          className="text-xs text-slate-500"
-                          htmlFor="recurring-basis-amount"
-                        >
-                          Recurring basis (AED, optional)
-                        </label>
-                        <input
-                          id="recurring-basis-amount"
-                          name="basisAmount"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="Uses payment / proposal"
-                          className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white w-44"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 text-sm font-medium px-4 py-2 transition-colors"
-                      >
-                        Add recurring commission
-                      </button>
-                    </form>
-                  </>
-                )}
-              </div>
-            ) : null}
-            {lead.status === "deal_won" && !canManageCommissions ? (
-              <p className="text-slate-600 text-xs mb-4">
-                Commission creation requires Finance, Admin, or Super Admin.
+            {lead.status === "deal_won" &&
+            canManageCommissions &&
+            !hasDealCloseCommission ? (
+              <p className="mb-3 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1.5 text-[11px] leading-snug text-amber-200/90">
+                No deal-close row—odds are payment + proposal were blank when you hit deal won.
+                Fill amounts; Finance can backfill (bot only fires on the won transition).
               </p>
             ) : null}
+            {lead.status === "deal_won" && !canManageCommissions ? (
+              <p className="mb-3 text-[11px] text-slate-600">Payouts? Finance owns that in Commissions.</p>
+            ) : null}
             {lead.paymentReference ? (
-              <p className="text-slate-500 text-xs mb-4">
-                Lead payment reference:{" "}
-                <span className="text-slate-300 font-mono">{lead.paymentReference}</span>
+              <p className="mb-3 text-[11px] text-slate-500">
+                Ref: <span className="font-mono text-slate-300">{lead.paymentReference}</span>
               </p>
             ) : null}
             {leadCommissions.length === 0 ? (
-              <p className="text-slate-500 text-sm">No commission records for this lead yet.</p>
+              <p className="text-[11px] text-slate-500">Nothing in the ledger for this lead yet.</p>
             ) : (
               <ul className="space-y-4">
                 {leadCommissions.map((row) => {
@@ -760,7 +713,7 @@ export default async function LeadDetailPage({
                         </div>
                       </div>
                       {row.breakdown ? (
-                        <p className="text-slate-400 text-xs leading-relaxed">{row.breakdown}</p>
+                        <p className="text-[11px] leading-snug text-slate-400">{row.breakdown}</p>
                       ) : null}
                       {row.calculationSnapshot != null ? (
                         <details className="group">

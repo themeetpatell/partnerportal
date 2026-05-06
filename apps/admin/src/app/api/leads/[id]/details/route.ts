@@ -3,6 +3,7 @@ import { auth } from "@repo/auth/server"
 import { rateLimit } from "@repo/auth"
 import { db, leads, teamMembers } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
+import { isPaymentRecurringSlug } from "@repo/types"
 import { getActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole, LEAD_PIPELINE_ROLES } from "@/lib/rbac"
 
@@ -77,6 +78,14 @@ export async function POST(
     hasField(field) ? toNullableString(body[field]) : fallback
   const readNumericField = (field: string, fallback: string | null) =>
     hasField(field) ? parseNumericString(body[field]) : fallback
+
+  const readPaymentRecurring = () => {
+    if (!hasField("paymentRecurring")) return lead.paymentRecurring
+    const raw = typeof body.paymentRecurring === "string" ? body.paymentRecurring.trim() : ""
+    if (raw === "") return null
+    if (!isPaymentRecurringSlug(raw)) return lead.paymentRecurring
+    return raw
+  }
 
   const country = readStringField("country", lead.country)
   const customerEmail = readStringField("customerEmail", lead.customerEmail)
@@ -184,6 +193,7 @@ export async function POST(
       paymentStatus: readStringField("paymentStatus", lead.paymentStatus),
       paymentReference: readStringField("paymentReference", lead.paymentReference),
       paymentAmount: readNumericField("paymentAmount", lead.paymentAmount),
+      paymentRecurring: readPaymentRecurring(),
       stageNotes: readStringField("stageNotes", lead.stageNotes),
       lostReason: readStringField("lostReason", lead.lostReason),
       rejectionReason: hasField("lostReason")

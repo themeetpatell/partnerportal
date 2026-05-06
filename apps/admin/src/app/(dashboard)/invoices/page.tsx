@@ -2,9 +2,10 @@ import Link from "next/link"
 import { currentUser } from "@repo/auth/server"
 import { db, invoices, partners } from "@repo/db"
 import { and, eq, isNull, sum } from "drizzle-orm"
-import { FileText, ArrowRight, Clock, CheckCircle2, AlertCircle } from "lucide-react"
+import { FileText, ArrowRight, Clock, CheckCircle2, AlertCircle, Plus } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
+import { hasAnyTeamRole, FINANCE_ROLES } from "@/lib/rbac"
 import { partnerScopeWhere, resolvePartnerScopeForActor } from "@/lib/row-scope"
 
 function StatusBadge({ status }: { status: string }) {
@@ -43,6 +44,7 @@ export default async function InvoicesPage({
     getCurrentActiveTeamMember(),
     currentUser(),
   ])
+  const canCreateInvoices = member ? hasAnyTeamRole(member.role, FINANCE_ROLES) : false
   const tenantId = getRequiredTenantId()
   const scope =
     actor?.id === undefined
@@ -128,11 +130,22 @@ export default async function InvoicesPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">Invoices</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Manage and track partner invoices
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Invoices</h1>
+          <p className="mt-1 text-[11px] leading-snug text-slate-500">
+            Partner invoices here—commissions are a different wallet.
+          </p>
+        </div>
+        {canCreateInvoices ? (
+          <Link
+            href="/invoices/new"
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors flex-shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            New invoice
+          </Link>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -177,11 +190,20 @@ export default async function InvoicesPage({
               <FileText className="w-6 h-6 text-slate-600" />
             </div>
             <p className="text-slate-400 font-medium text-sm">No invoices found</p>
-            <p className="text-slate-600 text-xs mt-1">
+            <p className="text-slate-600 text-xs mt-1 max-w-sm">
               {status
                 ? `There are no invoices with status "${status}".`
-                : "Invoices will appear here once generated."}
+                : "Create an invoice when you need a formal billing record (not tied to commission approval)."}
             </p>
+            {canCreateInvoices ? (
+              <Link
+                href="/invoices/new"
+                className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                New invoice
+              </Link>
+            ) : null}
           </div>
         ) : (
           <div className="overflow-x-auto">

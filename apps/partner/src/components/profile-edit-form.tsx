@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { Pencil, X, Save, Loader2 } from "lucide-react"
+import { NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
 
 /* ── Types ────────────────────────────────────────────── */
 
@@ -320,7 +321,14 @@ export function ProfileEditForm({
             <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" />
             <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
             <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
-            <TextField label="Nationality" name="nationality" value={val("nationality")} onChange={handleChange} />
+            <SelectField
+              label="Nationality"
+              name="nationality"
+              value={val("nationality")}
+              onChange={handleChange}
+              options={[...NATIONALITY_OPTIONS].map((n) => ({ label: n, value: n }))}
+              placeholder="Select nationality"
+            />
             <TextField label="Registered address" name="partnerAddress" value={val("partnerAddress")} onChange={handleChange} placeholder="e.g. Unit 301, Business Bay, Dubai, UAE" />
           </>
         )}
@@ -340,7 +348,14 @@ export function ProfileEditForm({
                 { label: "Large (50+)", value: "large" },
               ]}
             />
-            <TextField label="Industry" name="partnerIndustry" value={val("partnerIndustry")} onChange={handleChange} />
+            <SelectField
+              label="Industry"
+              name="partnerIndustry"
+              value={val("partnerIndustry")}
+              onChange={handleChange}
+              options={[...PARTNER_INDUSTRY_OPTIONS].map((n) => ({ label: n, value: n }))}
+              placeholder="Select industry"
+            />
             <TextareaField label="Overview / Bio" name="overview" value={val("overview")} onChange={handleChange} placeholder="Brief description of your business…" />
           </>
         )}

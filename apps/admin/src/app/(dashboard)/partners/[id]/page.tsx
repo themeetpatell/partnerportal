@@ -316,9 +316,7 @@ export default async function PartnerDetailPage({
             <h1 className="text-2xl font-bold text-white">
               {partner.companyName || partner.contactName}
             </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Partner ID: {partner.id}
-            </p>
+            <p className="mt-1 text-[11px] text-slate-500">Partner ID: {partner.id}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <LifecycleBadge
                 label={formatPartnerOperationalStatus(operationalStatus)}
@@ -342,8 +340,8 @@ export default async function PartnerDetailPage({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 className="text-white font-semibold">Onboarding Snapshot</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Review these details submitted during onboarding before approving access.
+              <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                Skim what they typed before you hit the big green button.
               </p>
             </div>
             <Users className="mt-0.5 h-5 w-5 text-indigo-300" />
@@ -375,8 +373,8 @@ export default async function PartnerDetailPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Approve application</h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Confirms the partner passed review and unlocks the workspace immediately.
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    {"They're in—workspace unlocks on submit."}
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-green-400" />
@@ -396,8 +394,8 @@ export default async function PartnerDetailPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Reject application</h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Keeps the workspace locked and emails the applicant with the review outcome.
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Door stays shut; they get the email with why.
                   </p>
                 </div>
                 <XCircle className="mt-0.5 h-5 w-5 text-red-400" />
@@ -413,8 +411,8 @@ export default async function PartnerDetailPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-white font-semibold">Partner agreement</h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Commercial terms signed during partner onboarding. Legal agreement acknowledged by the authorized signatory.
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    The paperwork from onboarding—signatory said yes.
                   </p>
                 </div>
                 <CheckCircle className="mt-0.5 h-5 w-5 text-indigo-300" />
@@ -986,10 +984,10 @@ export default async function PartnerDetailPage({
               </Link>
             ) : null}
             <Link
-              href="/service-requests"
+              href="/leads?kind=cross_sell"
               className={`${canCreateServiceRequestForPartner ? "mt-2" : "mt-4"} block text-center text-xs text-indigo-400 hover:text-indigo-300 transition-colors`}
             >
-              Browse all service requests
+              View cross-sell in Leads
             </Link>
           </div>
 

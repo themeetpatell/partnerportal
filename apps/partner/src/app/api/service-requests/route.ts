@@ -2,10 +2,11 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { and, eq, isNull } from "drizzle-orm"
 import { z } from "zod"
-import { db, leads, partners, serviceRequests, services } from "@repo/db"
+import { db, leads, partners } from "@repo/db"
 import { rateLimit } from "@repo/auth"
+import { splitCustomerNameForStorage } from "@repo/types"
 
-const createServiceRequestSchema = z.object({
+const createExistingLeadSchema = z.object({
   leadId: z.string().uuid("Select an existing client"),
   serviceInterest: z
     .array(z.string().min(1))
@@ -23,6 +24,18 @@ async function getPartner(userId: string) {
   return partner
 }
 
+function firstServiceLabel(raw: string): string {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string") {
+      return parsed.join(", ")
+    }
+  } catch {
+    // ignore
+  }
+  return "Services"
+}
+
 export async function GET() {
   try {
     const { userId } = await auth()
@@ -37,26 +50,41 @@ export async function GET() {
 
     const rows = await db
       .select({
-        id: serviceRequests.id,
-        customerCompany: serviceRequests.customerCompany,
-        customerContact: serviceRequests.customerContact,
-        customerEmail: serviceRequests.customerEmail,
-        serviceName: services.name,
-        status: serviceRequests.status,
-        createdAt: serviceRequests.createdAt,
+        id: leads.id,
+        customerCompany: leads.customerCompany,
+        customerName: leads.customerName,
+        customerEmail: leads.customerEmail,
+        serviceInterest: leads.serviceInterest,
+        status: leads.status,
+        createdAt: leads.createdAt,
       })
-      .from(serviceRequests)
-      .innerJoin(services, eq(serviceRequests.serviceId, services.id))
-      .where(and(eq(serviceRequests.partnerId, partner.id), isNull(serviceRequests.deletedAt)))
-      .orderBy(serviceRequests.createdAt)
+      .from(leads)
+      .where(
+        and(
+          eq(leads.partnerId, partner.id),
+          eq(leads.intakeType, "existing_lead"),
+          isNull(leads.deletedAt),
+        ),
+      )
+      .orderBy(leads.createdAt)
 
     return NextResponse.json(
-      { serviceRequests: rows },
+      {
+        serviceRequests: rows.map((r) => ({
+          id: r.id,
+          customerCompany: r.customerCompany ?? r.customerName,
+          customerContact: r.customerName,
+          customerEmail: r.customerEmail,
+          serviceName: firstServiceLabel(r.serviceInterest),
+          status: r.status,
+          createdAt: r.createdAt,
+        })),
+      },
       {
         headers: {
           "Cache-Control": "private, s-maxage=30, stale-while-revalidate=60",
         },
-      }
+      },
     )
   } catch (error) {
     console.error("[GET /api/service-requests] Error:", error)
@@ -102,7 +130,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 })
     }
 
-    const parsed = createServiceRequestSchema.safeParse(body)
+    const parsed = createExistingLeadSchema.safeParse(body)
     if (!parsed.success) {
       const firstError = parsed.error.issues[0]
       return NextResponse.json(
@@ -116,12 +144,15 @@ export async function POST(request: NextRequest) {
 
     const { leadId, serviceInterest, description } = parsed.data
 
-    const lead = await db
+    const src = await db
       .select({
         id: leads.id,
         customerCompany: leads.customerCompany,
         customerName: leads.customerName,
         customerEmail: leads.customerEmail,
+        customerPhone: leads.customerPhone,
+        firstName: leads.firstName,
+        lastName: leads.lastName,
       })
       .from(leads)
       .where(
@@ -135,7 +166,7 @@ export async function POST(request: NextRequest) {
       .limit(1)
       .then((rows) => rows[0] ?? null)
 
-    if (!lead) {
+    if (!src) {
       return NextResponse.json(
         { error: "Select an existing client from your won leads." },
         { status: 422 },
@@ -143,37 +174,44 @@ export async function POST(request: NextRequest) {
     }
 
     const customerCompany =
-      lead.customerCompany?.trim() || lead.customerName.trim() || lead.customerEmail.trim()
-    const customerContact = lead.customerName.trim()
-    const customerEmail = lead.customerEmail.trim()
+      src.customerCompany?.trim() || src.customerName.trim() || src.customerEmail.trim()
+    const customerName = src.customerName.trim()
+    const customerEmail = src.customerEmail.trim()
+    const { firstName: fnStore, lastName: lnStore } = splitCustomerNameForStorage(customerName)
 
-    const [newRequest] = await db
-      .insert(serviceRequests)
+    const [newLead] = await db
+      .insert(leads)
       .values({
         tenantId: partner.tenantId,
         partnerId: partner.id,
-        serviceId: null,
-        servicesList: JSON.stringify(serviceInterest),
-        leadId: lead.id,
-        customerCompany,
-        customerContact,
+        customerName,
+        firstName: src.firstName ?? fnStore,
+        lastName: src.lastName ?? lnStore,
         customerEmail,
-        status: "pending",
-        notes: description || null,
+        customerPhone: src.customerPhone ?? null,
+        customerCompany: customerCompany || null,
+        serviceInterest: JSON.stringify(serviceInterest),
+        notes: description?.trim() || null,
+        status: "submitted",
+        source: "partner_portal",
+        channel: "partner_portal",
+        intakeType: "existing_lead",
+        sourceLeadId: src.id,
       })
       .returning()
 
     return NextResponse.json(
       {
         serviceRequest: {
-          id: newRequest.id,
-          customerCompany: newRequest.customerCompany,
-          customerContact: newRequest.customerContact,
-          customerEmail: newRequest.customerEmail,
+          id: newLead!.id,
+          customerCompany,
+          customerContact: customerName,
+          customerEmail,
           serviceName: serviceInterest.join(", "),
-          status: newRequest.status,
-          createdAt: newRequest.createdAt,
+          status: newLead!.status,
+          createdAt: newLead!.createdAt,
         },
+        leadId: newLead!.id,
       },
       { status: 201 },
     )

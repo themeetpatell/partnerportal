@@ -107,8 +107,8 @@ export function NewLeadForm({ partners, services, wonLeads, teamMembers }: Props
         })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) throw new Error(data.error ?? "Failed to create existing-client referral")
-        toast.success("Existing-client referral created")
-        router.push(`/service-requests/${data.id}`)
+        toast.success("Existing-client lead created")
+        router.push(`/leads/${data.id}`)
         return
       }
 

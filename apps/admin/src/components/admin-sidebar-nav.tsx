@@ -5,17 +5,17 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  LayoutDashboard,
   Users,
-  UserCheck,
-  DollarSign,
-  FileText,
-  BarChart3,
-  Settings,
+  Home,
   Menu,
   X,
   ChevronRight,
   LogOut,
+  Building2,
+  CircleDollarSign,
+  Receipt,
+  BarChart3,
+  Settings,
   type LucideIcon,
 } from "lucide-react"
 import { useAuthClient } from "@repo/auth/client"
@@ -24,60 +24,73 @@ import {
   hasAnyTeamRole,
   type AccessModule,
   type CanonicalTeamRole,
-  USER_MANAGEMENT_ROLES,
 } from "@/lib/rbac"
 
 type NavItem = {
   label: string
   href: string
   icon: LucideIcon
+  /** Single module gate (legacy) */
   module?: AccessModule
+  /** If set, show link when user has read access to any of these (OR). */
+  anyOfModules?: AccessModule[]
   roles?: CanonicalTeamRole[]
+  /**
+   * Leads inbox + cross-sell (existing clients) live in one place: `/leads` with filters and
+   * `/service-requests/...` detail — not a second nav module.
+   */
+  activeAlsoUnder?: readonly string[]
+  exactPath?: boolean
 }
 
 const navItems: NavItem[] = [
-  {
-    label: "Overview",
-    href: "/",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-    module: "analytics",
-  },
-  {
-    label: "Partners",
-    href: "/partners",
-    icon: UserCheck,
-    module: "partners",
-  },
+  { label: "Home", href: "/", icon: Home, exactPath: true },
   {
     label: "Leads",
     href: "/leads",
     icon: Users,
-    module: "leads",
+    anyOfModules: ["leads", "services"],
+    activeAlsoUnder: ["/leads", "/service-requests"],
   },
-  {
-    label: "Commissions",
-    href: "/commissions",
-    icon: DollarSign,
-    module: "commissions",
-  },
-  {
-    label: "Invoices",
-    href: "/invoices",
-    icon: FileText,
-    module: "invoices",
-  },
-  {
-    label: "Users & Access",
-    href: "/settings/users",
-    icon: Settings,
-    roles: USER_MANAGEMENT_ROLES,
-  },
+  { label: "Partners", href: "/partners", icon: Building2, module: "partners" },
+  { label: "Commissions", href: "/commissions", icon: CircleDollarSign, module: "commissions" },
+  { label: "Invoices", href: "/invoices", icon: Receipt, module: "invoices" },
+  { label: "Analytics", href: "/analytics", icon: BarChart3, module: "analytics" },
+  { label: "Settings", href: "/settings", icon: Settings, module: "users" },
 ]
+
+function itemVisible(
+  teamRole: string | null,
+  teamPermissions: string,
+  item: NavItem,
+): boolean {
+  if (item.roles) {
+    return hasAnyTeamRole(teamRole, item.roles)
+  }
+  if (item.anyOfModules?.length) {
+    return item.anyOfModules.some((m) => hasModuleAccess(teamRole, teamPermissions, m))
+  }
+  if (!item.module) {
+    return true
+  }
+  return hasModuleAccess(teamRole, teamPermissions, item.module)
+}
+
+function isNavItemActive(pathname: string, item: NavItem): boolean {
+  const base = item.href.split("?")[0]
+
+  if (item.exactPath) {
+    return pathname === base
+  }
+
+  if (item.activeAlsoUnder?.length) {
+    return item.activeAlsoUnder.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
+  }
+
+  return pathname === base || pathname.startsWith(`${base}/`)
+}
 
 interface AdminSidebarNavProps {
   userName: string
@@ -137,23 +150,18 @@ function SidebarContent({
   onNavClick?: () => void
 }) {
   const { signOut } = useAuthClient()
-  const visibleNavItems = navItems.filter((item: NavItem) => {
-    if (item.roles) {
-      return hasAnyTeamRole(teamRole, item.roles)
-    }
-
-    if (!item.module) {
-      return true
-    }
-
-    return hasModuleAccess(teamRole, teamPermissions, item.module)
-  })
+  const visibleNavItems = navItems.filter((item) =>
+    itemVisible(teamRole, teamPermissions, item),
+  )
 
   return (
     <div className="flex flex-col h-full">
-      {/* Logo */}
       <div className="px-4 py-5 border-b border-zinc-800">
-        <div className="flex items-center gap-2.5">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 rounded-lg outline-none ring-offset-zinc-900 transition-colors hover:bg-zinc-800/80 focus-visible:ring-2 focus-visible:ring-indigo-500/60"
+          title="Home"
+        >
           <Image
             src="/brand-mark.png"
             alt="Finanshels logo"
@@ -167,22 +175,20 @@ function SidebarContent({
             </p>
             <p className="text-zinc-500 text-xs mt-0.5">Admin Portal</p>
           </div>
-        </div>
+        </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
         {visibleNavItems.map((item) => (
           <NavLink
-            key={item.href}
+            key={`${item.label}-${item.href}`}
             item={item}
-            active={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
+            active={isNavItemActive(pathname, item)}
             onClick={onNavClick}
           />
         ))}
       </nav>
 
-      {/* User footer */}
       <div className="border-t border-zinc-800 p-3">
         <div className="px-2 py-2 rounded-lg hover:bg-zinc-800 transition-colors group">
           <div className="flex items-center gap-3">
@@ -216,35 +222,18 @@ function SidebarContent({
   )
 }
 
-export function AdminSidebarNav({
-  userName,
-  userEmail,
-  userInitials,
-  userRole,
-  teamRole,
-  teamPermissions,
-}: AdminSidebarNavProps) {
+export function AdminSidebarNav(props: AdminSidebarNavProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <>
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 bg-zinc-900 border-r border-zinc-800 h-screen sticky top-0">
-        <SidebarContent
-          pathname={pathname}
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-          userRole={userRole}
-          teamRole={teamRole}
-          teamPermissions={teamPermissions}
-        />
+        <SidebarContent pathname={pathname} {...props} />
       </aside>
 
-      {/* Mobile top bar */}
       <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-zinc-900 border-b border-zinc-800 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 rounded-lg py-1 pr-2 hover:bg-zinc-800/80" title="Home">
           <Image
             src="/brand-mark.png"
             alt="Finanshels logo"
@@ -255,7 +244,7 @@ export function AdminSidebarNav({
           <span className="text-zinc-100 font-semibold text-sm">
             Finanshels Admin
           </span>
-        </div>
+        </Link>
         <button
           onClick={() => setMobileOpen(true)}
           className="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
@@ -264,7 +253,6 @@ export function AdminSidebarNav({
         </button>
       </div>
 
-      {/* Mobile drawer overlay */}
       {mobileOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-zinc-950/80 backdrop-blur-sm"
@@ -272,7 +260,6 @@ export function AdminSidebarNav({
         />
       )}
 
-      {/* Mobile drawer */}
       <div
         className={`lg:hidden fixed top-0 left-0 h-full w-72 z-50 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
@@ -288,12 +275,7 @@ export function AdminSidebarNav({
         </div>
         <SidebarContent
           pathname={pathname}
-          userName={userName}
-          userEmail={userEmail}
-          userInitials={userInitials}
-          userRole={userRole}
-          teamRole={teamRole}
-          teamPermissions={teamPermissions}
+          {...props}
           onNavClick={() => setMobileOpen(false)}
         />
       </div>

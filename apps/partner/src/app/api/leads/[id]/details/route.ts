@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server"
 import { rateLimit } from "@repo/auth"
 import { db, leads } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
+import { isPaymentRecurringSlug } from "@repo/types"
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 function toNullableString(value: unknown) {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function parseNumericString(value: unknown) {
+  if (typeof value !== "string") return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const num = Number(trimmed.replace(/,/g, ""))
+  return Number.isFinite(num) ? String(num) : null
 }
 
 function parseServiceInterestFromForm(formData: FormData, fallbackRaw: string) {
@@ -61,6 +70,16 @@ export async function POST(
   const hasField = (name: string) => formData.has(name)
   const readStringField = (name: string, fallback: string | null) =>
     hasField(name) ? toNullableString(body[name]) : fallback
+  const readNumericField = (name: string, fallback: string | null) =>
+    hasField(name) ? parseNumericString(body[name]) : fallback
+
+  const readPaymentRecurring = () => {
+    if (!hasField("paymentRecurring")) return lead.paymentRecurring
+    const raw = typeof body.paymentRecurring === "string" ? body.paymentRecurring.trim() : ""
+    if (raw === "") return null
+    if (!isPaymentRecurringSlug(raw)) return lead.paymentRecurring
+    return raw
+  }
 
   const customerEmail = readStringField("customerEmail", lead.customerEmail)
   if (!customerEmail) {
@@ -98,6 +117,24 @@ export async function POST(
       city: readStringField("city", lead.city),
       serviceInterest,
       notes: readStringField("notes", lead.notes),
+      industry: readStringField("industry", lead.industry),
+      businessInUae: readStringField("businessInUae", lead.businessInUae),
+      transactionBand: readStringField("transactionBand", lead.transactionBand),
+      businessArBand: readStringField("businessArBand", lead.businessArBand),
+      decisionRole: readStringField("decisionRole", lead.decisionRole),
+      urgencyTimeline: readStringField("urgencyTimeline", lead.urgencyTimeline),
+      budgetAmount: readNumericField("budgetAmount", lead.budgetAmount),
+      proposalSummary: readStringField("proposalSummary", lead.proposalSummary),
+      proposalAmount: readNumericField("proposalAmount", lead.proposalAmount),
+      paymentStatus: readStringField("paymentStatus", lead.paymentStatus),
+      paymentReference: readStringField("paymentReference", lead.paymentReference),
+      paymentAmount: readNumericField("paymentAmount", lead.paymentAmount),
+      paymentRecurring: readPaymentRecurring(),
+      stageNotes: readStringField("stageNotes", lead.stageNotes),
+      lostReason: readStringField("lostReason", lead.lostReason),
+      rejectionReason: hasField("lostReason")
+        ? toNullableString(body.lostReason)
+        : readStringField("rejectionReason", lead.rejectionReason),
       updatedAt: now,
     })
     .where(eq(leads.id, id))

@@ -43,6 +43,8 @@ export const serviceRequests = pgTable(
     assignedTo: text("assigned_to"),
     createdBy: text("created_by"), // admin who created on behalf
     onBehalfNote: text("on_behalf_note"),
+    /** When set, this service request was unified into a lead — use for redirects. */
+    migratedToLeadId: uuid("migrated_to_lead_id").references(() => leads.id, { onDelete: "set null" }),
     deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),

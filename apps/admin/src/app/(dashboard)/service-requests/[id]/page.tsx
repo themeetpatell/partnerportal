@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { currentUser } from "@repo/auth/server"
 import { db, leads, partners, serviceRequests, services, teamMembers } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
@@ -14,6 +14,13 @@ import {
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { isPartnerReadable, resolvePartnerScopeForActor } from "@/lib/row-scope"
+import { hasModuleAccess } from "@/lib/rbac"
+import { ServiceRequestStatusActions } from "@/components/service-request-status-actions"
+import {
+  SERVICE_REQUEST_STATUS_TRANSITIONS,
+  ServiceRequestStatusSchema,
+  type ServiceRequestStatus,
+} from "@repo/types"
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -81,11 +88,29 @@ export default async function ServiceRequestDetailPage({
 }) {
   const { id } = await params
 
+  const [migrated] = await db
+    .select({ id: leads.id })
+    .from(leads)
+    .where(eq(leads.legacyServiceRequestId, id))
+    .limit(1)
+  if (migrated) {
+    redirect(`/leads/${migrated.id}`)
+  }
+
   const [member, actor] = await Promise.all([
     getCurrentActiveTeamMember(),
     currentUser(),
   ])
   const tenantId = getRequiredTenantId()
+
+  const [srMig] = await db
+    .select({ migratedToLeadId: serviceRequests.migratedToLeadId })
+    .from(serviceRequests)
+    .where(eq(serviceRequests.id, id))
+    .limit(1)
+  if (srMig?.migratedToLeadId) {
+    redirect(`/leads/${srMig.migratedToLeadId}`)
+  }
   const scope =
     actor?.id === undefined
       ? ({ kind: "restricted" as const, partnerIds: [] as readonly string[] })
@@ -135,26 +160,47 @@ export default async function ServiceRequestDetailPage({
     ? [row.service.name]
     : parseServicesList(row.request.servicesList)
 
+  const statusParsed = ServiceRequestStatusSchema.safeParse(row.request.status)
+  const pipelineStatus: ServiceRequestStatus = statusParsed.success ? statusParsed.data : "pending"
+  const canUpdateStatus =
+    Boolean(member) &&
+    hasModuleAccess(member!.role, member!.permissions, "services", "rw")
+  const furtherStatusMoves = SERVICE_REQUEST_STATUS_TRANSITIONS[pipelineStatus] ?? []
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-3">
-          <Link
-            href="/service-requests"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to service requests
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">{row.request.customerCompany}</h1>
-              <StatusBadge status={row.request.status} />
-            </div>
-            <p className="mt-1 text-sm text-slate-400">
-              Request created on {formatDate(row.request.createdAt)}
-            </p>
+      <div className="space-y-3">
+        <Link
+          href="/leads?kind=cross_sell"
+          className="inline-flex items-center gap-2 text-sm text-slate-400 transition-colors hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to leads (cross-sell)
+        </Link>
+        <div>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold text-white">{row.request.customerCompany}</h1>
+            <StatusBadge status={row.request.status} />
           </div>
+          <p className="mt-1 text-sm text-slate-400">
+            Request created on {formatDate(row.request.createdAt)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <ServiceRequestStatusActions
+            requestId={row.request.id}
+            currentStatus={pipelineStatus}
+            canManage={canUpdateStatus}
+          />
+          {!canUpdateStatus ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Status changes require <span className="text-slate-400">Services</span> write access (e.g. Operations, Admin).
+            </p>
+          ) : null}
+          {canUpdateStatus && furtherStatusMoves.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-400">This request is closed — no further status changes.</p>
+          ) : null}
         </div>
       </div>
 

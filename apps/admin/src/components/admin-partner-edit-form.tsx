@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
 import { Pencil, X, Save, Loader2 } from "lucide-react"
+import { NATIONALITY_OPTIONS, PARTNER_INDUSTRY_OPTIONS } from "@repo/types"
 
 /* ── Types ────────────────────────────────────────────── */
 
@@ -426,7 +427,14 @@ export function AdminPartnerEditForm({
             <CheckboxField label="Email opt out" name="emailOptOut" checked={boolVal("emailOptOut")} onChange={handleChange} />
             <TextField label="LinkedIn ID" name="linkedinId" value={val("linkedinId")} onChange={handleChange} />
             <TextField label="Website" name="website" value={val("website")} onChange={handleChange} type="url" placeholder="https://…" />
-            <TextField label="Nationality" name="nationality" value={val("nationality")} onChange={handleChange} />
+            <SelectField
+              label="Nationality"
+              name="nationality"
+              value={val("nationality")}
+              onChange={handleChange}
+              options={[...NATIONALITY_OPTIONS].map((n) => ({ label: n, value: n }))}
+              placeholder="Select nationality"
+            />
             <SelectField
               label="Business size"
               name="businessSize"
@@ -439,7 +447,14 @@ export function AdminPartnerEditForm({
                 { label: "Large (50+)", value: "large" },
               ]}
             />
-            <TextField label="Partner industry" name="partnerIndustry" value={val("partnerIndustry")} onChange={handleChange} />
+            <SelectField
+              label="Partner industry"
+              name="partnerIndustry"
+              value={val("partnerIndustry")}
+              onChange={handleChange}
+              options={[...PARTNER_INDUSTRY_OPTIONS].map((n) => ({ label: n, value: n }))}
+              placeholder="Select industry"
+            />
             <TextField label="Address" name="partnerAddress" value={val("partnerAddress")} onChange={handleChange} />
             <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} />
             <TextField label="Secondary email" name="secondaryEmail" value={val("secondaryEmail")} onChange={handleChange} type="email" />

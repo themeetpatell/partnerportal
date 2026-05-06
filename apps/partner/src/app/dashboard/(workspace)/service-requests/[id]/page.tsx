@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { db, leads, serviceRequests } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import { ArrowLeft, Building2, ClipboardList, Mail, User } from "lucide-react"
@@ -46,6 +46,30 @@ export default async function PartnerServiceRequestDetailPage({
     notFound()
   }
 
+  const [legacyLead] = await db
+    .select({ id: leads.id })
+    .from(leads)
+    .where(
+      and(
+        eq(leads.legacyServiceRequestId, id),
+        eq(leads.partnerId, partner.id),
+        isNull(leads.deletedAt),
+      ),
+    )
+    .limit(1)
+  if (legacyLead) {
+    redirect(`/dashboard/leads/${legacyLead.id}`)
+  }
+
+  const [srMig] = await db
+    .select({ migratedToLeadId: serviceRequests.migratedToLeadId })
+    .from(serviceRequests)
+    .where(and(eq(serviceRequests.id, id), eq(serviceRequests.partnerId, partner.id)))
+    .limit(1)
+  if (srMig?.migratedToLeadId) {
+    redirect(`/dashboard/leads/${srMig.migratedToLeadId}`)
+  }
+
   const [row] = await db
     .select({
       id: serviceRequests.id,
@@ -85,12 +109,12 @@ export default async function PartnerServiceRequestDetailPage({
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to cross-sell referrals
+          Back to leads
         </Link>
 
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="eyebrow">Cross-sell · existing client</div>
+            <div className="eyebrow">Existing client referral</div>
             <h1 className="page-title mt-4">{row.customerCompany}</h1>
             <p className="page-subtitle mt-3 max-w-2xl">
               Follow-on services for a closed deal you referred. Finanshels will update status as the request moves.

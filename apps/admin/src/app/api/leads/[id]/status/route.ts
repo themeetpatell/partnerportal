@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
 import { rateLimit } from "@repo/auth"
-import { db, leads } from "@repo/db"
+import { db, leads, partners } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
 import {
   LEAD_STATUS_TRANSITIONS,
   LeadStatusSchema,
   type LeadStatus,
 } from "@repo/types"
-import { getActiveTeamMember } from "@/lib/admin-auth"
+import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
+import { createDealCloseCommissionFromLead } from "@/lib/create-lead-commissions"
 import { hasAnyTeamRole, LEAD_PIPELINE_ROLES } from "@/lib/rbac"
 
 const PIPELINE_STATUSES = LeadStatusSchema.options
@@ -116,6 +117,31 @@ export async function POST(
     })
     .where(eq(leads.id, id))
     .returning()
+
+  if (nextStatus === "deal_won" && updatedLead) {
+    const [partner] = await db
+      .select()
+      .from(partners)
+      .where(eq(partners.id, updatedLead.partnerId))
+      .limit(1)
+    if (partner) {
+      const actorName = await getActorName()
+      const commissionResult = await createDealCloseCommissionFromLead({
+        lead: updatedLead,
+        partner,
+        actorUserId: userId,
+        actorName,
+      })
+      if (!commissionResult.ok && commissionResult.reason !== "duplicate") {
+        console.warn(
+          "[lead-status deal_won] deal-close commission not created:",
+          commissionResult.reason,
+          "leadId=",
+          updatedLead.id,
+        )
+      }
+    }
+  }
 
   const redirectTo = new URL(req.url).searchParams.get("redirectTo") || `/leads/${id}`
   const redirectUrl = new URL(redirectTo, req.url)
