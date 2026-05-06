@@ -14,7 +14,9 @@
       "Bash(find \"/Users/themeetpatel/Startups/Partner Portal/apps/partner/src/app/dashboard\" -name \"page.tsx\" -exec ls -lh {} \\\\;)",
       "Bash(node -e ':*)",
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
-      "Bash(VERCEL_PROJECT_ID=prj_kRaZVLnRLbzYyaTsHrcHhRltdSHv VERCEL_ORG_ID=team_DATfVAKScDj2eGtkEsINsQur vercel deploy)"
+      "Bash(VERCEL_PROJECT_ID=prj_kRaZVLnRLbzYyaTsHrcHhRltdSHv VERCEL_ORG_ID=team_DATfVAKScDj2eGtkEsINsQur vercel deploy)",
+      "Bash(VERCEL_ORG_ID=team_DATfVAKScDj2eGtkEsINsQur VERCEL_PROJECT_ID=prj_kLd7RZkhu7zja7mNsNoznckTHKAS vercel --prod)",
+      "Bash(VERCEL_ORG_ID=team_DATfVAKScDj2eGtkEsINsQur VERCEL_PROJECT_ID=prj_kRaZVLnRLbzYyaTsHrcHhRltdSHv vercel --prod)"
     ]
   }
 }
