@@ -1,4 +1,5 @@
-import { index, pgTable, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core"
+import { sql } from "drizzle-orm"
+import { index, pgTable, uniqueIndex, uuid, text, boolean, timestamp } from "drizzle-orm/pg-core"
 import { tenants } from "./tenants"
 
 export const commissionModels = pgTable(
@@ -105,6 +106,8 @@ export const partners = pgTable("partners", {
 
   // CRM / system
   zohoContactId: text("zoho_contact_id"),
+  /** Stable 3–6 char promo for pricing engine / proposals; unique per tenant when set. */
+  promoCode: text("promo_code"),
   rejectionReason: text("rejection_reason"),
   suspensionReason: text("suspension_reason"),
   onboardedAt: timestamp("onboarded_at"),
@@ -116,6 +119,10 @@ export const partners = pgTable("partners", {
   index("partners_tenant_status_idx").on(table.tenantId, table.status),
   index("partners_email_idx").on(table.email),
   index("partners_status_idx").on(table.status),
+  index("partners_promo_lookup_idx").on(table.tenantId, table.promoCode),
+  uniqueIndex("partners_tenant_promo_code_uidx")
+    .on(table.tenantId, sql`upper(${table.promoCode})`)
+    .where(sql`${table.promoCode} IS NOT NULL AND ${table.deletedAt} IS NULL`),
 ])
 
 export const teamMembers = pgTable(

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, partners, teamMembers, logActivity } from "@repo/db"
+import { db, ensurePartnerPromoCode, partners, teamMembers, logActivity } from "@repo/db"
 import { eq, and } from "drizzle-orm"
 import { sendPartnerApprovedEmail } from "@repo/notifications"
 import { rateLimit } from "@repo/auth"
@@ -65,12 +65,32 @@ export async function POST(
     return NextResponse.json({ error: "Partner not found" }, { status: 404 })
   }
 
+  await ensurePartnerPromoCode(updated.id)
+
+  const [emailPartner] = await db
+    .select({
+      email: partners.email,
+      firstName: partners.firstName,
+      lastName: partners.lastName,
+      companyName: partners.companyName,
+      contactName: partners.contactName,
+      promoCode: partners.promoCode,
+    })
+    .from(partners)
+    .where(eq(partners.id, id))
+    .limit(1)
+
+  if (!emailPartner) {
+    return NextResponse.json({ error: "Partner not found" }, { status: 404 })
+  }
+
   await sendPartnerApprovedEmail(
-    updated.email,
-    [updated.firstName, updated.lastName].filter(Boolean).join(" ").trim() ||
-      updated.companyName ||
-      updated.contactName,
-    updated.companyName,
+    emailPartner.email,
+    [emailPartner.firstName, emailPartner.lastName].filter(Boolean).join(" ").trim() ||
+      emailPartner.companyName ||
+      emailPartner.contactName,
+    emailPartner.companyName,
+    emailPartner.promoCode,
   )
 
   await logActivity({

@@ -287,12 +287,17 @@ const LEAD_STATUS_LABELS: Record<string, { label: string; description: string }>
 export async function sendPartnerApprovedEmail(
   to: string,
   partnerName: string,
-  companyName: string
+  companyName: string,
+  partnerPromoCode?: string | null,
 ): Promise<void> {
   try {
     const safePartnerName = escapeHtml(partnerName)
     const safeCompanyName = escapeHtml(companyName)
     const portalUrl = escapeHtml(buildPortalUrl("partner", "/sign-in"))
+    const safePromo =
+      partnerPromoCode && partnerPromoCode.trim().length > 0
+        ? escapeHtml(partnerPromoCode.trim().toUpperCase())
+        : ""
 
     await sendEmail({
       to,
@@ -303,6 +308,12 @@ export async function sendPartnerApprovedEmail(
         body: `
           <p>Hi ${safePartnerName},</p>
           <p>Your partner application for <strong>${safeCompanyName}</strong> has been approved by the Finanshels team.</p>
+          ${
+            safePromo
+              ? `<p><strong>Your proposal promo code:</strong> <code style="font-size:1.1em;letter-spacing:0.08em;">${safePromo}</code></p>
+                 <p>Use this code in the pricing engine when sending proposals so referrals are attributed to your partnership. You can also find it anytime on your partner profile.</p>`
+              : ""
+          }
           <p>Your onboarding acknowledgement is already complete, and your workspace is now ready to use. Sign in to continue.</p>
         `,
         ctaLabel: "Open partner portal",

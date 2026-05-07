@@ -1,5 +1,9 @@
-import { db, leads, documents, teamMembers } from "@repo/db"
-import { and, asc, eq, isNull } from "drizzle-orm"
+import { db, getLeadCatalogNameList, leadQuotes, leads, documents, teamMembers } from "@repo/db"
+import { and, asc, desc, eq, isNull } from "drizzle-orm"
+import {
+  isPricingEngineIntegrationsEnabled,
+  partnerLeadMayCreatePricingQuote,
+} from "@repo/pricing-integration"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { z } from "zod"
@@ -31,6 +35,7 @@ import {
 } from "@repo/types"
 import type { LeadStatus } from "@repo/types"
 import { LeadEditCard, type LeadFieldDef } from "@/components/lead-edit-card"
+import { PartnerLeadPricingSection } from "@/components/lead-pricing-section"
 
 export const dynamic = "force-dynamic"
 
@@ -84,7 +89,7 @@ export default async function LeadDetailPage({
 
   if (!partner) notFound()
 
-  const [[lead], leadDocs, partnerTeamRows] = await Promise.all([
+  const [[lead], leadDocs, partnerTeamRows, catalogNames, leadQuoteRows] = await Promise.all([
     db
       .select()
       .from(leads)
@@ -99,6 +104,12 @@ export default async function LeadDetailPage({
       .from(teamMembers)
       .where(and(eq(teamMembers.tenantId, partner.tenantId), eq(teamMembers.isActive, true)))
       .orderBy(asc(teamMembers.name)),
+    getLeadCatalogNameList(partner.tenantId),
+    db
+      .select()
+      .from(leadQuotes)
+      .where(and(eq(leadQuotes.leadId, id), isNull(leadQuotes.deletedAt)))
+      .orderBy(desc(leadQuotes.updatedAt)),
   ])
 
   if (!lead) notFound()
@@ -111,12 +122,19 @@ export default async function LeadDetailPage({
   )
   const isLost = pipelineStatus === "deal_lost"
   const isWon = pipelineStatus === "deal_won"
+
+  const pricingIntegrationsEnabled = isPricingEngineIntegrationsEnabled()
+  const partnerMayCreateQuotes =
+    partnerLeadMayCreatePricingQuote(lead.status) && !isLost && !isWon
   const saveBanner =
     query.save === "ok"
       ? "Lead details updated."
       : null
 
-  const serviceOptions = mergeLeadServiceOptionsWithStored(services)
+  const serviceOptions =
+    catalogNames.length > 0
+      ? mergeLeadServiceOptionsWithStored(services, catalogNames)
+      : mergeLeadServiceOptionsWithStored(services)
 
   const partnerPm = partner.partnershipManagerTeamMemberId
     ? partnerTeamRows.find((row) => row.id === partner.partnershipManagerTeamMemberId) ?? null
@@ -449,6 +467,13 @@ export default async function LeadDetailPage({
               initialValues={pipelineInitial}
             />
           </section>
+
+          <PartnerLeadPricingSection
+            leadId={lead.id}
+            quotes={leadQuoteRows}
+            canCreate={partnerMayCreateQuotes}
+            integrationsEnabled={pricingIntegrationsEnabled}
+          />
 
           {/* Documents */}
           <section className="surface-card rounded-[2rem] px-6 py-6">

@@ -1,6 +1,7 @@
 import { currentUser } from "@repo/auth/server"
-import { db, leads, partners, services, teamMembers } from "@repo/db"
+import { db, getLeadCatalogRows, leads, partners, services, teamMembers } from "@repo/db"
 import { and, eq, isNull } from "drizzle-orm"
+import { fallbackLeadCatalogRows } from "@repo/types"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import {
@@ -27,7 +28,7 @@ export default async function NewLeadPage() {
   const scopeClause = partnerScopeWhere(rowScope, partners.id)
   const leadsScopeClause = partnerScopeWhere(rowScope, leads.partnerId)
 
-  const [partnersList, servicesList, wonLeads, membersList] = await Promise.all([
+  const [partnersList, servicesList, wonLeads, membersList, leadCatalog] = await Promise.all([
     db
       .select({ id: partners.id, companyName: partners.companyName })
       .from(partners)
@@ -67,7 +68,11 @@ export default async function NewLeadPage() {
       .from(teamMembers)
       .where(and(eq(teamMembers.tenantId, tenantId), eq(teamMembers.isActive, true)))
       .orderBy(teamMembers.name),
+    getLeadCatalogRows(tenantId),
   ])
+
+  const leadCatalogResolved =
+    leadCatalog.length > 0 ? leadCatalog : fallbackLeadCatalogRows()
 
   return (
     <NewLeadForm
@@ -75,6 +80,7 @@ export default async function NewLeadPage() {
       services={servicesList}
       wonLeads={wonLeads}
       teamMembers={membersList}
+      leadCatalog={leadCatalogResolved}
     />
   )
 }

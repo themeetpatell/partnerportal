@@ -28,9 +28,12 @@ export const LEAD_SERVICE_OPTIONS = [
 
 export type LeadServiceOption = (typeof LEAD_SERVICE_OPTIONS)[number]
 
-const catalogSet = new Set<string>(LEAD_SERVICE_OPTIONS)
-
-export function mergeLeadServiceOptionsWithStored(selected: Iterable<string>): string[] {
+export function mergeLeadServiceOptionsWithStored(
+  selected: Iterable<string>,
+  /** Active catalog labels in display order (from DB or fallback). Defaults to legacy static list. */
+  catalogOrderedNames: readonly string[] = LEAD_SERVICE_OPTIONS as unknown as readonly string[],
+): string[] {
+  const catalogSet = new Set(catalogOrderedNames)
   const extras: string[] = []
   for (const s of selected) {
     if (typeof s === "string" && s.trim() && !catalogSet.has(s)) {
@@ -38,5 +41,5 @@ export function mergeLeadServiceOptionsWithStored(selected: Iterable<string>): s
     }
   }
   extras.sort((a, b) => a.localeCompare(b))
-  return [...LEAD_SERVICE_OPTIONS, ...extras]
+  return [...catalogOrderedNames, ...extras]
 }

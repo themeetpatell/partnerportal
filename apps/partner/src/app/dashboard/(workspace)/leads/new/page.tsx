@@ -3,8 +3,12 @@
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Building2, Check, ChevronDown, Mail, Phone, Send, UserRound, Wrench, X } from "lucide-react"
+import { Building2, ChevronDown, Mail, Phone, Send, UserRound, Wrench, X } from "lucide-react"
 import { toast } from "sonner"
+import {
+  LeadServiceCatalogPanel,
+  type LeadCatalogRow,
+} from "@/components/lead-service-catalog-panel"
 
 type LeadType = "new" | "existing"
 
@@ -63,6 +67,7 @@ export default function NewLeadPage() {
   const [recentRequests, setRecentRequests] = useState<ServiceRequest[]>([])
   const [loadingRecent, setLoadingRecent] = useState(true)
   const [serviceOptions, setServiceOptions] = useState<string[]>([])
+  const [serviceCatalog, setServiceCatalog] = useState<LeadCatalogRow[]>([])
   const [eligibleClients, setEligibleClients] = useState<ServiceRequestOptionsResponse["clients"]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serviceDropdownOpen, setServiceDropdownOpen] = useState(false)
@@ -109,6 +114,12 @@ export default function NewLeadPage() {
         setRecentLeads((leadsData.leads || []).slice().reverse().slice(0, 5))
         setRecentRequests((requestsData.serviceRequests || []).slice().reverse().slice(0, 5))
         setServiceOptions(leadOptionsData.serviceOptions || [])
+        if (Array.isArray(leadOptionsData.serviceCatalog) && leadOptionsData.serviceCatalog.length > 0) {
+          setServiceCatalog(leadOptionsData.serviceCatalog)
+        } else {
+          const names = leadOptionsData.serviceOptions || []
+          setServiceCatalog(names.map((name: string) => ({ name, code: "" })))
+        }
         setEligibleClients(requestOptionsData.clients || [])
       })
       .catch(() => {
@@ -436,30 +447,14 @@ export default function NewLeadPage() {
               </button>
 
               {serviceDropdownOpen ? (
-                <div className="absolute z-20 mt-2 max-h-72 w-full overflow-y-auto rounded-[1.2rem] border border-border bg-card p-2 shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
-                  {serviceOptions.length === 0 ? (
-                    <div className="px-3 py-3 text-sm text-muted-foreground">No services available.</div>
-                  ) : (
-                    serviceOptions.map((service) => {
-                      const active = form.serviceInterests.includes(service)
-
-                      return (
-                        <button
-                          key={service}
-                          type="button"
-                          onClick={() => toggle(service)}
-                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm transition-all ${
-                            active
-                              ? "bg-indigo-500/14 text-foreground"
-                              : "text-[var(--portal-text-soft)] hover:bg-secondary/70"
-                          }`}
-                        >
-                          <span>{service}</span>
-                          {active ? <Check className="h-4 w-4 text-primary" /> : null}
-                        </button>
-                      )
-                    })
-                  )}
+                <div className="absolute left-0 right-0 z-20 mt-2 w-full min-w-0">
+                  <div className="shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:shadow-[0_24px_60px_rgba(0,0,0,0.45)]">
+                    <LeadServiceCatalogPanel
+                      rows={serviceCatalog}
+                      selected={form.serviceInterests}
+                      onToggle={toggle}
+                    />
+                  </div>
                 </div>
               ) : null}
             </div>

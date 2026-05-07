@@ -1,7 +1,7 @@
 import { auth } from "@repo/auth/server"
-import { LEAD_SERVICE_OPTIONS } from "@repo/types"
+import { fallbackLeadCatalogRows } from "@repo/types"
 import { NextResponse } from "next/server"
-import { db, partners } from "@repo/db"
+import { db, getLeadCatalogRows, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 
 async function getPartner(userId: string) {
@@ -23,18 +23,25 @@ export async function GET() {
 
     const partner = await getPartner(userId)
     if (!partner) {
+      const fallback = fallbackLeadCatalogRows()
       return NextResponse.json(
         {
-          serviceOptions: [],
-          source: "catalog",
+          serviceCatalog: fallback,
+          serviceOptions: fallback.map((row) => row.name),
+          source: "fallback",
         },
         { status: 200 },
       )
     }
 
+    const fromDb = await getLeadCatalogRows(partner.tenantId)
+    const serviceCatalog =
+      fromDb.length > 0 ? fromDb : fallbackLeadCatalogRows()
+
     return NextResponse.json({
-      serviceOptions: [...LEAD_SERVICE_OPTIONS],
-      source: "catalog",
+      serviceCatalog,
+      serviceOptions: serviceCatalog.map((row) => row.name),
+      source: fromDb.length > 0 ? "database" : "fallback",
     })
   } catch (error) {
     console.error("[GET /api/leads/options] Error:", error)

@@ -203,6 +203,13 @@ export const USER_MANAGEMENT_ROLES: CanonicalTeamRole[] = [
   "admin",
 ]
 
+/** Lead “services of interest” picklist — shared partner + admin CRM forms */
+export const LEAD_SERVICE_CATALOG_SETTINGS_ROLES: CanonicalTeamRole[] = [
+  "super_admin",
+  "admin",
+  "operation_manager",
+]
+
 /** Partner approvals, lifecycle, CRM-style partner edits */
 export const PARTNER_OPERATIONS_ROLES: CanonicalTeamRole[] = [
   "super_admin",

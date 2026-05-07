@@ -85,6 +85,7 @@ export const PartnerSchema = z.object({
 
   // CRM / system
   zohoContactId: z.string().nullable().optional(),
+  promoCode: z.string().nullable().optional(),
   rejectionReason: z.string().nullable().optional(),
   onboardedAt: z.date().nullable().optional(),
   createdAt: z.date(),

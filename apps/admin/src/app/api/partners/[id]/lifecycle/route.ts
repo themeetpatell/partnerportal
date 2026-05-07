@@ -1,6 +1,6 @@
 import { auth, currentUser } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
-import { db, logActivity, partners } from "@repo/db"
+import { db, ensurePartnerPromoCode, logActivity, partners } from "@repo/db"
 import { eq } from "drizzle-orm"
 import {
   sendPartnerApprovedEmail,
@@ -187,6 +187,23 @@ export async function POST(
     .where(eq(partners.id, id))
     .returning()
 
+  if (updated?.status === "approved") {
+    await ensurePartnerPromoCode(id)
+  }
+
+  const [emailPartner] = await db
+    .select({
+      email: partners.email,
+      firstName: partners.firstName,
+      lastName: partners.lastName,
+      companyName: partners.companyName,
+      contactName: partners.contactName,
+      promoCode: partners.promoCode,
+    })
+    .from(partners)
+    .where(eq(partners.id, id))
+    .limit(1)
+
   await logActivity({
     tenantId: partner.tenantId,
     entityType: "partner",
@@ -198,11 +215,17 @@ export async function POST(
     metadata: logMetadata,
   })
 
-  if (emailAction === "approved") {
+  if (emailAction === "approved" && emailPartner) {
     await sendPartnerApprovedEmail(
-      updated.email,
-      getPartnerDisplayName(updated),
-      updated.companyName,
+      emailPartner.email,
+      getPartnerDisplayName({
+        firstName: emailPartner.firstName,
+        lastName: emailPartner.lastName,
+        companyName: emailPartner.companyName,
+        contactName: emailPartner.contactName,
+      }),
+      emailPartner.companyName,
+      emailPartner.promoCode,
     )
   }
 

@@ -13,6 +13,7 @@
     "@repo/auth": "*",
     "@repo/commission-engine": "*",
     "@repo/db": "*",
+    "@repo/pricing-integration": "*",
     "@repo/notifications": "*",
     "@repo/types": "*",
     "@repo/ui": "*",

@@ -36,6 +36,7 @@ import {
   User,
   KeyRound,
   History,
+  Tag,
 } from "lucide-react"
 import { getCurrentActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
@@ -271,6 +272,7 @@ export default async function PartnerDetailPage({
     accountNoIban: partner.accountNoIban,
     swiftBicCode: partner.swiftBicCode,
     paymentFrequency: partner.paymentFrequency,
+    promoCode: partner.promoCode ?? "",
   }
 
   const operationalStatus = derivePartnerOperationalStatus(
@@ -358,6 +360,19 @@ export default async function PartnerDetailPage({
                 partner.contactName}
             </h1>
             <p className="mt-1 text-[11px] text-slate-500">Partner ID: {partner.id}</p>
+            {partner.promoCode?.trim() ? (
+              <p className="mt-2 inline-flex items-center gap-2 rounded-lg border border-indigo-500/25 bg-indigo-500/10 px-3 py-1.5 text-xs font-medium text-indigo-200">
+                <Tag className="h-3.5 w-3.5 shrink-0 opacity-80" />
+                <span className="font-mono tracking-wider">{partner.promoCode.toUpperCase()}</span>
+                <span className="text-slate-500 font-normal normal-case tracking-normal">
+                  Proposal promo
+                </span>
+              </p>
+            ) : partner.status === "approved" ? (
+              <p className="mt-2 text-[11px] text-amber-400/90">
+                No proposal promo code yet — approve flow assigns one automatically, or use admin backfill.
+              </p>
+            ) : null}
             <div className="mt-3 flex flex-wrap gap-2">
               <LifecycleBadge
                 label={formatPartnerOperationalStatus(operationalStatus)}
@@ -625,6 +640,14 @@ export default async function PartnerDetailPage({
                   Designation
                 </dt>
                 <dd className="text-white text-sm">{partner.designation || "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
+                  Proposal promo code
+                </dt>
+                <dd className="text-white text-sm font-mono tracking-wide">
+                  {partner.promoCode?.toUpperCase().trim() || "—"}
+                </dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

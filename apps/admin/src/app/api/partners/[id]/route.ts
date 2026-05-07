@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, partners, logActivity } from "@repo/db"
+import {
+  db,
+  findPartnerPromoCodeConflict,
+  logActivity,
+  partners,
+} from "@repo/db"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
+import {
+  normalizePartnerPromoCodeInput,
+  validatePartnerPromoCodeNormalized,
+} from "@repo/types"
 
 const updatePartnerSchema = z.object({
   // Identity (admin-only)
@@ -66,6 +75,9 @@ const updatePartnerSchema = z.object({
     .enum(["monthly", "quarterly", "bi-weekly", "on-request"])
     .optional()
     .nullable(),
+
+  /** 3–6 chars; empty string clears only for non-approved partners */
+  promoCode: z.string().max(6).optional(),
 })
 
 function parseOptionalDate(value: string | null | undefined): Date | null | undefined {
@@ -110,6 +122,19 @@ export async function PATCH(
   }
 
   const data = parsed.data
+
+  const [existingPartner] = await db
+    .select({
+      status: partners.status,
+      tenantId: partners.tenantId,
+    })
+    .from(partners)
+    .where(eq(partners.id, id))
+    .limit(1)
+
+  if (!existingPartner) {
+    return NextResponse.json({ error: "Partner not found." }, { status: 404 })
+  }
 
   // Build the set object, converting date strings to Date objects for timestamp columns
   const setObj: Record<string, unknown> = { updatedAt: new Date() }
@@ -179,6 +204,40 @@ export async function PATCH(
     const parsed = parseOptionalDate(data[field])
     if (parsed !== undefined) {
       setObj[field] = parsed
+    }
+  }
+
+  if (data.promoCode !== undefined) {
+    const trimmed = data.promoCode.trim()
+    if (trimmed === "") {
+      if (existingPartner.status === "approved") {
+        return NextResponse.json(
+          {
+            error:
+              "Cannot remove the proposal promo code while the partner is approved. Suspend or edit the code instead.",
+          },
+          { status: 422 },
+        )
+      }
+      setObj.promoCode = null
+    } else {
+      const normalized = normalizePartnerPromoCodeInput(trimmed)
+      const check = validatePartnerPromoCodeNormalized(normalized)
+      if (!check.ok) {
+        return NextResponse.json({ error: check.error }, { status: 422 })
+      }
+      const dup = await findPartnerPromoCodeConflict({
+        tenantId: existingPartner.tenantId,
+        normalizedCode: normalized,
+        excludePartnerId: id,
+      })
+      if (dup) {
+        return NextResponse.json(
+          { error: "Another partner already uses this promo code in your organization." },
+          { status: 409 },
+        )
+      }
+      setObj.promoCode = normalized
     }
   }
 

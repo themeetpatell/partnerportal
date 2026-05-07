@@ -6,13 +6,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { ArrowLeft, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { LEAD_SERVICE_OPTIONS } from "@repo/types"
 
 type LeadType = "new" | "existing"
 
 interface Props {
   partners: { id: string; companyName: string }[]
   services: { id: string; name: string; category: string }[]
+  leadCatalog: { name: string; code: string }[]
   wonLeads: {
     id: string
     partnerId: string
@@ -23,7 +23,7 @@ interface Props {
   teamMembers: { authUserId: string; name: string }[]
 }
 
-export function NewLeadForm({ partners, services, wonLeads, teamMembers }: Props) {
+export function NewLeadForm({ partners, services, leadCatalog, wonLeads, teamMembers }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [saving, setSaving] = useState(false)
@@ -374,12 +374,13 @@ export function NewLeadForm({ partners, services, wonLeads, teamMembers }: Props
               <h2 className="text-sm font-semibold text-zinc-100">Service list</h2>
               <p className="text-xs text-zinc-500">Select all services the lead is interested in.</p>
               <div className="flex flex-wrap gap-2">
-                {LEAD_SERVICE_OPTIONS.map((name) => {
+                {leadCatalog.map(({ name, code }) => {
                   const active = form.serviceInterest.includes(name)
                   return (
                     <button
                       key={name}
                       type="button"
+                      title={code ? `Code: ${code}` : undefined}
                       onClick={() => toggleService(name)}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                         active

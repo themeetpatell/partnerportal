@@ -1,8 +1,18 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { auth, currentUser } from "@repo/auth/server"
-import { db, leads, partners, documents, commissions, teamMembers } from "@repo/db"
+import {
+  db,
+  getLeadCatalogNameList,
+  leadQuotes,
+  leads,
+  partners,
+  documents,
+  commissions,
+  teamMembers,
+} from "@repo/db"
 import { eq, and, or, desc, isNull, asc } from "drizzle-orm"
+import { isPricingEngineIntegrationsEnabled } from "@repo/pricing-integration"
 import {
   ArrowLeft,
   Briefcase,
@@ -35,6 +45,7 @@ import {
 import type { LeadStatus } from "@repo/types"
 import { LeadEditCard, type LeadFieldDef } from "@/components/lead-edit-card"
 import { LeadStageActions } from "@/components/lead-stage-actions"
+import { AdminLeadPricingSection } from "@/components/lead-pricing-section"
 
 export const dynamic = "force-dynamic"
 
@@ -129,7 +140,8 @@ export default async function LeadDetailPage({
 
   const tenantId = getRequiredTenantId()
 
-  const [[leadRow], leadDocs, member, leadActor, leadCommissions, ownerRows] = await Promise.all([
+  const [[leadRow], leadDocs, member, leadActor, leadCommissions, ownerRows, catalogNames, leadQuoteRows] =
+    await Promise.all([
     db
       .select({ lead: leads, partner: partners })
       .from(leads)
@@ -160,6 +172,12 @@ export default async function LeadDetailPage({
       .from(teamMembers)
       .where(and(eq(teamMembers.tenantId, tenantId), eq(teamMembers.isActive, true)))
       .orderBy(asc(teamMembers.name)),
+    getLeadCatalogNameList(tenantId),
+    db
+      .select()
+      .from(leadQuotes)
+      .where(and(eq(leadQuotes.leadId, id), isNull(leadQuotes.deletedAt)))
+      .orderBy(desc(leadQuotes.updatedAt)),
   ])
 
   if (!leadRow) notFound()
@@ -199,11 +217,16 @@ export default async function LeadDetailPage({
     ? hasAnyTeamRole(member.role, FINANCE_ROLES)
     : false
 
+  const pricingIntegrationsEnabled = isPricingEngineIntegrationsEnabled()
+
   const hasDealCloseCommission = leadCommissions.some(
     (c) => c.sourceType === "lead" && c.sourceId === id,
   )
 
-  const serviceOptions = mergeLeadServiceOptionsWithStored(services)
+  const serviceOptions =
+    catalogNames.length > 0
+      ? mergeLeadServiceOptionsWithStored(services, catalogNames)
+      : mergeLeadServiceOptionsWithStored(services)
   const ownerOptions = ownerRows.map((row) => ({
     label: `${row.name} (${row.role.replace(/_/g, " ")})`,
     value: row.authUserId,
@@ -626,6 +649,13 @@ export default async function LeadDetailPage({
               initialValues={pipelineInitial}
             />
           </section>
+
+          <AdminLeadPricingSection
+            leadId={lead.id}
+            quotes={leadQuoteRows}
+            canCreate={canManageLeads && !isLost && !isWon}
+            integrationsEnabled={pricingIntegrationsEnabled}
+          />
 
           {lead.rejectionReason ? (
             <section className="surface-card rounded-2xl p-6">

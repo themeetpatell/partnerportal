@@ -58,6 +58,8 @@ interface PartnerData {
   accountNoIban: string | null
   swiftBicCode: string | null
   paymentFrequency: string | null
+  /** Proposal / pricing attribution (unique per tenant) */
+  promoCode: string | null
 }
 
 function toDateInputValue(raw: string | null | undefined): string {
@@ -393,6 +395,31 @@ export function AdminPartnerEditForm({
               onChange={handleChange}
               placeholder="e.g. Managing Partner"
             />
+            <div>
+              <label className="text-slate-500 text-xs font-medium uppercase tracking-wider block mb-1.5">
+                Proposal promo code
+              </label>
+              <input
+                type="text"
+                name="promoCode"
+                value={val("promoCode")}
+                maxLength={6}
+                spellCheck={false}
+                autoComplete="off"
+                onChange={(e) =>
+                  handleChange(
+                    "promoCode",
+                    e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6),
+                  )
+                }
+                placeholder="e.g. PHG239"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500 transition-colors uppercase tracking-wide"
+              />
+              <p className="mt-1.5 text-[11px] text-slate-500 leading-snug">
+                3–6 characters for the pricing engine. Avoid I, L, O, and digits 0/1 for clarity.
+                Leave blank while pending; approved partners cannot clear this field.
+              </p>
+            </div>
             {teamPicklists ? (
               <>
                 <SelectField

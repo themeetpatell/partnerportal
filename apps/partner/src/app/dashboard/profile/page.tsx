@@ -30,6 +30,7 @@ import {
 } from "lucide-react"
 import { ProfileEditForm } from "@/components/profile-edit-form"
 import { AvatarUploadWrapper } from "@/components/avatar-upload-wrapper"
+import { PartnerPromoCodeClaim } from "@/components/partner-promo-code-claim"
 import { getCurrentPartnerRecord } from "@/lib/partner-record"
 
 function LifecyclePill({
@@ -460,6 +461,24 @@ export default async function ProfilePage({
               </div>
             </div>
           </section>
+
+          {partnerRecord.status === "approved" ? (
+            <section className="surface-card rounded-[2rem] p-6 sm:p-7">
+              <SectionHeader
+                title="Proposal promo code"
+                description="Share this code in the pricing engine when creating quotes so your partnership is attributed correctly."
+              />
+              {partnerRecord.promoCode?.trim() ? (
+                <FieldRow
+                  icon={Hash}
+                  label="Your promo code"
+                  value={partnerRecord.promoCode.trim().toUpperCase()}
+                />
+              ) : (
+                <PartnerPromoCodeClaim />
+              )}
+            </section>
+          ) : null}
 
           <section className="surface-card rounded-[2rem] p-6 sm:p-7">
             <ProfileEditForm
