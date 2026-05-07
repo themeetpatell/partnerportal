@@ -91,7 +91,7 @@ export function VerifyConfirmButton({
         }}
       >
         {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-        Continue to reset password
+        Continue to set password
       </button>
     </div>
   )

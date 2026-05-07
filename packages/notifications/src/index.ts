@@ -1329,6 +1329,42 @@ export async function sendPartnerWelcomeEmail(
   }
 }
 
+export async function sendPartnerPortalActivationEmail(
+  to: string,
+  partnerName: string,
+  activationUrl: string
+): Promise<void> {
+  try {
+    const safeName = escapeHtml(partnerName)
+    const safeActivationUrl = escapeHtml(activationUrl)
+
+    await sendEmail({
+      to,
+      subject: "Activate your Finanshels partner portal account",
+      html: buildAuthEmailShell({
+        preheader: "Set your partner portal password securely.",
+        eyebrow: "Portal activation",
+        portalLabel: "Partner Portal",
+        title: "Your partner account is ready.",
+        body: `
+          <p style="margin:0 0 12px;">Hi ${safeName},</p>
+          <p style="margin:0;">Your partner profile has been created by the Finanshels team. Use the link below to set your password and activate portal access.</p>
+        `,
+        ctaLabel: "Activate partner portal",
+        ctaHref: safeActivationUrl,
+        footer: `If you weren't expecting this, you can ignore this email. Sent to ${to}.`,
+      }),
+    })
+  } catch (error) {
+    console.error("[notifications] sendPartnerPortalActivationEmail failed", {
+      to,
+      partnerName,
+      error: String(error),
+    })
+    throw error
+  }
+}
+
 export async function sendOtpEmail(
   to: string,
   code: string,
