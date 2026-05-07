@@ -34,16 +34,15 @@ export async function POST(
 
   const [p] = await db
     .select({
-      sdrTeamMemberId: partners.sdrTeamMemberId,
       partnershipManagerTeamMemberId: partners.partnershipManagerTeamMemberId,
     })
     .from(partners)
     .where(eq(partners.id, id))
     .limit(1)
 
-  if (!p?.sdrTeamMemberId || !p?.partnershipManagerTeamMemberId) {
+  if (!p?.partnershipManagerTeamMemberId) {
     return NextResponse.redirect(
-      new URL(`/partners/${id}?error=assign_sdr_pm`, _req.url),
+      new URL(`/partners/${id}?error=assign_pm`, _req.url),
     )
   }
 

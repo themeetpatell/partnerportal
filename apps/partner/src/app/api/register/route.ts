@@ -2,8 +2,8 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
-import { documents, partners, tenants } from "@repo/db"
-import { eq } from "drizzle-orm"
+import { documents, partners, teamMembers, tenants } from "@repo/db"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import { sendPartnerApplicationReceivedEmail } from "@repo/notifications"
 import { rateLimit, getClientIp } from "@repo/auth"
 import {
@@ -53,6 +53,50 @@ function slugify(value: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
+}
+
+async function resolveRoundRobinPartnershipExecutiveId(tenantId: string) {
+  const executives = await db
+    .select({
+      id: teamMembers.id,
+      createdAt: teamMembers.createdAt,
+    })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.tenantId, tenantId),
+        eq(teamMembers.isActive, true),
+        eq(teamMembers.role, "partnership_executive"),
+      ),
+    )
+
+  if (executives.length === 0) {
+    return null
+  }
+
+  const partnerLoadRows = await db
+    .select({
+      ownerId: partners.ownerId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(partners)
+    .where(and(eq(partners.tenantId, tenantId), isNull(partners.deletedAt)))
+    .groupBy(partners.ownerId)
+
+  const loadByOwnerId = new Map<string, number>(
+    partnerLoadRows
+      .filter((row): row is { ownerId: string; count: number } => Boolean(row.ownerId))
+      .map((row) => [row.ownerId, Number(row.count) || 0]),
+  )
+
+  const sorted = [...executives].sort((a, b) => {
+    const loadA = loadByOwnerId.get(a.id) ?? 0
+    const loadB = loadByOwnerId.get(b.id) ?? 0
+    if (loadA !== loadB) return loadA - loadB
+    return a.createdAt.getTime() - b.createdAt.getTime()
+  })
+
+  return sorted[0]?.id ?? null
 }
 
 function parseSignatureDataUrl(dataUrl: string | null | undefined) {
@@ -167,6 +211,7 @@ export async function POST(request: NextRequest) {
     const tenantId = getTenantId()
     const now = new Date()
     const normalizedEmail = email.trim().toLowerCase()
+    const ownerId = await resolveRoundRobinPartnershipExecutiveId(tenantId)
 
     await ensureDefaultTenantExists(tenantId)
 
@@ -188,6 +233,7 @@ export async function POST(request: NextRequest) {
         contractSignatureType: signatureType,
         contractSignatureDataUrl: signatureDataUrl ?? null,
         agreementUrl: "/onboarding",
+        ownerId,
       })
       .returning()
 

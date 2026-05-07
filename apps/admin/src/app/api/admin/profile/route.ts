@@ -12,9 +12,18 @@ const patchSchema = z.object({
   firstName: z.string().max(100),
   lastName: z.string().max(100),
   email: z.string().email().max(255),
-  phone: z.string().max(50),
-  designation: z.string().max(200),
+  phone: z.string().max(50).nullable().optional(),
+  designation: z.string().max(200).nullable().optional(),
 })
+
+function normalizeOptionalString(value: string | null | undefined): string | null {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
 
 export async function PATCH(req: NextRequest) {
   const { userId } = await auth()
@@ -48,13 +57,16 @@ export async function PATCH(req: NextRequest) {
   const nextLast = data.lastName.trim() || null
   const combined = [nextFirst, nextLast].filter(Boolean).join(" ").trim()
 
+  const nextPhone = normalizeOptionalString(data.phone)
+  const nextDesignation = normalizeOptionalString(data.designation)
+
   const updates: Partial<typeof teamMembers.$inferInsert> = {
     updatedAt: new Date(),
     firstName: nextFirst,
     lastName: nextLast,
     name: combined.length > 0 ? combined : member.name,
-    phone: data.phone.trim() || null,
-    designation: data.designation.trim() || null,
+    phone: nextPhone,
+    designation: nextDesignation,
   }
 
   const nextEmail = data.email.trim().toLowerCase()

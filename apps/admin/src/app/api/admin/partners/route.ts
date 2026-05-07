@@ -1,12 +1,56 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@repo/auth/server"
-import { db, partners, logActivity } from "@repo/db"
-import { and, eq, isNull } from "drizzle-orm"
+import { db, partners, teamMembers, logActivity } from "@repo/db"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { getActorName, getActiveTeamMember } from "@/lib/admin-auth"
 import { getRequiredTenantId } from "@/lib/env"
 import { hasAnyTeamRole, PARTNER_OPERATIONS_ROLES } from "@/lib/rbac"
 import { resolvePartnerScopeForActor } from "@/lib/row-scope"
+
+async function resolveRoundRobinPartnershipExecutiveId(tenantId: string) {
+  const executives = await db
+    .select({
+      id: teamMembers.id,
+      createdAt: teamMembers.createdAt,
+    })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.tenantId, tenantId),
+        eq(teamMembers.isActive, true),
+        eq(teamMembers.role, "partnership_executive"),
+      ),
+    )
+
+  if (executives.length === 0) {
+    return null
+  }
+
+  const partnerLoadRows = await db
+    .select({
+      ownerId: partners.ownerId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(partners)
+    .where(and(eq(partners.tenantId, tenantId), isNull(partners.deletedAt)))
+    .groupBy(partners.ownerId)
+
+  const loadByOwnerId = new Map<string, number>(
+    partnerLoadRows
+      .filter((row): row is { ownerId: string; count: number } => Boolean(row.ownerId))
+      .map((row) => [row.ownerId, Number(row.count) || 0]),
+  )
+
+  const sorted = [...executives].sort((a, b) => {
+    const loadA = loadByOwnerId.get(a.id) ?? 0
+    const loadB = loadByOwnerId.get(b.id) ?? 0
+    if (loadA !== loadB) return loadA - loadB
+    return a.createdAt.getTime() - b.createdAt.getTime()
+  })
+
+  return sorted[0]?.id ?? null
+}
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -48,8 +92,12 @@ export async function POST(req: NextRequest) {
     status = "draft",
   } = body
 
+  const roundRobinOwnerId =
+    scope.kind === "restricted" ? null : await resolveRoundRobinPartnershipExecutiveId(tenantId)
+
   const resolvedOwnerId =
     scope.kind === "restricted" ? member.id : ownerId ? String(ownerId) : null
+  const finalOwnerId = resolvedOwnerId ?? roundRobinOwnerId
 
   if (!companyName || !contactName || !email || !type) {
     return NextResponse.json(
@@ -100,7 +148,7 @@ export async function POST(req: NextRequest) {
       country: country || null,
       city: city || null,
       channel: channel || null,
-      ownerId: resolvedOwnerId,
+      ownerId: finalOwnerId,
       agreementUrl: agreementUrl || null,
       commissionModelId: commissionModelId || null,
       status,

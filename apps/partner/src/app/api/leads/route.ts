@@ -2,8 +2,8 @@ import { auth } from "@repo/auth/server"
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@repo/db"
-import { leads, partners } from "@repo/db"
-import { and, eq, isNull, or } from "drizzle-orm"
+import { leads, partners, teamMembers } from "@repo/db"
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm"
 import { rateLimit } from "@repo/auth"
 import { sendLeadSubmittedEmail } from "@repo/notifications"
 import { splitCustomerNameForStorage } from "@repo/types"
@@ -28,6 +28,77 @@ const createLeadSchema = z
     ...data,
     serviceInterest: data.serviceInterest ?? data.serviceInterests ?? [],
   }))
+
+async function resolveRoundRobinPreSalesOwner(tenantId: string) {
+  const pool = await db
+    .select({
+      authUserId: teamMembers.authUserId,
+      name: teamMembers.name,
+      createdAt: teamMembers.createdAt,
+    })
+    .from(teamMembers)
+    .where(
+      and(
+        eq(teamMembers.tenantId, tenantId),
+        eq(teamMembers.isActive, true),
+        eq(teamMembers.role, "pre_sales_representative"),
+      ),
+    )
+
+  if (pool.length === 0) {
+    return null
+  }
+
+  const authIds = [...new Set(pool.map((member) => member.authUserId).filter(Boolean))]
+  if (authIds.length === 0) {
+    return null
+  }
+
+  const activeStatuses = [
+    "submitted",
+    "lead_approved",
+    "lead_follow_up",
+    "lead_qualified",
+    "proposal_sent",
+  ]
+
+  const loadRows = await db
+    .select({
+      leadOwnerUserId: leads.leadOwnerUserId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(leads)
+    .where(
+      and(
+        eq(leads.tenantId, tenantId),
+        isNull(leads.deletedAt),
+        inArray(leads.leadOwnerUserId, authIds),
+        inArray(leads.status, activeStatuses),
+      ),
+    )
+    .groupBy(leads.leadOwnerUserId)
+
+  const loadByAuthId = new Map<string, number>(
+    loadRows
+      .filter((row): row is { leadOwnerUserId: string; count: number } => Boolean(row.leadOwnerUserId))
+      .map((row) => [row.leadOwnerUserId, Number(row.count) || 0]),
+  )
+
+  const sorted = [...pool].sort((a, b) => {
+    const loadA = loadByAuthId.get(a.authUserId) ?? 0
+    const loadB = loadByAuthId.get(b.authUserId) ?? 0
+    if (loadA !== loadB) return loadA - loadB
+    return a.createdAt.getTime() - b.createdAt.getTime()
+  })
+
+  const winner = sorted[0]
+  if (!winner) return null
+
+  return {
+    leadOwnerUserId: winner.authUserId,
+    leadOwnerDisplay: winner.name,
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -132,6 +203,8 @@ export async function POST(request: NextRequest) {
     const { firstName: fnStore, lastName: lnStore } =
       splitCustomerNameForStorage(customerName)
 
+    const preSalesOwner = await resolveRoundRobinPreSalesOwner(partner.tenantId)
+
     const [newLead] = await db
       .insert(leads)
       .values({
@@ -148,6 +221,12 @@ export async function POST(request: NextRequest) {
         status: "submitted",
         source: "partner_portal",
         channel: "partner_portal",
+        assignedTo: preSalesOwner?.leadOwnerUserId ?? null,
+        leadOwnerUserId: preSalesOwner?.leadOwnerUserId ?? null,
+        leadOwner: preSalesOwner?.leadOwnerDisplay ?? null,
+        dealOwnerUserId: null,
+        dealOwner: null,
+        appointmentSetter: preSalesOwner?.leadOwnerDisplay ?? null,
       })
       .returning()
 
