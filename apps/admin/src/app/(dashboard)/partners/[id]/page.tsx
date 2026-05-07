@@ -230,7 +230,8 @@ export default async function PartnerDetailPage({
     id: partner.id,
     type: partner.type,
     companyName: partner.companyName,
-    contactName: partner.contactName,
+    firstName: partner.firstName,
+    lastName: partner.lastName,
     email: partner.email,
     phone: partner.phone,
     designation: partner.designation,
@@ -308,7 +309,12 @@ export default async function PartnerDetailPage({
   const onboardingSnapshotRows = [
     { label: "Partner type", value: partner.type?.replace("_", " ") },
     { label: "Company name", value: partner.companyName || "—" },
-    { label: "Primary contact", value: partner.contactName },
+    {
+      label: "Primary contact",
+      value:
+        [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+        partner.contactName,
+    },
     { label: "Business email", value: partner.email },
     { label: "Phone number", value: partner.phone },
     { label: "Submitted on", value: formatDate(partner.createdAt) },
@@ -331,7 +337,11 @@ export default async function PartnerDetailPage({
               {partner.profileImageUrl ? (
                 <Image
                   src={partner.profileImageUrl}
-                  alt={partner.companyName || partner.contactName}
+                  alt={
+                    partner.companyName ||
+                    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                    partner.contactName
+                  }
                   fill
                   className="object-cover"
                   sizes="56px"
@@ -343,7 +353,9 @@ export default async function PartnerDetailPage({
             </div>
             <div>
             <h1 className="text-2xl font-bold text-white">
-              {partner.companyName || partner.contactName}
+              {partner.companyName ||
+                [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                partner.contactName}
             </h1>
             <p className="mt-1 text-[11px] text-slate-500">Partner ID: {partner.id}</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -455,7 +467,9 @@ export default async function PartnerDetailPage({
                     Signed by
                   </p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    {partner.contractSignedName || partner.contactName}
+                    {partner.contractSignedName ||
+                      [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                      partner.contactName}
                   </p>
                 </div>
                 <div className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
@@ -579,10 +593,11 @@ export default async function PartnerDetailPage({
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
-                  Contact Name
+                  Primary contact
                 </dt>
                 <dd className="text-white text-sm">
-                  {partner.contactName}
+                  {[partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                    partner.contactName}
                 </dd>
               </div>
               <div>
@@ -724,7 +739,12 @@ export default async function PartnerDetailPage({
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">
                   Signed By
                 </dt>
-                <dd className="text-white text-sm">{partner.contractSignedName || partner.contactName || "—"}</dd>
+                <dd className="text-white text-sm">
+                  {partner.contractSignedName ||
+                    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                    partner.contactName ||
+                    "—"}
+                </dd>
               </div>
               <div>
                 <dt className="text-slate-500 text-xs font-medium uppercase tracking-wider mb-1">

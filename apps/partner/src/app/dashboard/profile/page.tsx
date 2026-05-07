@@ -152,12 +152,17 @@ export default async function ProfilePage({
     getCurrentPartnerRecord(),
   ])
 
-  const fullName =
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Partner"
-
   if (!partnerRecord) {
     redirect("/onboarding")
   }
+
+  const partnerContactDisplayName =
+    [partnerRecord.firstName, partnerRecord.lastName].filter(Boolean).join(" ").trim() ||
+    partnerRecord.contactName
+  const fullName =
+    partnerContactDisplayName ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    "Partner"
 
   const [[partnerLeadRollup], [tradeLicenseDocument]] = await Promise.all([
     db
@@ -266,7 +271,8 @@ export default async function ProfilePage({
 
   const editablePartnerData = {
     companyName: partnerRecord.companyName,
-    contactName: partnerRecord.contactName,
+    firstName: partnerRecord.firstName,
+    lastName: partnerRecord.lastName,
     phone: partnerRecord.phone,
     designation: partnerRecord.designation,
     dateOfBirth: partnerRecord.dateOfBirth,
@@ -296,7 +302,8 @@ export default async function ProfilePage({
   const memberSince = formatDate(partnerRecord.createdAt) || "—"
   const profileCompletenessFields = [
     partnerRecord.companyName,
-    partnerRecord.contactName,
+    partnerRecord.firstName,
+    partnerRecord.lastName,
     partnerRecord.phone,
     partnerRecord.designation,
     partnerRecord.secondaryEmail,
@@ -464,7 +471,7 @@ export default async function ProfilePage({
                 <FieldRow
                   icon={User}
                   label="Primary contact"
-                  value={partnerRecord.contactName}
+                  value={partnerContactDisplayName}
                 />
                 <FieldRow
                   icon={Briefcase}

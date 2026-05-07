@@ -41,12 +41,19 @@ export async function POST(request: NextRequest) {
 
     // Look up the partner name for the email template
     const [partner] = await db
-      .select({ contactName: partners.contactName })
+      .select({
+        firstName: partners.firstName,
+        lastName: partners.lastName,
+        companyName: partners.companyName,
+      })
       .from(partners)
       .where(eq(partners.email, email))
       .limit(1)
 
-    const partnerName = partner?.contactName || "Partner"
+    const partnerName =
+      [partner?.firstName, partner?.lastName].filter(Boolean).join(" ").trim() ||
+      partner?.companyName ||
+      "Partner"
 
     const resetUrl = buildSupabaseVerificationUrl(
       "partner",

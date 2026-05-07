@@ -8,7 +8,8 @@ import { getPartnerRecordForAuthenticatedUser } from "@/lib/partner-record"
 
 const updateProfileSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255).optional(),
-  contactName: z.string().min(1, "Contact name is required").max(255).optional(),
+  firstName: z.string().min(1, "First name is required").max(255).optional(),
+  lastName: z.string().min(1, "Last name is required").max(255).optional(),
   phone: z.string().max(50).optional().nullable(),
   website: z.string().url("Invalid URL").max(500).optional().nullable().or(z.literal("")),
   linkedinId: z.string().max(255).optional().nullable(),
@@ -73,11 +74,23 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Partner record not found." }, { status: 404 })
     }
 
+    const resolvedFirstName = data.firstName ?? existingPartner.firstName ?? ""
+    const resolvedLastName = data.lastName ?? existingPartner.lastName ?? ""
+    const shouldUpdateContactName =
+      data.firstName !== undefined || data.lastName !== undefined
+    const resolvedContactName = [resolvedFirstName, resolvedLastName]
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join(" ")
+      .trim()
+
     const [updated] = await db
       .update(partners)
       .set({
         ...(data.companyName !== undefined && { companyName: data.companyName }),
-        ...(data.contactName !== undefined && { contactName: data.contactName }),
+        ...(data.firstName !== undefined && { firstName: data.firstName }),
+        ...(data.lastName !== undefined && { lastName: data.lastName }),
+        ...(shouldUpdateContactName && { contactName: resolvedContactName }),
         ...(data.phone !== undefined && { phone: data.phone || null }),
         ...(data.website !== undefined && { website: data.website || null }),
         ...(data.linkedinId !== undefined && { linkedinId: data.linkedinId }),

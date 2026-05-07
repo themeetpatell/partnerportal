@@ -67,7 +67,9 @@ export async function POST(
 
   await sendPartnerApprovedEmail(
     updated.email,
-    updated.contactName,
+    [updated.firstName, updated.lastName].filter(Boolean).join(" ").trim() ||
+      updated.companyName ||
+      updated.contactName,
     updated.companyName,
   )
 

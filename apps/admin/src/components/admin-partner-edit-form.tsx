@@ -13,7 +13,8 @@ interface PartnerData {
   // Admin-managed primary
   type: string
   companyName: string
-  contactName: string
+  firstName: string | null
+  lastName: string | null
   email: string
   phone: string | null
   designation: string | null
@@ -355,11 +356,18 @@ export function AdminPartnerEditForm({
               placeholder="Registered company name"
             />
             <TextField
-              label="Contact name"
-              name="contactName"
-              value={val("contactName")}
+              label="First name"
+              name="firstName"
+              value={val("firstName")}
               onChange={handleChange}
-              placeholder="Primary contact full name"
+              placeholder="Primary contact first name"
+            />
+            <TextField
+              label="Last name"
+              name="lastName"
+              value={val("lastName")}
+              onChange={handleChange}
+              placeholder="Primary contact last name"
             />
             <SelectField
               label="Partner type"

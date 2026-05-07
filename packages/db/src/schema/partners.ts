@@ -24,6 +24,8 @@ export const partners = pgTable("partners", {
   // Core identity
   type: text("type").notNull(), // referral | channel
   companyName: text("company_name").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   contactName: text("contact_name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),

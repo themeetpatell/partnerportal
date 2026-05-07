@@ -70,7 +70,9 @@ export async function POST(
 
   await sendPartnerPasswordResetEmail(
     partner.email,
-    partner.contactName || partner.companyName || "Partner",
+    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+      partner.companyName ||
+      "Partner",
     resetUrl
   )
 

@@ -64,6 +64,10 @@ function normalizeOptionalText(value: unknown) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function formatContactFullName(firstName: string, lastName: string) {
+  return [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim()
+}
+
 type OptionalUrlResult = {
   value: string | null
   error: string | null
@@ -85,7 +89,14 @@ function normalizeOptionalUrl(value: unknown) {
   }
 }
 
-async function ensurePartnerAuthUserId(email: string, fullName: string, currentAuthUserId: string) {
+async function ensurePartnerAuthUserId(params: {
+  email: string
+  firstName: string
+  lastName: string
+  fullName: string
+  currentAuthUserId: string
+}) {
+  const { email, firstName, lastName, fullName, currentAuthUserId } = params
   if (!currentAuthUserId.startsWith("manual_")) {
     return currentAuthUserId
   }
@@ -95,7 +106,11 @@ async function ensurePartnerAuthUserId(email: string, fullName: string, currentA
     await supabaseAdmin.auth.admin.createUser({
       email,
       email_confirm: true,
-      user_metadata: { full_name: fullName },
+      user_metadata: {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: fullName,
+      },
     })
 
   if (!createError) {
@@ -128,7 +143,7 @@ async function ensurePartnerAuthUserId(email: string, fullName: string, currentA
 
 async function sendPartnerActivationLinkEmail(params: {
   email: string
-  contactName: string
+  displayName: string
 }) {
   const supabaseAdmin = getSupabaseAdminClient()
   const { data: linkData, error: linkError } =
@@ -150,7 +165,7 @@ async function sendPartnerActivationLinkEmail(params: {
 
   await sendPartnerPortalActivationEmail(
     params.email,
-    params.contactName,
+    params.displayName,
     activationUrl
   )
 }
@@ -180,7 +195,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const {
     companyName,
-    contactName,
+    firstName,
+    lastName,
     email,
     phone,
     type,
@@ -208,17 +224,23 @@ export async function POST(req: NextRequest) {
     scope.kind === "restricted" ? member.id : ownerId ? String(ownerId) : null
   const finalOwnerId = resolvedOwnerId ?? roundRobinOwnerId
 
-  if (!companyName || !contactName || !email || !type) {
+  if (!companyName || !firstName || !lastName || !email || !type) {
     return NextResponse.json(
-      { error: "companyName, contactName, email, type are required" },
+      { error: "companyName, firstName, lastName, email, type are required" },
       { status: 400 }
     )
   }
 
+  const normalizedFirstName = typeof firstName === "string" ? firstName.trim() : ""
+  const normalizedLastName = typeof lastName === "string" ? lastName.trim() : ""
   const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : ""
+  const normalizedContactName = formatContactFullName(normalizedFirstName, normalizedLastName)
 
-  if (!normalizedEmail) {
-    return NextResponse.json({ error: "email is required" }, { status: 400 })
+  if (!normalizedFirstName || !normalizedLastName || !normalizedEmail) {
+    return NextResponse.json(
+      { error: "firstName, lastName, and email are required" },
+      { status: 400 }
+    )
   }
 
   const normalizedWebsite = normalizeOptionalUrl(website)
@@ -253,7 +275,9 @@ export async function POST(req: NextRequest) {
       tenantId,
       authUserId: placeholderAuthUserId,
       companyName,
-      contactName,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+      contactName: normalizedContactName,
       email: normalizedEmail,
       phone: normalizeOptionalText(phone),
       type,
@@ -292,10 +316,13 @@ export async function POST(req: NextRequest) {
   if (sendActivationLink === true) {
     try {
       const resolvedAuthUserId = await ensurePartnerAuthUserId(
-        normalizedEmail,
-        contactName,
-        created.authUserId
-      )
+        {
+          email: normalizedEmail,
+          firstName: normalizedFirstName,
+          lastName: normalizedLastName,
+          fullName: normalizedContactName,
+          currentAuthUserId: created.authUserId,
+        })
 
       if (resolvedAuthUserId !== created.authUserId) {
         await db
@@ -306,7 +333,7 @@ export async function POST(req: NextRequest) {
 
       await sendPartnerActivationLinkEmail({
         email: normalizedEmail,
-        contactName,
+        displayName: normalizedContactName || companyName,
       })
 
       await logActivity({

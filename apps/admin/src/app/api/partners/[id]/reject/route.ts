@@ -64,7 +64,9 @@ export async function POST(
 
   await sendPartnerRejectedEmail(
     updated.email,
-    updated.contactName,
+    [updated.firstName, updated.lastName].filter(Boolean).join(" ").trim() ||
+      updated.companyName ||
+      updated.contactName,
     updated.rejectionReason
   )
 

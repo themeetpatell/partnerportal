@@ -25,7 +25,6 @@ type PartnerType = "referral" | "channel"
 interface FormData {
   type: PartnerType | null
   companyName: string
-  contactName: string
   email: string
   phone: string
   agreedToTerms: boolean
@@ -37,7 +36,6 @@ interface FormData {
 const INITIAL_FORM: FormData = {
   type: null,
   companyName: "",
-  contactName: "",
   email: "",
   phone: "",
   agreedToTerms: false,
@@ -851,7 +849,11 @@ export default function OnboardingPage() {
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     user?.email ||
     ""
+  const [derivedFirstName, ...derivedLastNameParts] = lockedContact.trim().split(/\s+/).filter(Boolean)
   const lockedEmail = user?.email || ""
+  const emailLocalPart = lockedEmail.split("@")[0]?.trim()
+  const lockedFirstName = user?.firstName || derivedFirstName || emailLocalPart || "Partner"
+  const lockedLastName = user?.lastName || derivedLastNameParts.join(" ") || "Partner"
 
   function handleChange(field: keyof FormData, value: string | boolean | null) {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -895,7 +897,8 @@ export default function OnboardingPage() {
           body: JSON.stringify({
             type: formData.type,
             companyName: formData.companyName,
-            contactName: lockedContact,
+            firstName: lockedFirstName,
+            lastName: lockedLastName,
             email: lockedEmail,
             phone: formData.phone,
             agreedToTerms: formData.agreedToTerms,

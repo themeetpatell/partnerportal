@@ -66,14 +66,17 @@ export async function POST() {
 
   await sendPartnerPasswordResetEmail(
     email,
-    partner.contactName || partner.companyName || "Partner",
+    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+      partner.companyName ||
+      "Partner",
     resetUrl
   )
 
   const actorName =
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
     user?.email ||
-    partner.contactName ||
+    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+    partner.companyName ||
     "Partner"
 
   await logActivity({

@@ -63,6 +63,8 @@ export default async function PartnersPage({
     .select({
       id: partners.id,
       companyName: partners.companyName,
+      firstName: partners.firstName,
+      lastName: partners.lastName,
       contactName: partners.contactName,
       email: partners.email,
       phone: partners.phone,
@@ -239,7 +241,8 @@ export default async function PartnersPage({
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-zinc-300 text-sm">
-                        {partner.contactName}
+                        {[partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+                          partner.contactName}
                       </p>
                       <p className="text-zinc-500 text-xs">{partner.email}</p>
                     </td>

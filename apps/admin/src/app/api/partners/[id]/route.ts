@@ -40,7 +40,8 @@ const updatePartnerSchema = z.object({
 
   // Also allow admin to update partner-editable fields
   companyName: z.string().min(1).max(255).optional(),
-  contactName: z.string().min(1).max(255).optional(),
+  firstName: z.string().min(1).max(255).optional(),
+  lastName: z.string().min(1).max(255).optional(),
   phone: z.string().max(50).optional().nullable(),
   designation: z.string().max(255).optional().nullable(),
   dateOfBirth: z.string().max(20).optional().nullable(),
@@ -117,7 +118,7 @@ export async function PATCH(
     "type", "tier", "region", "country", "city", "channel",
     "partnershipManager", "appointmentsSetter", "strategicFunnelStage",
     "partnersId", "partnershipLevel", "commissionType", "commissionRate",
-    "companyName", "contactName", "phone", "designation", "dateOfBirth",
+    "companyName", "firstName", "lastName", "phone", "designation", "dateOfBirth",
     "secondaryEmail", "website", "linkedinId", "nationality", "businessSize",
     "partnerIndustry", "overview", "partnerAddress", "vatNumber", "tradeLicense",
     "emirateIdPassport", "beneficiaryName", "bankName", "bankCountry",
@@ -128,6 +129,23 @@ export async function PATCH(
     if (data[field] !== undefined) {
       setObj[field] = data[field] === "" ? null : data[field]
     }
+  }
+
+  const shouldUpdateContactName =
+    data.firstName !== undefined || data.lastName !== undefined
+  if (shouldUpdateContactName) {
+    const [currentPartner] = await db
+      .select({
+        firstName: partners.firstName,
+        lastName: partners.lastName,
+      })
+      .from(partners)
+      .where(eq(partners.id, id))
+      .limit(1)
+
+    const nextFirstName = (data.firstName ?? currentPartner?.firstName ?? "").trim()
+    const nextLastName = (data.lastName ?? currentPartner?.lastName ?? "").trim()
+    setObj.contactName = [nextFirstName, nextLastName].filter(Boolean).join(" ").trim()
   }
 
   const boolFields = ["salesTrainingDone", "emailOptOut", "vatRegistered"] as const

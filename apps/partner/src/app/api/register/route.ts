@@ -119,7 +119,8 @@ function parseSignatureDataUrl(dataUrl: string | null | undefined) {
 
 const registerSchema = z.object({
   companyName: z.string().max(255).optional().default(""),
-  contactName: z.string().min(1, "Contact name is required").max(255),
+  firstName: z.string().trim().min(1, "First name is required").max(255),
+  lastName: z.string().trim().min(1, "Last name is required").max(255),
   email: z.string().email("Invalid email address"),
   phone: z.string().optional().default(""),
   type: z.enum(["referral", "channel"]),
@@ -200,7 +201,8 @@ export async function POST(request: NextRequest) {
 
     const {
       companyName,
-      contactName,
+      firstName,
+      lastName,
       email,
       phone,
       type,
@@ -211,6 +213,9 @@ export async function POST(request: NextRequest) {
     const tenantId = getTenantId()
     const now = new Date()
     const normalizedEmail = email.trim().toLowerCase()
+    const normalizedFirstName = firstName.trim()
+    const normalizedLastName = lastName.trim()
+    const contactName = [normalizedFirstName, normalizedLastName].filter(Boolean).join(" ")
     const ownerId = await resolveRoundRobinPartnershipExecutiveId(tenantId)
 
     await ensureDefaultTenantExists(tenantId)
@@ -223,6 +228,8 @@ export async function POST(request: NextRequest) {
         authUserId: userId,
         type,
         companyName,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
         contactName,
         email: normalizedEmail,
         phone: phone || null,
@@ -295,7 +302,8 @@ export async function POST(request: NextRequest) {
           id: newPartner.id,
           type: newPartner.type,
           companyName: newPartner.companyName,
-          contactName: newPartner.contactName,
+          firstName: newPartner.firstName,
+          lastName: newPartner.lastName,
           email: newPartner.email,
           status: newPartner.status,
           createdAt: newPartner.createdAt,

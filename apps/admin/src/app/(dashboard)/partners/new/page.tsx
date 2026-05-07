@@ -15,7 +15,8 @@ export default function NewPartnerPage() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     companyName: "",
-    contactName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     phone: "",
     type: "referral" as (typeof TYPES)[number],
@@ -100,12 +101,21 @@ export default function NewPartnerPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Contact Name *">
+            <Field label="First Name *">
               <input
                 required
-                value={form.contactName}
-                onChange={set("contactName")}
-                placeholder="Jane Smith"
+                value={form.firstName}
+                onChange={set("firstName")}
+                placeholder="Jane"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Last Name *">
+              <input
+                required
+                value={form.lastName}
+                onChange={set("lastName")}
+                placeholder="Smith"
                 className={inputCls}
               />
             </Field>

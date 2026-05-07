@@ -10,7 +10,8 @@ import { toast } from "sonner"
 
 interface PartnerData {
   companyName: string
-  contactName: string
+  firstName: string | null
+  lastName: string | null
   phone: string | null
   designation: string | null
   dateOfBirth: string | null
@@ -372,7 +373,8 @@ export function ProfileEditForm({
       <div className="grid gap-4 sm:grid-cols-2">
         {section === "contact" && (
           <>
-            <TextField label="Contact name" name="contactName" value={val("contactName")} onChange={handleChange} placeholder="Meet Patel" />
+            <TextField label="First name" name="firstName" value={val("firstName")} onChange={handleChange} placeholder="Meet" />
+            <TextField label="Last name" name="lastName" value={val("lastName")} onChange={handleChange} placeholder="Patel" />
             <TextField label="Phone" name="phone" value={val("phone")} onChange={handleChange} placeholder="+971 50 000 0000" />
             <TextField label="Designation" name="designation" value={val("designation")} onChange={handleChange} placeholder="Managing Partner" />
             <TextField label="Date of birth" name="dateOfBirth" value={val("dateOfBirth")} onChange={handleChange} type="date" />

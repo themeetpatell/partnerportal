@@ -29,6 +29,20 @@ function getPartnerAgreementUrl() {
   return "/onboarding"
 }
 
+function getPartnerDisplayName(partner: {
+  firstName: string | null
+  lastName: string | null
+  companyName: string | null
+  contactName: string | null
+}) {
+  return (
+    [partner.firstName, partner.lastName].filter(Boolean).join(" ").trim() ||
+    partner.companyName ||
+    partner.contactName ||
+    "Partner"
+  )
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -102,7 +116,7 @@ export async function POST(
       updates.onboardedAt = partner.onboardedAt ?? now
       updates.contractStatus = "signed"
       updates.contractSignedAt = partner.contractSignedAt ?? now
-      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedName = partner.contractSignedName ?? getPartnerDisplayName(partner)
       updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
       updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
       note = "Partner application approved and workspace unlocked. Agreement acknowledgement was already completed during onboarding."
@@ -131,7 +145,7 @@ export async function POST(
       updates.contractSentAt = partner.contractSentAt ?? now
       updates.contractStatus = "signed"
       updates.contractSignedAt = partner.contractSignedAt ?? partner.contractSentAt ?? now
-      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedName = partner.contractSignedName ?? getPartnerDisplayName(partner)
       updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
       updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
       updates.onboardedAt = partner.onboardedAt ?? now
@@ -151,7 +165,7 @@ export async function POST(
       updates.onboardedAt = now
       updates.contractStatus = "signed"
       updates.contractSignedAt = partner.contractSignedAt ?? now
-      updates.contractSignedName = partner.contractSignedName ?? partner.contactName
+      updates.contractSignedName = partner.contractSignedName ?? getPartnerDisplayName(partner)
       updates.contractSignedDesignation = partner.contractSignedDesignation ?? partner.designation
       updates.contractSignatureType = partner.contractSignatureType ?? "onboarding_acceptance"
       note = "Partner marked as onboarded. Separate contract acceptance is no longer required."
@@ -187,7 +201,7 @@ export async function POST(
   if (emailAction === "approved") {
     await sendPartnerApprovedEmail(
       updated.email,
-      updated.contactName,
+      getPartnerDisplayName(updated),
       updated.companyName,
     )
   }
@@ -195,7 +209,7 @@ export async function POST(
   if (emailAction === "reactivated") {
     await sendPartnerReactivatedEmail(
       updated.email,
-      updated.contactName,
+      getPartnerDisplayName(updated),
       updated.companyName,
     )
   }
@@ -203,7 +217,7 @@ export async function POST(
   if (emailAction === "suspended") {
     await sendPartnerSuspendedEmail(
       updated.email,
-      updated.contactName,
+      getPartnerDisplayName(updated),
       updated.suspensionReason,
     )
   }
@@ -211,7 +225,7 @@ export async function POST(
   if (emailAction === "workspace_unlocked") {
     await sendPartnerWorkspaceUnlockedEmail(
       updated.email,
-      updated.contactName,
+      getPartnerDisplayName(updated),
       updated.companyName,
     )
   }
